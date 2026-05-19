@@ -1,0 +1,35 @@
+import type { Grid, CellValue, Position } from '@/types';
+import { CellType } from '@/types';
+import { ROWS, COLS } from '@/lib/constants';
+
+export function createGrid(): Grid {
+  return Array.from({ length: ROWS }, () => new Array(COLS).fill(CellType.EMPTY));
+}
+
+export function inBounds(row: number, col: number): boolean {
+  return row >= 0 && row < ROWS && col >= 0 && col < COLS;
+}
+
+export function setCell(grid: Grid, row: number, col: number, value: CellValue): Grid {
+  if (!inBounds(row, col)) return grid;
+  const newGrid = grid.map((r) => [...r]);
+  newGrid[row][col] = value;
+  return newGrid;
+}
+
+export function applyWalls(grid: Grid, walls: Position[]): Grid {
+  const newGrid = grid.map((r) => [...r]);
+  for (const { row, col } of walls) {
+    if (inBounds(row, col)) {
+      newGrid[row][col] = CellType.WALL;
+    }
+  }
+  return newGrid;
+}
+
+export function pixelToCell(x: number, y: number, cellSize: number, canvasRect: DOMRect): Position {
+  return {
+    row: Math.floor((y - canvasRect.top) / cellSize),
+    col: Math.floor((x - canvasRect.left) / cellSize),
+  };
+}

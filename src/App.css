@@ -1,0 +1,30 @@
+/* ── Custom scrollbar ── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Pulse animation for status badge ── */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Canvas container glow on hover ── */
+canvas:hover {
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.04);
+}
+
+/* ── Smooth transitions for all interactive elements ── */
+button, [role="tab"], [data-state] {
+  transition: all 0.15s ease;
+}
