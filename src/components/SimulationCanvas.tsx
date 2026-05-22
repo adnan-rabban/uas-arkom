@@ -278,12 +278,12 @@ export function SimulationCanvas({
   }, [drawFrame, onSetVstep, onSetPstep, onSetRobotT, onSetState]);
 
   return (
-    <div className="relative bg-black rounded-none border border-[#3c3c3c] overflow-hidden">
+    <div className="relative bg-black rounded-none border border-[#3c3c3c] overflow-hidden flex-1 flex items-center justify-center min-h-0 h-full w-full">
       <canvas
         ref={canvasRef}
         width={CANVAS_W}
         height={CANVAS_H}
-        className="block w-full h-auto cursor-crosshair"
+        className="max-h-full max-w-full object-contain block cursor-crosshair"
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}

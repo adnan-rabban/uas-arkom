@@ -31,7 +31,7 @@ export function TopBar({ lang, onToggleLang, simulationState, pathFound }: TopBa
   const status = getStatusConfig();
 
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 bg-black border-none">
+    <div className="flex items-center justify-between px-5 py-3.5 bg-black border-none shrink-0">
       <div className="flex items-center gap-3">
         <div className="w-1.5 h-1.5 bg-white" />
         <h1 className="text-[11px] font-bold tracking-[0.18em] uppercase text-white">

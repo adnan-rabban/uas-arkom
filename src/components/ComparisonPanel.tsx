@@ -32,7 +32,7 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
   };
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
+    <Collapsible open={open} onOpenChange={setOpen} className="shrink-0">
       <CollapsibleTrigger className="flex items-center justify-between w-full px-5 py-2.5 border-t border-[#3c3c3c] bg-[#0d0d0d] hover:bg-white/2 transition-colors cursor-pointer rounded-none">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">

@@ -19,7 +19,7 @@ export function LegendBar({ lang }: LegendBarProps) {
   ];
 
   return (
-    <div className="flex items-center gap-3 flex-wrap px-5 py-2.5 border-t border-[#3c3c3c] bg-black">
+    <div className="flex items-center gap-3 flex-wrap px-5 py-2.5 border-t border-[#3c3c3c] bg-black shrink-0">
       {items.map((item) => (
         <div key={item.label} className="flex items-center gap-1.5">
           <div className={`w-2.5 h-2.5 shrink-0 ${item.color}`} />
