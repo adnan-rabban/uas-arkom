@@ -129,7 +129,7 @@ export default function App() {
             </button>
 
             {/* Canvas Area */}
-            <div className="flex-1 p-4 flex flex-col justify-center min-h-0 overflow-hidden bg-black">
+            <div className="flex-1 p-4 flex flex-col justify-center min-h-0 overflow-hidden bg-[#0d0d0d]">
               <SimulationCanvas
                 grid={grid}
                 startPos={startPos}
