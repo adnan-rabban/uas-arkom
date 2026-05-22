@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Grid, Position, AlgorithmKey, SimulationState, ComparisonResult } from '@/types';
 import { runAlgorithm } from '@/lib/algorithms';
 
@@ -15,7 +15,9 @@ export function useSimulation() {
   const [comparison, setComparison] = useState<ComparisonResult[] | null>(null);
 
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const reset = useCallback(() => {
     setState('idle');

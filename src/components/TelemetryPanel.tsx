@@ -43,12 +43,12 @@ export function TelemetryPanel({ explored, pathLength, computeTime, simulationSt
       </span>
       <div className="grid grid-cols-2 gap-1.5">
         {stats.map((s) => (
-          <Card key={s.label} className="bg-white/[0.02] border-white/5">
+          <Card key={s.label} className="bg-white/2 border-white/5">
             <CardContent className="p-2.5 text-center">
               <div className={`text-sm font-mono font-semibold ${s.color} tracking-wide`}>
                 {s.value}
               </div>
-              <div className="text-[8px] tracking-[0.1em] uppercase text-white/20 mt-0.5">
+              <div className="text-[8px] tracking-widest uppercase text-white/20 mt-0.5">
                 {s.label}
               </div>
             </CardContent>

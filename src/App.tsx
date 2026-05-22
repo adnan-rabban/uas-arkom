@@ -80,7 +80,7 @@ export default function App() {
   return (
     <TooltipProvider delay={300}>
       <div className="min-h-screen bg-[#04080f] flex items-center justify-center p-4">
-        <div className="w-full max-w-[1200px] bg-[#060b16] border border-white/[0.04] rounded-xl overflow-hidden shadow-2xl shadow-black/50">
+        <div className="w-full max-w-[1200px] bg-[#060b16] border border-white/4 rounded-xl overflow-hidden shadow-2xl shadow-black/50">
           {/* Header */}
           <TopBar
             lang={lang}

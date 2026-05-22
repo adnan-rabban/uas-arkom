@@ -32,7 +32,7 @@ export function MapPresets({ currentPreset, onSelectPreset, lang }: MapPresetsPr
           if (val) onSelectPreset(val);
         }}
       >
-        <SelectTrigger className="h-8 w-full text-[10px] font-mono tracking-wider bg-white/[0.02] border-white/5 text-white/40 hover:text-white/60">
+        <SelectTrigger className="h-8 w-full text-[10px] font-mono tracking-wider bg-white/2 border-white/5 text-white/40 hover:text-white/60">
           <SelectValue placeholder={t.mapPreset} />
         </SelectTrigger>
         <SelectContent className="bg-[#0c1424] border-white/10">

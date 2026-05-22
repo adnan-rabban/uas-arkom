@@ -36,7 +36,7 @@ export function AlgorithmSelector({ algorithm, onSelect, onCompareAll, lang }: A
       </span>
 
       <Tabs value={algorithm} onValueChange={(v) => onSelect(v as AlgorithmKey)}>
-        <TabsList className="w-full bg-white/[0.03] border border-white/5 h-8">
+        <TabsList className="w-full bg-white/3 border border-white/5 h-8">
           {algos.map((a) => (
             <TabsTrigger
               key={a.key}
@@ -51,7 +51,7 @@ export function AlgorithmSelector({ algorithm, onSelect, onCompareAll, lang }: A
 
       <button
         onClick={onCompareAll}
-        className="w-full text-[10px] tracking-wider font-mono py-1.5 rounded-md border border-white/5 bg-white/[0.02] text-white/30 hover:text-sky-300 hover:border-sky-500/20 hover:bg-sky-500/5 transition-all cursor-pointer"
+        className="w-full text-[10px] tracking-wider font-mono py-1.5 rounded-md border border-white/5 bg-white/2 text-white/30 hover:text-sky-300 hover:border-sky-500/20 hover:bg-sky-500/5 transition-all cursor-pointer"
       >
         ⚡ Compare All
       </button>
@@ -66,7 +66,7 @@ export function AlgorithmSelector({ algorithm, onSelect, onCompareAll, lang }: A
             {algos.map((a) => {
               const info = infoMap[a.key];
               return (
-                <Card key={a.key} className={`bg-white/[0.02] border-white/5 ${algorithm === a.key ? `border-l-2 ${info.color}` : ''}`}>
+                <Card key={a.key} className={`bg-white/2 border-white/5 ${algorithm === a.key ? `border-l-2 ${info.color}` : ''}`}>
                   <CardContent className="p-3">
                     <div className={`text-[10px] font-semibold tracking-wider ${info.color.split(' ')[0]} mb-1`}>
                       {info.name}

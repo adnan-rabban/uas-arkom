@@ -46,16 +46,18 @@ export function SimulationCanvas({
   const startRef = useRef(startPos);
   const endRef = useRef(endPos);
 
-  stateRef.current = simulationState;
-  vstepRef.current = vstep;
-  pstepRef.current = pstep;
-  robotTRef.current = robotT;
-  speedRef.current = speed;
-  visitOrderRef.current = visitOrder;
-  pathRef.current = path;
-  gridRef.current = grid;
-  startRef.current = startPos;
-  endRef.current = endPos;
+  useEffect(() => {
+    stateRef.current = simulationState;
+    vstepRef.current = vstep;
+    pstepRef.current = pstep;
+    robotTRef.current = robotT;
+    speedRef.current = speed;
+    visitOrderRef.current = visitOrder;
+    pathRef.current = path;
+    gridRef.current = grid;
+    startRef.current = startPos;
+    endRef.current = endPos;
+  }, [simulationState, vstep, pstep, robotT, speed, visitOrder, path, grid, startPos, endPos]);
 
   const getRobotPos = useCallback(() => {
     const p = pathRef.current;
@@ -182,7 +184,11 @@ export function SimulationCanvas({
       ctx.beginPath();
       for (let i = 0; i < Math.min(pc, p.length); i++) {
         const { row: r, col: c } = p[i];
-        i === 0 ? ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2) : ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+        if (i === 0) {
+          ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+        } else {
+          ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+        }
       }
       ctx.stroke();
     }
