@@ -23,20 +23,20 @@ export function DrawingTools({ tool, onSelectTool, lang }: DrawingToolsProps) {
       <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
         {t.drawingTools}
       </span>
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-2 gap-1.5">
         {tools.map((item) => (
           <button
             key={item.value}
             onClick={() => onSelectTool(item.value)}
             title={`${item.label} (${item.key})`}
-            className={`flex flex-col items-center gap-0.5 py-2 rounded-none text-white/30 border transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-none text-white/30 border transition-all cursor-pointer ${
               tool === item.value
                 ? item.activeClass
                 : 'border-[#3c3c3c] bg-transparent hover:border-white hover:text-white'
             }`}
           >
             {item.icon}
-            <span className="text-[8px] tracking-wider">{item.label}</span>
+            <span className="text-[9px] tracking-widest font-bold uppercase">{item.label}</span>
           </button>
         ))}
       </div>
