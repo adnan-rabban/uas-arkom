@@ -39,7 +39,7 @@ export function ControlPanel(props: ControlPanelProps) {
   const isRunning = props.simulationState !== 'idle' && props.simulationState !== 'done';
 
   return (
-    <div className="w-72 flex-shrink-0 bg-[#080e1c]/60 backdrop-blur-sm border border-white/5 rounded-lg overflow-hidden flex flex-col">
+    <div className="w-72 shrink-0 bg-black border-l border-[#3c3c3c] rounded-none overflow-hidden flex flex-col">
       <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
         {/* Algorithm Selection */}
         <AlgorithmSelector
@@ -72,7 +72,7 @@ export function ControlPanel(props: ControlPanelProps) {
         {/* Speed Control */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-sky-400/50">
+            <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
               {t.speed}
             </span>
             <span className="text-[10px] font-mono text-white/25">{props.speed}x</span>
@@ -94,7 +94,7 @@ export function ControlPanel(props: ControlPanelProps) {
 
         {/* Action Buttons */}
         <div className="space-y-2">
-          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-sky-400/50">
+          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
             {t.actions}
           </span>
           <div className="grid grid-cols-2 gap-1.5">
@@ -102,7 +102,7 @@ export function ControlPanel(props: ControlPanelProps) {
               onClick={props.onRun}
               disabled={isRunning}
               size="sm"
-              className="bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 text-[10px] tracking-wider font-mono h-8 cursor-pointer"
+              className="bg-white text-black font-bold uppercase rounded-none border border-white hover:bg-transparent hover:text-white transition-all text-[9px] tracking-widest h-8 cursor-pointer disabled:opacity-40"
             >
               <Play className="w-3 h-3 mr-1" />
               {t.run}
@@ -112,7 +112,7 @@ export function ControlPanel(props: ControlPanelProps) {
               onClick={props.onStep}
               size="sm"
               variant="ghost"
-              className="text-white/30 border border-white/5 hover:bg-white/[0.04] text-[10px] tracking-wider font-mono h-8 cursor-pointer"
+              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9px] tracking-widest font-bold h-8 cursor-pointer"
             >
               <SkipForward className="w-3 h-3 mr-1" />
               {t.step}
@@ -122,7 +122,7 @@ export function ControlPanel(props: ControlPanelProps) {
               onClick={props.onReset}
               size="sm"
               variant="ghost"
-              className="text-white/30 border border-white/5 hover:bg-white/[0.04] text-[10px] tracking-wider font-mono h-8 cursor-pointer"
+              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9px] tracking-widest font-bold h-8 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3 mr-1" />
               {t.reset}
@@ -132,7 +132,7 @@ export function ControlPanel(props: ControlPanelProps) {
               onClick={props.onClear}
               size="sm"
               variant="ghost"
-              className="text-white/30 border border-white/5 hover:bg-white/[0.04] text-[10px] tracking-wider font-mono h-8 cursor-pointer"
+              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9px] tracking-widest font-bold h-8 cursor-pointer"
             >
               <Trash2 className="w-3 h-3 mr-1" />
               {t.clear}
@@ -173,10 +173,10 @@ export function ControlPanel(props: ControlPanelProps) {
                 ['4', t.erase],
               ].map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <kbd className="text-[9px] font-mono bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-white/30">
+                  <kbd className="text-[8px] font-mono bg-[#1a1a1a] border border-[#3c3c3c] rounded-none px-1.5 py-0.5 text-white/40">
                     {key}
                   </kbd>
-                  <span className="text-[9px] text-white/20">{label}</span>
+                  <span className="text-[9px] text-white/30">{label}</span>
                 </div>
               ))}
             </div>

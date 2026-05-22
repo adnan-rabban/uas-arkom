@@ -24,24 +24,24 @@ export function AlgorithmSelector({ algorithm, onSelect, onCompareAll, lang }: A
   ];
 
   const infoMap: Record<AlgorithmKey, { name: string; desc: string; color: string }> = {
-    astar: { name: t.astarName, desc: t.astarDesc, color: 'text-sky-400 border-sky-500/30' },
-    dijkstra: { name: t.dijkstraName, desc: t.dijkstraDesc, color: 'text-violet-400 border-violet-500/30' },
-    bfs: { name: t.bfsName, desc: t.bfsDesc, color: 'text-amber-400 border-amber-500/30' },
+    astar: { name: t.astarName, desc: t.astarDesc, color: 'text-[#1c69d4] border-[#1c69d4]' },
+    dijkstra: { name: t.dijkstraName, desc: t.dijkstraDesc, color: 'text-white border-white' },
+    bfs: { name: t.bfsName, desc: t.bfsDesc, color: 'text-[#e22718] border-[#e22718]' },
   };
 
   return (
     <div className="space-y-3">
-      <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-sky-400/50">
+      <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
         {t.algorithm}
       </span>
 
       <Tabs value={algorithm} onValueChange={(v) => onSelect(v as AlgorithmKey)}>
-        <TabsList className="w-full bg-white/3 border border-white/5 h-8">
+        <TabsList className="w-full bg-transparent border border-[#3c3c3c] rounded-none h-8 p-0">
           {algos.map((a) => (
             <TabsTrigger
               key={a.key}
               value={a.key}
-              className="flex-1 text-[10px] tracking-wider font-mono gap-1 data-[state=active]:bg-sky-500/15 data-[state=active]:text-sky-300 text-white/30 h-6"
+              className="flex-1 text-[9px] tracking-widest font-bold uppercase gap-1 rounded-none data-[state=active]:bg-white data-[state=active]:text-black text-white/30 h-full border-none transition-all cursor-pointer"
             >
               {a.icon} {a.label}
             </TabsTrigger>
@@ -51,13 +51,13 @@ export function AlgorithmSelector({ algorithm, onSelect, onCompareAll, lang }: A
 
       <button
         onClick={onCompareAll}
-        className="w-full text-[10px] tracking-wider font-mono py-1.5 rounded-md border border-white/5 bg-white/2 text-white/30 hover:text-sky-300 hover:border-sky-500/20 hover:bg-sky-500/5 transition-all cursor-pointer"
+        className="w-full text-[9px] tracking-widest font-bold uppercase py-1.5 rounded-none border border-[#3c3c3c] bg-transparent text-white/40 hover:border-white hover:text-white transition-all cursor-pointer"
       >
         ⚡ Compare All
       </button>
 
       <Collapsible open={infoOpen} onOpenChange={setInfoOpen}>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] tracking-wider font-mono text-white/25 hover:text-white/40 transition-colors cursor-pointer py-1">
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[9px] tracking-widest font-mono text-white/20 hover:text-white/40 transition-colors cursor-pointer py-1">
           {t.algorithmInfo}
           <ChevronDown className={`w-3 h-3 transition-transform ${infoOpen ? 'rotate-180' : ''}`} />
         </CollapsibleTrigger>
@@ -66,12 +66,12 @@ export function AlgorithmSelector({ algorithm, onSelect, onCompareAll, lang }: A
             {algos.map((a) => {
               const info = infoMap[a.key];
               return (
-                <Card key={a.key} className={`bg-white/2 border-white/5 ${algorithm === a.key ? `border-l-2 ${info.color}` : ''}`}>
+                <Card key={a.key} className={`bg-[#0d0d0d] border-[#3c3c3c] rounded-none ${algorithm === a.key ? `border-l-2 ${info.color}` : ''}`}>
                   <CardContent className="p-3">
-                    <div className={`text-[10px] font-semibold tracking-wider ${info.color.split(' ')[0]} mb-1`}>
+                    <div className={`text-[9px] font-bold tracking-widest uppercase ${info.color.split(' ')[0]} mb-1`}>
                       {info.name}
                     </div>
-                    <p className="text-[9px] leading-relaxed text-white/30">
+                    <p className="text-[9px] leading-relaxed text-white/30 font-light">
                       {info.desc}
                     </p>
                   </CardContent>

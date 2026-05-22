@@ -155,7 +155,7 @@ export function SimulationCanvas({
       ctx.fillStyle = COLORS.visited;
       ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
       if (fresh > 0.6) {
-        ctx.fillStyle = `rgba(88,166,255,${(fresh - 0.6) * 0.35})`;
+        ctx.fillStyle = `rgba(0,102,177,${(fresh - 0.6) * 0.35})`;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
       }
     }
@@ -166,7 +166,7 @@ export function SimulationCanvas({
       if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
       const age = vc - i;
       if (age < 12) {
-        ctx.fillStyle = `rgba(200,140,20,${(12 - age) / 12 * 0.4})`;
+        ctx.fillStyle = `rgba(226,39,24,${(12 - age) / 12 * 0.4})`;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
       }
     }
@@ -202,20 +202,20 @@ export function SimulationCanvas({
       const rays = castLidar(rx, ry);
       for (const ray of rays) {
         const fade = ray.d / (CELL * 10);
-        ctx.strokeStyle = `rgba(88,166,255,${(1 - fade) * 0.12 + 0.02})`;
+        ctx.strokeStyle = `rgba(28,105,212,${(1 - fade) * 0.12 + 0.02})`;
         ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(ray.x, ray.y); ctx.stroke();
       }
 
-      ctx.strokeStyle = `rgba(88,166,255,${active ? 0.22 : 0.08})`;
+      ctx.strokeStyle = `rgba(28,105,212,${active ? 0.22 : 0.08})`;
       ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(rx, ry, CELL * 6, lidarAngle.current, lidarAngle.current + 0.9); ctx.stroke();
 
       const pr = CELL * 0.8 + Math.sin(pulseT.current * 0.05) * CELL * 0.18;
-      ctx.strokeStyle = `rgba(88,166,255,${active ? 0.15 : 0.06})`;
+      ctx.strokeStyle = `rgba(28,105,212,${active ? 0.15 : 0.06})`;
       ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(rx, ry, pr, 0, Math.PI * 2); ctx.stroke();
 
       if (st === 'done' && p.length > 0) {
         const flashA = (Math.sin(pulseT.current * 0.07) + 1) * 0.5 * 0.25;
-        ctx.strokeStyle = `rgba(60,186,106,${flashA})`; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(15,163,54,${flashA})`; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(rx, ry, CELL * 1.2, 0, Math.PI * 2); ctx.stroke();
       }
 
@@ -226,7 +226,7 @@ export function SimulationCanvas({
 
       const fx = rx + Math.cos(ra) * CELL * 0.38;
       const fy = ry + Math.sin(ra) * CELL * 0.38;
-      ctx.fillStyle = active ? '#88c4ff' : '#2a5a78';
+      ctx.fillStyle = active ? '#ffffff' : '#7e7e7e';
       ctx.beginPath(); ctx.arc(fx, fy, 2.2, 0, Math.PI * 2); ctx.fill();
 
       ctx.fillStyle = active ? COLORS.robotCenter : COLORS.robotCenterInactive;
@@ -278,7 +278,7 @@ export function SimulationCanvas({
   }, [drawFrame, onSetVstep, onSetPstep, onSetRobotT, onSetState]);
 
   return (
-    <div className="relative bg-[#04080f] rounded-lg overflow-hidden border border-white/5">
+    <div className="relative bg-black rounded-none border border-[#3c3c3c] overflow-hidden">
       <canvas
         ref={canvasRef}
         width={CANVAS_W}

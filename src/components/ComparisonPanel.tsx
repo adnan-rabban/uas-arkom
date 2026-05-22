@@ -26,16 +26,16 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
     : 0;
 
   const algoColors: Record<string, string> = {
-    astar: 'border-sky-500/30',
-    dijkstra: 'border-violet-500/30',
-    bfs: 'border-amber-500/30',
+    astar: 'border-[#1c69d4]',
+    dijkstra: 'border-[#0653b6]',
+    bfs: 'border-[#e22718]',
   };
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-5 py-2.5 border-t border-white/5 bg-[#060b16] hover:bg-white/[0.02] transition-colors cursor-pointer">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-5 py-2.5 border-t border-[#3c3c3c] bg-[#0d0d0d] hover:bg-white/2 transition-colors cursor-pointer rounded-none">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-sky-400/50">
+          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
             {t.comparison}
           </span>
           <span className="text-[9px] text-white/15">— {t.comparisonSubtitle}</span>
@@ -44,25 +44,25 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
       </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="px-5 py-4 bg-[#04080f] border-t border-white/5">
+        <div className="px-5 py-4 bg-black border-t border-[#3c3c3c]">
           <div className="grid grid-cols-4 gap-2">
             {results.map((r) => {
               const isBest = r.result.visitOrder.length === minExplored;
               return (
-                <Card key={r.algorithm} className={`bg-white/[0.02] border-white/5 ${isBest ? algoColors[r.algorithm] : ''}`}>
+                <Card key={r.algorithm} className={`bg-[#0d0d0d] border-[#3c3c3c] rounded-none ${isBest ? `${algoColors[r.algorithm]} border-t-2` : ''}`}>
                   <CardContent className="p-3 text-center">
                     <div className="flex items-center justify-center gap-1 mb-2">
                       <span className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
                         {r.label}
                       </span>
                       {isBest && (
-                        <Badge variant="secondary" className="bg-sky-500/10 text-sky-400 border-sky-500/20 text-[8px] px-1 py-0">
+                        <Badge variant="secondary" className="bg-[#e22718] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider">
                           <Trophy className="w-2.5 h-2.5 mr-0.5" />
                           {t.bestLabel}
                         </Badge>
                       )}
                     </div>
-                    <div className={`text-xl font-mono font-bold ${isBest ? 'text-sky-300' : 'text-white/30'}`}>
+                    <div className={`text-xl font-mono font-bold ${isBest ? 'text-white' : 'text-white/30'}`}>
                       {r.result.visitOrder.length}
                     </div>
                     <div className="text-[8px] tracking-wider uppercase text-white/15 mt-0.5">{t.nodesExplored}</div>
@@ -77,12 +77,12 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
               );
             })}
 
-            <Card className="bg-white/[0.02] border-white/5 border-l-2 border-emerald-500/30">
+            <Card className="bg-[#0d0d0d] border-[#3c3c3c] rounded-none border-l-2 border-l-[#e22718]">
               <CardContent className="p-3 text-center flex flex-col justify-center h-full">
                 <div className="text-[10px] font-semibold tracking-wider text-white/40 uppercase mb-2">
                   A* vs BFS
                 </div>
-                <div className="text-2xl font-mono font-bold text-emerald-400">
+                <div className="text-2xl font-mono font-bold text-[#e22718]">
                   {efficiency}%
                 </div>
                 <div className="text-[8px] tracking-wider uppercase text-white/15 mt-0.5">

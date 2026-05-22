@@ -17,38 +17,38 @@ export function TelemetryPanel({ explored, pathLength, computeTime, simulationSt
   const getStatusDisplay = () => {
     switch (simulationState) {
       case 'exploring': case 'pathing': case 'moving':
-        return { text: t.statusRunning, color: 'text-amber-400' };
+        return { text: t.statusRunning, color: 'text-[#e22718]' };
       case 'done':
         return pathFound
-          ? { text: t.statusFound, color: 'text-emerald-400' }
-          : { text: t.statusNoPath, color: 'text-red-400' };
+          ? { text: t.statusFound, color: 'text-[#2ccb5d]' }
+          : { text: t.statusNoPath, color: 'text-red-500' };
       default:
-        return { text: t.statusReady, color: 'text-sky-400/50' };
+        return { text: t.statusReady, color: 'text-[#1c69d4]' };
     }
   };
 
   const status = getStatusDisplay();
 
   const stats = [
-    { label: t.explored, value: explored > 0 ? Math.floor(explored) : '—', color: 'text-sky-300' },
-    { label: t.pathLength, value: pathLength > 0 ? pathLength : '—', color: 'text-sky-400' },
-    { label: t.computeTime, value: computeTime > 0 ? `${computeTime}ms` : '—', color: 'text-violet-300' },
-    { label: t.status, value: status.text, color: status.color },
+    { label: t.explored, value: explored > 0 ? Math.floor(explored) : '—', color: 'text-white font-bold' },
+    { label: t.pathLength, value: pathLength > 0 ? pathLength : '—', color: 'text-white font-bold' },
+    { label: t.computeTime, value: computeTime > 0 ? `${computeTime}ms` : '—', color: 'text-white font-bold' },
+    { label: t.status, value: status.text, color: status.color + ' font-bold' },
   ];
 
   return (
     <div className="space-y-2">
-      <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-sky-400/50">
+      <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
         {t.telemetry}
       </span>
       <div className="grid grid-cols-2 gap-1.5">
         {stats.map((s) => (
-          <Card key={s.label} className="bg-white/2 border-white/5">
+          <Card key={s.label} className="bg-[#0d0d0d] border-[#3c3c3c] rounded-none">
             <CardContent className="p-2.5 text-center">
-              <div className={`text-sm font-mono font-semibold ${s.color} tracking-wide`}>
+              <div className={`text-xs font-mono ${s.color} tracking-wider`}>
                 {s.value}
               </div>
-              <div className="text-[8px] tracking-widest uppercase text-white/20 mt-0.5">
+              <div className="text-[8px] tracking-widest uppercase text-white/20 mt-1">
                 {s.label}
               </div>
             </CardContent>

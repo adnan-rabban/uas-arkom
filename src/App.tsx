@@ -79,8 +79,8 @@ export default function App() {
 
   return (
     <TooltipProvider delay={300}>
-      <div className="min-h-screen bg-[#04080f] flex items-center justify-center p-4">
-        <div className="w-full max-w-[1200px] bg-[#060b16] border border-white/4 rounded-xl overflow-hidden shadow-2xl shadow-black/50">
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="w-full max-w-[1200px] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden">
           {/* Header */}
           <TopBar
             lang={lang}
@@ -88,6 +88,8 @@ export default function App() {
             simulationState={state}
             pathFound={pathFound}
           />
+          {/* M Tricolor Stripe Divider */}
+          <div className="m-stripe h-1 w-full" />
 
           {/* Main Content: Canvas + Control Panel */}
           <div className="flex gap-0">
