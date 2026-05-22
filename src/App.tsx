@@ -2,9 +2,11 @@ import { useState, useCallback, useMemo } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TopBar } from '@/components/TopBar';
 import { SimulationCanvas } from '@/components/SimulationCanvas';
-import { ControlPanel } from '@/components/ControlPanel';
+import { LeftPanel } from '@/components/LeftPanel';
+import { RightPanel } from '@/components/RightPanel';
 import { ComparisonPanel } from '@/components/ComparisonPanel';
 import { LegendBar } from '@/components/LegendBar';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGrid } from '@/hooks/useGrid';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useKeyboard } from '@/hooks/useKeyboard';
@@ -14,6 +16,9 @@ import './App.css';
 export default function App() {
   const [lang, setLang] = useState<Language>('id');
   const toggleLang = useCallback(() => setLang((l) => (l === 'id' ? 'en' : 'id')), []);
+
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   const {
     grid, startPos, endPos, tool, currentPreset,
@@ -91,10 +96,40 @@ export default function App() {
           {/* M Tricolor Stripe Divider */}
           <div className="m-stripe h-1 w-full shrink-0" />
 
-          {/* Main Content: Canvas + Control Panel */}
-          <div className="flex-1 min-h-0 flex gap-0">
+          {/* Main Content: Canvas + Left/Right Sidebars */}
+          <div className="flex-1 min-h-0 flex gap-0 relative">
+            {/* Left Panel */}
+            <div
+              className={`transition-all duration-300 ease-in-out border-r border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden ${
+                leftOpen ? 'w-[260px] p-4' : 'w-0 p-0 border-r-0'
+              }`}
+            >
+              <div className="w-[228px] h-full flex flex-col justify-between">
+                <LeftPanel
+                  lang={lang}
+                  algorithm={algorithm}
+                  tool={tool}
+                  currentPreset={currentPreset}
+                  onSelectAlgorithm={setAlgorithm}
+                  onSelectTool={setTool}
+                  onCompareAll={handleCompareAll}
+                  onSelectPreset={handleLoadPreset}
+                />
+              </div>
+            </div>
+
+            {/* Left Panel Toggle Tab */}
+            <button
+              onClick={() => setLeftOpen(!leftOpen)}
+              className="absolute top-1/2 -translate-y-1/2 z-10 bg-[#0d0d0d] border border-[#3c3c3c] border-l-0 hover:bg-white hover:text-black text-white/50 w-5 h-16 flex items-center justify-center transition-all cursor-pointer rounded-none"
+              style={{ left: leftOpen ? '259px' : '0px', transition: 'left 300ms ease-in-out' }}
+              title={leftOpen ? "Hide Left Sidebar" : "Show Left Sidebar"}
+            >
+              {leftOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+
             {/* Canvas Area */}
-            <div className="flex-1 p-4 flex flex-col justify-center min-h-0 overflow-hidden">
+            <div className="flex-1 p-4 flex flex-col justify-center min-h-0 overflow-hidden bg-black">
               <SimulationCanvas
                 grid={grid}
                 startPos={startPos}
@@ -116,28 +151,39 @@ export default function App() {
               />
             </div>
 
-            {/* Control Panel */}
-            <ControlPanel
-              lang={lang}
-              algorithm={algorithm}
-              tool={tool}
-              speed={speed}
-              explored={vstep}
-              pathLength={path.length}
-              computeTime={computeTime}
-              simulationState={state}
-              pathFound={pathFound}
-              currentPreset={currentPreset}
-              onSelectAlgorithm={setAlgorithm}
-              onSelectTool={setTool}
-              onSetSpeed={setSpeed}
-              onRun={handleRun}
-              onStep={handleStep}
-              onReset={handleReset}
-              onClear={handleClear}
-              onCompareAll={handleCompareAll}
-              onSelectPreset={handleLoadPreset}
-            />
+            {/* Right Panel Toggle Tab */}
+            <button
+              onClick={() => setRightOpen(!rightOpen)}
+              className="absolute top-1/2 -translate-y-1/2 z-10 bg-[#0d0d0d] border border-[#3c3c3c] border-r-0 hover:bg-white hover:text-black text-white/50 w-5 h-16 flex items-center justify-center transition-all cursor-pointer rounded-none"
+              style={{ right: rightOpen ? '259px' : '0px', transition: 'right 300ms ease-in-out' }}
+              title={rightOpen ? "Hide Right Sidebar" : "Show Right Sidebar"}
+            >
+              {rightOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+
+            {/* Right Panel */}
+            <div
+              className={`transition-all duration-300 ease-in-out border-l border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden ${
+                rightOpen ? 'w-[260px] p-4' : 'w-0 p-0 border-l-0'
+              }`}
+            >
+              <div className="w-[228px] h-full flex flex-col justify-between">
+                <RightPanel
+                  lang={lang}
+                  speed={speed}
+                  explored={vstep}
+                  pathLength={path.length}
+                  computeTime={computeTime}
+                  simulationState={state}
+                  pathFound={pathFound}
+                  onSetSpeed={setSpeed}
+                  onRun={handleRun}
+                  onStep={handleStep}
+                  onReset={handleReset}
+                  onClear={handleClear}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Comparison Panel */}
