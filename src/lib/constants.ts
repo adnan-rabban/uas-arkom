@@ -25,6 +25,8 @@ export const COLORS = {
   gridLine: '#161616',
   wall: '#1a1a1a',
   wallPattern: '#262626',
+  mudBg: '#2a1a10',
+  mudLine: '#664028',
   startBg: '#0d2613',
   startText: '#2ccb5d',
   endBg: '#300d0d',
@@ -62,12 +64,15 @@ export const translations: Record<Language, Translations> = {
     start: 'Mulai',
     goal: 'Tujuan',
     erase: 'Hapus',
+    mud: 'Lumpur (Bobot: 5)',
     speed: 'Kecepatan',
     actions: 'Aksi',
     run: 'Jalankan',
     step: 'Langkah',
     reset: 'Atur Ulang',
     clear: 'Bersihkan',
+    diagonal: 'Gerakan Diagonal',
+    generateMaze: 'Bangun Labirin',
 
     telemetry: 'Telemetri',
     explored: 'Dijelajahi',
@@ -78,13 +83,13 @@ export const translations: Record<Language, Translations> = {
     algorithmInfo: 'Info Algoritma',
     astarName: 'A* (A-Star)',
     astarDesc:
-      'Menggunakan heuristik jarak Manhattan untuk memandu pencarian langsung menuju tujuan. Menjamin jalur terpendek dengan eksplorasi minimal — paling efisien untuk grid navigasi.',
+      'Menggunakan heuristik jarak Manhattan/Octile untuk memandu pencarian langsung menuju tujuan. Menjamin jalur terpendek dengan eksplorasi minimal — paling efisien untuk grid navigasi.',
     dijkstraName: 'Dijkstra',
     dijkstraDesc:
       'Menjelajahi semua arah secara merata berdasarkan jarak terpendek dari titik awal. Menjamin jalur terpendek tetapi lebih banyak mengeksplorasi node dibanding A*.',
     bfsName: 'BFS (Breadth-First Search)',
     bfsDesc:
-      'Menjelajahi seluruh tetangga pada kedalaman saat ini sebelum bergerak lebih dalam. Menjamin jalur terpendek pada graf tanpa bobot, tetapi mengeksplorasi paling banyak node.',
+      'Menjelajahi seluruh tetangga pada kedalaman saat ini sebelum bergerak lebih dalam. Menjamin jalur terpendek pada graf tanpa bobot, tetapi mengeksplorasi paling banyak node dan mengabaikan bobot jalan.',
 
     comparison: 'Perbandingan Algoritma',
     comparisonSubtitle: 'Peta yang Sama',
@@ -97,7 +102,7 @@ export const translations: Record<Language, Translations> = {
     frontier: 'Perbatasan',
     optimalPath: 'Jalur Optimal',
     robotLidar: 'Robot + LiDAR',
-    drawHint: 'Klik & seret untuk menggambar dinding — Seret Start/Goal untuk memindahkan',
+    drawHint: 'Klik & seret untuk menggambar — Seret Start/Goal untuk memindahkan',
 
     mapPreset: 'Preset Peta',
     presetDefault: 'Standar',
@@ -107,6 +112,16 @@ export const translations: Record<Language, Translations> = {
     presetEmpty: 'Kosong',
 
     shortcuts: 'Pintasan Keyboard',
+
+    exportPath: 'Ekspor Kode Rute',
+    exportPathDesc: 'Salin kode koordinat jalur untuk mikrokontroler Arduino atau data ROM Assembly.',
+    copyCode: 'Salin Kode',
+    copied: 'Disalin!',
+
+    fValue: 'Skor F (Total)',
+    gValue: 'Skor G (Jarak Awal)',
+    hValue: 'Skor H (Heuristik)',
+    cellInfo: 'Info Koordinat Sel',
   },
   en: {
     title: 'Mini Robot Navigation System',
@@ -121,12 +136,15 @@ export const translations: Record<Language, Translations> = {
     start: 'Start',
     goal: 'Goal',
     erase: 'Erase',
+    mud: 'Mud (Weight: 5)',
     speed: 'Speed',
     actions: 'Actions',
     run: 'Run',
     step: 'Step',
     reset: 'Reset',
     clear: 'Clear',
+    diagonal: 'Diagonal Move',
+    generateMaze: 'Generate Maze',
 
     telemetry: 'Telemetry',
     explored: 'Explored',
@@ -137,13 +155,13 @@ export const translations: Record<Language, Translations> = {
     algorithmInfo: 'Algorithm Info',
     astarName: 'A* (A-Star)',
     astarDesc:
-      'Uses Manhattan distance heuristic to guide search directly toward the goal. Guarantees shortest path with minimal exploration — most efficient for grid navigation.',
+      'Uses Manhattan/Octile distance heuristic to guide search directly toward the goal. Guarantees shortest path with minimal exploration — most efficient for grid navigation.',
     dijkstraName: 'Dijkstra',
     dijkstraDesc:
       'Explores all directions equally based on shortest distance from start. Guarantees shortest path but explores more nodes than A*.',
     bfsName: 'BFS (Breadth-First Search)',
     bfsDesc:
-      'Explores all neighbors at current depth before moving deeper. Guarantees shortest path on unweighted graphs, but explores the most nodes.',
+      'Explores all neighbors at current depth before moving deeper. Guarantees shortest path on unweighted graphs, but explores the most nodes and ignores terrain cost.',
 
     comparison: 'Algorithm Comparison',
     comparisonSubtitle: 'Identical Map',
@@ -156,7 +174,7 @@ export const translations: Record<Language, Translations> = {
     frontier: 'Frontier',
     optimalPath: 'Optimal Path',
     robotLidar: 'Robot + LiDAR',
-    drawHint: 'Click & drag to draw walls — Drag Start/Goal to reposition',
+    drawHint: 'Click & drag to draw — Drag Start/Goal to reposition',
 
     mapPreset: 'Map Preset',
     presetDefault: 'Default',
@@ -166,5 +184,15 @@ export const translations: Record<Language, Translations> = {
     presetEmpty: 'Empty',
 
     shortcuts: 'Keyboard Shortcuts',
+
+    exportPath: 'Export Route Code',
+    exportPathDesc: 'Copy path coordinates for Arduino microcontrollers or Assembly ROM data.',
+    copyCode: 'Copy Code',
+    copied: 'Copied!',
+
+    fValue: 'F Score (Total)',
+    gValue: 'G Score (Cost)',
+    hValue: 'H Score (Heuristic)',
+    cellInfo: 'Cell Coordinates Info',
   },
 };

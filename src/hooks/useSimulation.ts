@@ -13,6 +13,11 @@ export function useSimulation() {
   const [speed, setSpeed] = useState(8);
   const [computeTime, setComputeTime] = useState(0);
   const [comparison, setComparison] = useState<ComparisonResult[] | null>(null);
+  
+  // Settings & Debug Scores
+  const [diagonal, setDiagonal] = useState(false);
+  const [gScores, setGScores] = useState<Record<string, number>>({});
+  const [hScores, setHScores] = useState<Record<string, number>>({});
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -28,29 +33,35 @@ export function useSimulation() {
     setPath([]);
     setComputeTime(0);
     setComparison(null);
+    setGScores({});
+    setHScores({});
   }, []);
 
   const run = useCallback(
     (grid: Grid, start: Position, end: Position) => {
-      const result = runAlgorithm(algorithm, grid, start, end);
+      const result = runAlgorithm(algorithm, grid, start, end, diagonal);
       setVisitOrder(result.visitOrder);
       setPath(result.path);
       setComputeTime(result.time);
+      setGScores(result.gScores || {});
+      setHScores(result.hScores || {});
       setVstep(0);
       setPstep(0);
       setRobotT(0);
       setState('exploring');
     },
-    [algorithm]
+    [algorithm, diagonal]
   );
 
   const stepOnce = useCallback(
     (grid: Grid, start: Position, end: Position) => {
       if (stateRef.current === 'idle') {
-        const result = runAlgorithm(algorithm, grid, start, end);
+        const result = runAlgorithm(algorithm, grid, start, end, diagonal);
         setVisitOrder(result.visitOrder);
         setPath(result.path);
         setComputeTime(result.time);
+        setGScores(result.gScores || {});
+        setHScores(result.hScores || {});
         setVstep(1);
         setPstep(0);
         setRobotT(0);
@@ -84,7 +95,7 @@ export function useSimulation() {
         });
       }
     },
-    [algorithm, visitOrder.length, path.length]
+    [algorithm, visitOrder.length, path.length, diagonal]
   );
 
   const compareAll = useCallback(
@@ -94,7 +105,7 @@ export function useSimulation() {
       const results: ComparisonResult[] = algos.map((a) => ({
         algorithm: a,
         label: labels[a],
-        result: runAlgorithm(a, grid, start, end),
+        result: runAlgorithm(a, grid, start, end, diagonal),
       }));
       setComparison(results);
 
@@ -103,18 +114,21 @@ export function useSimulation() {
       setVisitOrder(best.result.visitOrder);
       setPath(best.result.path);
       setComputeTime(best.result.time);
+      setGScores(best.result.gScores || {});
+      setHScores(best.result.hScores || {});
       setVstep(0);
       setPstep(0);
       setRobotT(0);
       setState('exploring');
     },
-    []
+    [diagonal]
   );
 
   return {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
-    setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState,
+    diagonal, gScores, hScores,
+    setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     reset, run, stepOnce, compareAll,
   };
 }

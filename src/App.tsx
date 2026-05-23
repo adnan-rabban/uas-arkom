@@ -22,14 +22,15 @@ export default function App() {
 
   const {
     grid, startPos, endPos, tool, currentPreset,
-    setTool, clearGrid, loadPreset,
+    setTool, clearGrid, loadPreset, generateMaze,
     handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
   } = useGrid();
 
   const {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
-    setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState,
+    diagonal, gScores, hScores,
+    setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     reset, run, stepOnce, compareAll,
   } = useSimulation();
 
@@ -74,6 +75,7 @@ export default function App() {
       onToolStart: () => setTool('start'),
       onToolEnd: () => setTool('end'),
       onToolErase: () => setTool('erase'),
+      onToolMud: () => setTool('mud'),
     }),
     [handleRun, handleStep, handleReset, handleClear, setTool]
   );
@@ -110,6 +112,9 @@ export default function App() {
                   algorithm={algorithm}
                   tool={tool}
                   currentPreset={currentPreset}
+                  diagonal={diagonal}
+                  onToggleDiagonal={() => setDiagonal((prev) => !prev)}
+                  onGenerateMaze={generateMaze}
                   onSelectAlgorithm={setAlgorithm}
                   onSelectTool={setTool}
                   onCompareAll={handleCompareAll}
@@ -141,6 +146,9 @@ export default function App() {
                 robotT={robotT}
                 simulationState={state}
                 speed={speed}
+                gScores={gScores}
+                hScores={hScores}
+                lang={lang}
                 onSetVstep={setVstep}
                 onSetPstep={setPstep}
                 onSetRobotT={setRobotT}
@@ -176,6 +184,7 @@ export default function App() {
                   computeTime={computeTime}
                   simulationState={state}
                   pathFound={pathFound}
+                  path={path}
                   onSetSpeed={setSpeed}
                   onRun={handleRun}
                   onStep={handleStep}

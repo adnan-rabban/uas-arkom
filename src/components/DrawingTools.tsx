@@ -1,4 +1,4 @@
-import { Square, Play, Target, Eraser } from 'lucide-react';
+import { Square, Play, Target, Eraser, Droplet } from 'lucide-react';
 import type { Tool, Language } from '@/types';
 import { translations } from '@/lib/constants';
 
@@ -15,6 +15,7 @@ export function DrawingTools({ tool, onSelectTool, lang }: DrawingToolsProps) {
     { value: 'wall', label: t.wall, icon: <Square className="w-3.5 h-3.5" />, key: '1', activeClass: 'bg-[#1a1a1a] text-white border-white' },
     { value: 'start', label: t.start, icon: <Play className="w-3.5 h-3.5" />, key: '2', activeClass: 'bg-[#0d2613] text-[#2ccb5d] border-[#2ccb5d]' },
     { value: 'end', label: t.goal, icon: <Target className="w-3.5 h-3.5" />, key: '3', activeClass: 'bg-[#300d0d] text-[#e22718] border-[#e22718]' },
+    { value: 'mud', label: t.mud.split(' ')[0], icon: <Droplet className="w-3.5 h-3.5" />, key: '5', activeClass: 'bg-[#2a1a10] text-[#664028] border-[#664028]' },
     { value: 'erase', label: t.erase, icon: <Eraser className="w-3.5 h-3.5" />, key: '4', activeClass: 'bg-white/10 text-white border-white' },
   ];
 

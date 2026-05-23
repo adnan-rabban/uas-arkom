@@ -12,6 +12,7 @@ export function LegendBar({ lang }: LegendBarProps) {
     { color: 'bg-[#0d2613] border border-[#2ccb5d] rounded-none', label: t.start },
     { color: 'bg-[#300d0d] border border-[#e22718] rounded-none', label: t.goal },
     { color: 'bg-[#1a1a1a] border border-[#3c3c3c] rounded-none', label: t.wall },
+    { color: 'bg-[#2a1a10] border border-[#664028] rounded-none', label: t.mud },
     { color: 'bg-[rgba(28,105,212,0.12)] border border-[rgba(28,105,212,0.3)] rounded-none', label: t.visited },
     { color: 'bg-[rgba(226,39,24,0.15)] rounded-none', label: t.frontier },
     { color: 'bg-[#1c69d4] rounded-none', label: t.optimalPath },

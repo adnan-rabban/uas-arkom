@@ -3,6 +3,7 @@
 export const CellType = {
   EMPTY: 0,
   WALL: 1,
+  MUD: 2,
 } as const;
 
 export type CellValue = (typeof CellType)[keyof typeof CellType];
@@ -14,7 +15,7 @@ export interface Position {
   col: number;
 }
 
-export type Tool = 'wall' | 'start' | 'end' | 'erase';
+export type Tool = 'wall' | 'start' | 'end' | 'erase' | 'mud';
 
 export type AlgorithmKey = 'astar' | 'dijkstra' | 'bfs';
 
@@ -29,6 +30,8 @@ export interface AlgorithmResult {
   visitOrder: Position[];
   path: Position[];
   time: number;
+  gScores?: Record<string, number>;
+  hScores?: Record<string, number>;
 }
 
 export interface ComparisonResult {
@@ -54,12 +57,15 @@ export interface Translations {
   start: string;
   goal: string;
   erase: string;
+  mud: string;
   speed: string;
   actions: string;
   run: string;
   step: string;
   reset: string;
   clear: string;
+  diagonal: string;
+  generateMaze: string;
 
   // Telemetry
   telemetry: string;
@@ -102,6 +108,18 @@ export interface Translations {
 
   // Keyboard shortcuts
   shortcuts: string;
+
+  // Export path
+  exportPath: string;
+  exportPathDesc: string;
+  copyCode: string;
+  copied: string;
+
+  // Tooltips / Hover Debugger
+  fValue: string;
+  gValue: string;
+  hValue: string;
+  cellInfo: string;
 }
 
 export interface MapPreset {
@@ -110,3 +128,4 @@ export interface MapPreset {
   start: Position;
   end: Position;
 }
+

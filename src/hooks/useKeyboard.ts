@@ -9,6 +9,7 @@ interface KeyboardActions {
   onToolStart: () => void;
   onToolEnd: () => void;
   onToolErase: () => void;
+  onToolMud: () => void;
 }
 
 export function useKeyboard(actions: KeyboardActions) {
@@ -40,6 +41,9 @@ export function useKeyboard(actions: KeyboardActions) {
           break;
         case '4':
           actions.onToolErase();
+          break;
+        case '5':
+          actions.onToolMud();
           break;
       }
     };

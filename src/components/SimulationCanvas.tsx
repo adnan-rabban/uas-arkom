@@ -1,7 +1,7 @@
-import { useRef, useEffect, useCallback } from 'react';
-import type { Grid, Position, SimulationState } from '@/types';
+import { useRef, useEffect, useCallback, useState } from 'react';
+import type { Grid, Position, SimulationState, Language } from '@/types';
 import { CellType } from '@/types';
-import { ROWS, COLS, CELL, CANVAS_W, CANVAS_H, COLORS } from '@/lib/constants';
+import { ROWS, COLS, CELL, CANVAS_W, CANVAS_H, COLORS, translations } from '@/lib/constants';
 
 interface SimulationCanvasProps {
   grid: Grid;
@@ -14,6 +14,9 @@ interface SimulationCanvasProps {
   robotT: number;
   simulationState: SimulationState;
   speed: number;
+  gScores?: Record<string, number>;
+  hScores?: Record<string, number>;
+  lang: Language;
   onSetVstep: (fn: (v: number) => number) => void;
   onSetPstep: (fn: (v: number) => number) => void;
   onSetRobotT: (fn: (v: number) => number) => void;
@@ -23,9 +26,11 @@ interface SimulationCanvasProps {
   onMouseUp: () => void;
 }
 
+
 export function SimulationCanvas({
   grid, startPos, endPos, visitOrder, path,
   vstep, pstep, robotT, simulationState, speed,
+  gScores, hScores, lang,
   onSetVstep, onSetPstep, onSetRobotT, onSetState,
   onMouseDown, onMouseMove, onMouseUp,
 }: SimulationCanvasProps) {
@@ -33,6 +38,7 @@ export function SimulationCanvas({
   const lidarAngle = useRef(0);
   const pulseT = useRef(0);
   const animRef = useRef<number>(0);
+  const [hoveredCell, setHoveredCell] = useState<Position | null>(null);
 
   // Refs for animation loop values
   const stateRef = useRef(simulationState);
@@ -58,6 +64,7 @@ export function SimulationCanvas({
     startRef.current = startPos;
     endRef.current = endPos;
   }, [simulationState, vstep, pstep, robotT, speed, visitOrder, path, grid, startPos, endPos]);
+
 
   const getRobotPos = useCallback(() => {
     const p = pathRef.current;
@@ -117,10 +124,11 @@ export function SimulationCanvas({
     for (let r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(CANVAS_W, r * CELL); ctx.stroke(); }
     for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, CANVAS_H); ctx.stroke(); }
 
-    // -- Walls --
+    // -- Walls & Mud --
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (g[r][c] === CellType.WALL) {
+        const cell = g[r][c];
+        if (cell === CellType.WALL) {
           const x = c * CELL, y = r * CELL;
           ctx.fillStyle = COLORS.wall;
           ctx.fillRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
@@ -129,6 +137,16 @@ export function SimulationCanvas({
           ctx.fillRect(x + CELL - 5, y + CELL - 5, 2, 2);
           ctx.fillRect(x + CELL - 5, y + 3, 2, 2);
           ctx.fillRect(x + 3, y + CELL - 5, 2, 2);
+        } else if (cell === CellType.MUD) {
+          const x = c * CELL, y = r * CELL;
+          ctx.fillStyle = COLORS.mudBg;
+          ctx.fillRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+          ctx.strokeStyle = COLORS.mudLine;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x + 3, y + CELL - 3);
+          ctx.lineTo(x + CELL - 3, y + 3);
+          ctx.stroke();
         }
       }
     }
@@ -277,6 +295,30 @@ export function SimulationCanvas({
     return () => cancelAnimationFrame(animRef.current);
   }, [drawFrame, onSetVstep, onSetPstep, onSetRobotT, onSetState]);
 
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    onMouseMove(e);
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+    const col = Math.floor(((e.clientX - rect.left) * scaleX) / CELL);
+    const row = Math.floor(((e.clientY - rect.top) * scaleY) / CELL);
+
+    if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+      setHoveredCell({ row, col });
+    } else {
+      setHoveredCell(null);
+    }
+  }, [onMouseMove]);
+
+  const handleMouseLeave = useCallback(() => {
+    onMouseUp();
+    setHoveredCell(null);
+  }, [onMouseUp]);
+
+  const t = translations[lang];
+
   return (
     <div className="relative bg-[#0d0d0d] rounded-none overflow-hidden flex-1 flex items-center justify-center min-h-0 h-full w-full">
       <canvas
@@ -285,10 +327,53 @@ export function SimulationCanvas({
         height={CANVAS_H}
         className="max-h-full max-w-full object-contain block cursor-crosshair bg-black border border-[#3c3c3c]"
         onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
+        onMouseMove={handleMouseMove}
         onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
+        onMouseLeave={handleMouseLeave}
       />
+      {hoveredCell && simulationState === 'done' && (() => {
+        const key = `${hoveredCell.row},${hoveredCell.col}`;
+        const cellValue = grid[hoveredCell.row]?.[hoveredCell.col];
+        
+        let cellTypeName = t.presetEmpty; // default empty
+        if (cellValue === CellType.WALL) cellTypeName = t.wall;
+        else if (cellValue === CellType.MUD) cellTypeName = t.mud.split(' ')[0];
+        else if (hoveredCell.row === startPos.row && hoveredCell.col === startPos.col) cellTypeName = t.start;
+        else if (hoveredCell.row === endPos.row && hoveredCell.col === endPos.col) cellTypeName = t.goal;
+
+        const gVal = gScores?.[key];
+        const hVal = hScores?.[key];
+        const fVal = gVal !== undefined && hVal !== undefined ? +(gVal + hVal).toFixed(1) : undefined;
+
+        return (
+          <div className="absolute top-4 left-4 z-20 bg-black/85 border border-[#3c3c3c] p-3 text-[10px] font-mono text-white/80 select-none backdrop-blur-md pointer-events-none w-[180px] space-y-1.5 shadow-2xl">
+            <div className="border-b border-[#3c3c3c] pb-1 font-bold text-white/50 flex justify-between">
+              <span>{t.cellInfo}</span>
+              <span className="text-[#1c69d4] font-bold">[{hoveredCell.row}, {hoveredCell.col}]</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/40">Type:</span>
+              <span className="text-white/90 font-semibold">{cellTypeName}</span>
+            </div>
+            {gVal !== undefined && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-white/40">g(n) (Cost):</span>
+                  <span className="text-white/90 font-semibold">{gVal}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/40">h(n) (Heur):</span>
+                  <span className="text-white/90 font-semibold">{hVal}</span>
+                </div>
+                <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-bold">
+                  <span className="text-[#1c69d4]">f(n) (Total):</span>
+                  <span className="text-[#1c69d4]">{fVal}</span>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

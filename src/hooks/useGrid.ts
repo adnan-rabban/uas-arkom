@@ -4,6 +4,7 @@ import { CellType } from '@/types';
 import { createGrid, inBounds, applyWalls } from '@/lib/grid';
 import { DEFAULT_START, DEFAULT_END, CELL } from '@/lib/constants';
 import { MAP_PRESETS } from '@/lib/presets';
+import { generateRecursiveDivisionMaze } from '@/lib/maze';
 
 export function useGrid() {
   const [grid, setGrid] = useState<Grid>(() => {
@@ -27,6 +28,10 @@ export function useGrid() {
           case 'wall':
             if ((row === startPos.row && col === startPos.col) || (row === endPos.row && col === endPos.col)) return prev;
             next[row][col] = CellType.WALL;
+            break;
+          case 'mud':
+            if ((row === startPos.row && col === startPos.col) || (row === endPos.row && col === endPos.col)) return prev;
+            next[row][col] = CellType.MUD;
             break;
           case 'erase':
             next[row][col] = CellType.EMPTY;
@@ -97,9 +102,16 @@ export function useGrid() {
     setCurrentPreset(presetId);
   }, []);
 
+  const generateMaze = useCallback(() => {
+    const walls = generateRecursiveDivisionMaze(startPos, endPos);
+    const g = createGrid();
+    setGrid(applyWalls(g, walls));
+    setCurrentPreset('maze');
+  }, [startPos, endPos]);
+
   return {
     grid, startPos, endPos, tool, currentPreset,
-    setTool, clearGrid, loadPreset,
+    setTool, clearGrid, loadPreset, generateMaze,
     handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
   };
 }
