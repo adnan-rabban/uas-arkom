@@ -305,7 +305,7 @@ export function SimulationCanvas({
       ctx.fillStyle = active ? COLORS.robotCenter : COLORS.robotCenterInactive;
       ctx.beginPath(); ctx.arc(rx, ry, 1.5, 0, Math.PI * 2); ctx.fill();
     }
-  }, [getRobotPos, castLidar]);
+  }, [getRobotPos, castLidar, slamMode]);
 
   useEffect(() => {
     const animate = () => {

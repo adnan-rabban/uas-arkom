@@ -2,6 +2,25 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Grid, Position, AlgorithmKey, SimulationState, ComparisonResult } from '@/types';
 import { runAlgorithm } from '@/lib/algorithms';
 
+interface SerialWriter {
+  write(chunk: Uint8Array): Promise<void>;
+  releaseLock(): Promise<void>;
+}
+
+interface SerialPort {
+  open(options: { baudRate: number }): Promise<void>;
+  close(): Promise<void>;
+  writable: {
+    getWriter(): SerialWriter;
+  };
+}
+
+interface NavigatorWithSerial {
+  serial: {
+    requestPort(): Promise<SerialPort>;
+  };
+}
+
 export function useSimulation() {
   const [state, setState] = useState<SimulationState>('idle');
   const [algorithm, setAlgorithm] = useState<AlgorithmKey>('astar');
@@ -22,8 +41,8 @@ export function useSimulation() {
   // Web Serial & SLAM Innovation States
   const [serialConnected, setSerialConnected] = useState(false);
   const [slamMode, setSlamMode] = useState(false);
-  const serialPortRef = useRef<any>(null);
-  const serialWriterRef = useRef<any>(null);
+  const serialPortRef = useRef<SerialPort | null>(null);
+  const serialWriterRef = useRef<SerialWriter | null>(null);
   const lastSentIndexRef = useRef<number>(-1);
 
 
@@ -139,7 +158,7 @@ export function useSimulation() {
       return;
     }
     try {
-      const port = await (navigator as any).serial.requestPort();
+      const port = await (navigator as unknown as NavigatorWithSerial).serial.requestPort();
       await port.open({ baudRate: 9600 });
       serialPortRef.current = port;
       serialWriterRef.current = port.writable.getWriter();
