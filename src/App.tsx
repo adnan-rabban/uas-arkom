@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TopBar } from '@/components/TopBar';
 import { SimulationCanvas } from '@/components/SimulationCanvas';
@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGrid } from '@/hooks/useGrid';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useKeyboard } from '@/hooks/useKeyboard';
-import type { Language } from '@/types';
+import type { Language, Grid, Position } from '@/types';
 import './App.css';
 
 export default function App() {
@@ -22,6 +22,7 @@ export default function App() {
 
   const {
     grid, startPos, endPos, tool, currentPreset,
+    setGrid, setStartPos, setEndPos, setCurrentPreset,
     setTool, clearGrid, loadPreset, generateMaze,
     handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
   } = useGrid();
@@ -30,7 +31,10 @@ export default function App() {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
     diagonal, gScores, hScores,
+    serialConnected, slamMode,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
+    setSlamMode, connectSerial, disconnectSerial,
+    replan,
     reset, run, stepOnce, compareAll,
   } = useSimulation();
 
@@ -64,6 +68,16 @@ export default function App() {
     },
     [reset, loadPreset]
   );
+  const handleUploadPreset = useCallback(
+    (newGrid: Grid, start: Position, end: Position) => {
+      reset();
+      setGrid(newGrid);
+      setStartPos(start);
+      setEndPos(end);
+      setCurrentPreset('custom_image');
+    },
+    [reset, setGrid, setStartPos, setEndPos, setCurrentPreset]
+  );
 
   const keyboardActions = useMemo(
     () => ({
@@ -81,6 +95,22 @@ export default function App() {
   );
 
   useKeyboard(keyboardActions);
+
+  // Dynamic Obstacles Path Replanning (Re-routing on the fly)
+  useEffect(() => {
+    if (state !== 'moving' || path.length === 0) return;
+
+    const currIndex = Math.min(Math.floor(robotT), path.length - 1);
+    const remainingPath = path.slice(currIndex);
+
+    // If any upcoming cell in the path was turned into a WALL
+    const isBlocked = remainingPath.some((p) => grid[p.row]?.[p.col] === 1);
+
+    if (isBlocked) {
+      const robotPos = path[currIndex];
+      replan(grid, robotPos, endPos);
+    }
+  }, [grid, state, path, robotT, endPos, replan]);
 
   const pathFound = path.length > 0;
 
@@ -113,12 +143,15 @@ export default function App() {
                   tool={tool}
                   currentPreset={currentPreset}
                   diagonal={diagonal}
+                  slamMode={slamMode}
                   onToggleDiagonal={() => setDiagonal((prev) => !prev)}
+                  onToggleSlamMode={() => setSlamMode((prev) => !prev)}
                   onGenerateMaze={generateMaze}
                   onSelectAlgorithm={setAlgorithm}
                   onSelectTool={setTool}
                   onCompareAll={handleCompareAll}
                   onSelectPreset={handleLoadPreset}
+                  onUploadPreset={handleUploadPreset}
                 />
               </div>
             </div>
@@ -149,6 +182,7 @@ export default function App() {
                 gScores={gScores}
                 hScores={hScores}
                 lang={lang}
+                slamMode={slamMode}
                 onSetVstep={setVstep}
                 onSetPstep={setPstep}
                 onSetRobotT={setRobotT}
@@ -185,6 +219,10 @@ export default function App() {
                   simulationState={state}
                   pathFound={pathFound}
                   path={path}
+                  robotT={robotT}
+                  serialConnected={serialConnected}
+                  onConnectSerial={connectSerial}
+                  onDisconnectSerial={disconnectSerial}
                   onSetSpeed={setSpeed}
                   onRun={handleRun}
                   onStep={handleStep}
