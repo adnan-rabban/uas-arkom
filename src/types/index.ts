@@ -120,6 +120,23 @@ export interface Translations {
   gValue: string;
   hValue: string;
   cellInfo: string;
+
+  // New Translations for Innovations
+  serialTitle: string;
+  serialConnect: string;
+  serialDisconnect: string;
+  serialConnected: string;
+  serialDisconnected: string;
+  serialSelectPort: string;
+  serialBaudRate: string;
+  arduinoCodeTitle: string;
+  arduinoCodeDesc: string;
+  slamModeTitle: string;
+  slamModeDesc: string;
+  uploadImage: string;
+  uploadImageDesc: string;
+  memoryMapTitle: string;
+  memoryMapDesc: string;
 }
 
 export interface MapPreset {
