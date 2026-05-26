@@ -17,6 +17,7 @@ interface SimulationCanvasProps {
   gScores?: Record<string, number>;
   hScores?: Record<string, number>;
   lang: Language;
+  slamMode: boolean;
   onSetVstep: (fn: (v: number) => number) => void;
   onSetPstep: (fn: (v: number) => number) => void;
   onSetRobotT: (fn: (v: number) => number) => void;
@@ -30,7 +31,7 @@ interface SimulationCanvasProps {
 export function SimulationCanvas({
   grid, startPos, endPos, visitOrder, path,
   vstep, pstep, robotT, simulationState, speed,
-  gScores, hScores, lang,
+  gScores, hScores, lang, slamMode,
   onSetVstep, onSetPstep, onSetRobotT, onSetState,
   onMouseDown, onMouseMove, onMouseUp,
 }: SimulationCanvasProps) {
@@ -39,6 +40,27 @@ export function SimulationCanvas({
   const pulseT = useRef(0);
   const animRef = useRef<number>(0);
   const [hoveredCell, setHoveredCell] = useState<Position | null>(null);
+
+  // Set to track cells revealed by LiDAR in SLAM Mode
+  const revealedCellsRef = useRef<Set<string>>(new Set());
+
+  // Initialize and clear revealed cells
+  useEffect(() => {
+    revealedCellsRef.current.clear();
+    // Add start cell and its neighbors (3x3 area initially visible)
+    const s = startPos;
+    for (let r = -2; r <= 2; r++) {
+      for (let c = -2; c <= 2; c++) {
+        const nr = s.row + r;
+        const nc = s.col + c;
+        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+          revealedCellsRef.current.add(`${nr},${nc}`);
+        }
+      }
+    }
+    // Also reveal target cell
+    revealedCellsRef.current.add(`${endPos.row},${endPos.col}`);
+  }, [startPos, endPos, grid, slamMode, simulationState]);
 
   // Refs for animation loop values
   const stateRef = useRef(simulationState);
@@ -85,6 +107,13 @@ export function SimulationCanvas({
   const castLidar = useCallback((rx: number, ry: number) => {
     const rays: { x: number; y: number; d: number }[] = [];
     const MAX = CELL * 10;
+    
+    const robotRow = Math.floor(ry / CELL);
+    const robotCol = Math.floor(rx / CELL);
+    if (robotRow >= 0 && robotRow < ROWS && robotCol >= 0 && robotCol < COLS) {
+      revealedCellsRef.current.add(`${robotRow},${robotCol}`);
+    }
+
     for (let i = 0; i < 80; i++) {
       const a = lidarAngle.current + (i / 80) * Math.PI * 2;
       const dx = Math.cos(a), dy = Math.sin(a);
@@ -92,12 +121,19 @@ export function SimulationCanvas({
       while (d < MAX) {
         x += dx * 2; y += dy * 2; d += 2;
         const gc = Math.floor(x / CELL), gr = Math.floor(y / CELL);
-        if (gc < 0 || gc >= COLS || gr < 0 || gr >= ROWS || gridRef.current[gr]?.[gc] === CellType.WALL) break;
+        if (gc >= 0 && gc < COLS && gr >= 0 && gr < ROWS) {
+          if (slamMode) {
+            revealedCellsRef.current.add(`${gr},${gc}`);
+          }
+          if (gridRef.current[gr]?.[gc] === CellType.WALL) break;
+        } else {
+          break;
+        }
       }
       rays.push({ x, y, d });
     }
     return rays;
-  }, []);
+  }, [slamMode]);
 
   const drawFrame = useCallback(() => {
     const cvs = canvasRef.current;
@@ -128,6 +164,15 @@ export function SimulationCanvas({
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const cell = g[r][c];
+        const isRevealed = !slamMode || revealedCellsRef.current.has(`${r},${c}`);
+
+        if (!isRevealed) {
+          const x = c * CELL, y = r * CELL;
+          ctx.fillStyle = '#050505'; // Fog of War background
+          ctx.fillRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+          continue;
+        }
+
         if (cell === CellType.WALL) {
           const x = c * CELL, y = r * CELL;
           ctx.fillStyle = COLORS.wall;
@@ -169,6 +214,8 @@ export function SimulationCanvas({
     for (let i = 0; i < Math.min(vc, vord.length); i++) {
       const { row: r, col: c } = vord[i];
       if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+      if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+
       const fresh = Math.max(0, 1 - (vc - i) / 50);
       ctx.fillStyle = COLORS.visited;
       ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
@@ -182,6 +229,8 @@ export function SimulationCanvas({
     for (let i = Math.max(0, vc - 15); i < Math.min(vc, vord.length); i++) {
       const { row: r, col: c } = vord[i];
       if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+      if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+
       const age = vc - i;
       if (age < 12) {
         ctx.fillStyle = `rgba(226,39,24,${(12 - age) / 12 * 0.4})`;
@@ -195,15 +244,21 @@ export function SimulationCanvas({
       for (let i = 0; i < Math.min(pc, p.length); i++) {
         const { row: r, col: c } = p[i];
         if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+        if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+
         ctx.fillStyle = COLORS.pathCell;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
       }
       ctx.strokeStyle = COLORS.pathLine; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.beginPath();
+      let first = true;
       for (let i = 0; i < Math.min(pc, p.length); i++) {
         const { row: r, col: c } = p[i];
-        if (i === 0) {
+        if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+
+        if (first) {
           ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+          first = false;
         } else {
           ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
         }
@@ -299,7 +354,7 @@ export function SimulationCanvas({
     onMouseMove(e);
 
     const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    if (!rect || !canvasRef.current) return;
     const scaleX = canvasRef.current.width / rect.width;
     const scaleY = canvasRef.current.height / rect.height;
     const col = Math.floor(((e.clientX - rect.left) * scaleX) / CELL);
