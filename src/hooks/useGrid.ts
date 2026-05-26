@@ -111,6 +111,7 @@ export function useGrid() {
 
   return {
     grid, startPos, endPos, tool, currentPreset,
+    setGrid, setStartPos, setEndPos, setCurrentPreset,
     setTool, clearGrid, loadPreset, generateMaze,
     handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
   };
