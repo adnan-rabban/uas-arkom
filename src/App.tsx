@@ -205,7 +205,7 @@ export default function App() {
 
             {/* Right Panel */}
             <div
-              className={`transition-all duration-300 ease-in-out border-l border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden ${
+              className={`transition-all duration-300 ease-in-out border-l border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-hidden ${
                 rightOpen ? 'w-[260px] p-4' : 'w-0 p-0 border-l-0'
               }`}
             >
