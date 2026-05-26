@@ -91,16 +91,16 @@ void loop() {
     <div className="h-full flex flex-col justify-between min-h-0 overflow-hidden">
       {/* Tab Selector */}
       <div className="grid grid-cols-3 border border-[#3c3c3c] bg-black p-0.5 rounded-none mb-3 shrink-0">
-        {[
+        {([
           { id: 'control', label: 'CTRL' },
           { id: 'memory', label: 'MEM' },
           { id: 'export', label: 'CODE' },
-        ].map((tab) => (
+        ] as const).map((tab) => (
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`py-1 text-[9px] font-mono tracking-wider font-bold transition-all cursor-pointer rounded-none text-center ${
+            onClick={() => setActiveTab(tab.id)}
+            className={`py-1 text-[10.5px] font-mono tracking-wider font-bold transition-all cursor-pointer rounded-none text-center ${
               activeTab === tab.id
                 ? 'bg-[#1c69d4] text-white'
                 : 'text-white/40 hover:text-white hover:bg-white/5'
@@ -118,10 +118,10 @@ void loop() {
             {/* Speed Control */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+                <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
                   {t.speed}
                 </span>
-                <span className="text-[9px] font-mono text-white/25">{props.speed}x</span>
+                <span className="text-[10.5px] font-mono text-white/25">{props.speed}x</span>
               </div>
               <Slider
                 value={[props.speed]}
@@ -140,7 +140,7 @@ void loop() {
 
             {/* Action Buttons */}
             <div className="space-y-1.5">
-              <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+              <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
                 {t.actions}
               </span>
               <div className="grid grid-cols-2 gap-1.5">
@@ -148,7 +148,7 @@ void loop() {
                   onClick={props.onRun}
                   disabled={isRunning}
                   size="sm"
-                  className="bg-white text-black font-bold uppercase rounded-none border border-white hover:bg-transparent hover:text-white transition-all text-[8px] tracking-widest h-7 cursor-pointer disabled:opacity-40"
+                  className="bg-white text-black font-bold uppercase rounded-none border border-white hover:bg-transparent hover:text-white transition-all text-[9.5px] tracking-widest h-7 cursor-pointer disabled:opacity-40"
                 >
                   <Play className="w-2.5 h-2.5 mr-1" />
                   {t.run}
@@ -158,7 +158,7 @@ void loop() {
                   onClick={props.onStep}
                   size="sm"
                   variant="ghost"
-                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[8px] tracking-widest font-bold h-7 cursor-pointer"
+                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
                 >
                   <SkipForward className="w-2.5 h-2.5 mr-1" />
                   {t.step}
@@ -168,7 +168,7 @@ void loop() {
                   onClick={props.onReset}
                   size="sm"
                   variant="ghost"
-                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[8px] tracking-widest font-bold h-7 cursor-pointer"
+                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
                 >
                   <RotateCcw className="w-2.5 h-2.5 mr-1" />
                   {t.reset}
@@ -178,7 +178,7 @@ void loop() {
                   onClick={props.onClear}
                   size="sm"
                   variant="ghost"
-                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[8px] tracking-widest font-bold h-7 cursor-pointer"
+                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
                 >
                   <Trash2 className="w-2.5 h-2.5 mr-1" />
                   {t.clear}
@@ -202,12 +202,12 @@ void loop() {
 
             {/* Web Serial Connection */}
             <Collapsible open={serialOpen} onOpenChange={setSerialOpen}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 text-[9px] tracking-wider font-mono text-[#1c69d4] hover:text-[#1c69d4]/80 transition-colors cursor-pointer select-none">
+              <CollapsibleTrigger className="flex items-center gap-1.5 text-[10.5px] tracking-wider font-mono text-[#1c69d4] hover:text-[#1c69d4]/80 transition-colors cursor-pointer select-none">
                 <Radio className="w-3 h-3" />
                 {t.serialTitle}
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-1.5 space-y-1.5">
-                <div className="flex items-center justify-between text-[8px] font-mono">
+                <div className="flex items-center justify-between text-[9.5px] font-mono">
                   <span className="text-white/30">Status:</span>
                   <span className={props.serialConnected ? "text-[#2ccb5d] font-bold" : "text-white/20"}>
                     {props.serialConnected ? t.serialConnected : t.serialDisconnected}
@@ -218,7 +218,7 @@ void loop() {
                   onClick={props.serialConnected ? props.onDisconnectSerial : props.onConnectSerial}
                   size="sm"
                   variant="ghost"
-                  className={`w-full text-[8px] font-mono tracking-widest uppercase border rounded-none h-6 cursor-pointer ${
+                  className={`w-full text-[9.5px] font-mono tracking-widest uppercase border rounded-none h-6 cursor-pointer ${
                     props.serialConnected
                       ? 'bg-red-950/30 text-red-500 border-red-900/50 hover:bg-red-900/40 hover:text-red-400'
                       : 'border-[#3c3c3c] text-white/60 hover:border-white hover:text-white'
@@ -228,16 +228,16 @@ void loop() {
                 </Button>
 
                 <div className="space-y-1 bg-black border border-[#3c3c3c] p-1.5 rounded-none">
-                  <div className="flex justify-between items-center text-[7px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
+                  <div className="flex justify-between items-center text-[9px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
                     <span>{t.arduinoCodeTitle}</span>
                     <button
                       onClick={() => handleCopy(getArduinoLiveCode(), 'live')}
-                      className="hover:text-white transition-colors cursor-pointer"
+                      className="hover:text-white transition-colors cursor-pointer text-[9px]"
                     >
                       {copiedType === 'live' ? t.copied : t.copyCode}
                     </button>
                   </div>
-                  <pre className="text-[6.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
+                  <pre className="text-[9.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
                     {getArduinoLiveCode()}
                   </pre>
                 </div>
@@ -248,19 +248,19 @@ void loop() {
 
         {activeTab === 'memory' && (
           <div className="space-y-2">
-            <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
+            <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5" />
               {t.memoryMapTitle}
             </span>
-            <p className="text-[7.5px] text-white/30 font-light leading-normal">
+            <p className="text-[10px] text-white/30 font-light leading-normal">
               {t.memoryMapDesc}
             </p>
 
-            <div className="bg-black border border-[#3c3c3c] p-1.5 rounded-none font-mono text-[6.5px] leading-tight select-none">
+            <div className="bg-black border border-[#3c3c3c] p-1.5 rounded-none font-mono text-[8.5px] leading-tight select-none">
               {/* Header */}
               <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
-                <span className="w-[18px] shrink-0">ADR</span>
-                <span className="flex-1 gap-0.5 text-center" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+                <span className="w-[15px] shrink-0">ADR</span>
+                <span className="flex-1 gap-px text-center" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                   {['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'].map(h => (
                     <span key={h}>{h}</span>
                   ))}
@@ -320,8 +320,8 @@ void loop() {
                     }
                     rows.push(
                       <div key={r} className="flex items-center">
-                        <span className="w-[18px] text-white/20 shrink-0 font-bold">{addrPrefix}</span>
-                        <div className="flex-1 gap-0.5" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+                        <span className="w-[15px] text-white/20 shrink-0 font-bold">{addrPrefix}</span>
+                        <div className="flex-1 gap-px" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                           {cols}
                         </div>
                       </div>
@@ -336,49 +336,49 @@ void loop() {
 
         {activeTab === 'export' && (
           <div className="space-y-3">
-            <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
+            <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
               <Code className="w-3.5 h-3.5" />
               {t.exportPath}
             </span>
 
             {props.pathFound && props.path && props.path.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-[7.5px] text-white/30 font-light leading-normal">
+                <p className="text-[10px] text-white/30 font-light leading-normal">
                   {t.exportPathDesc}
                 </p>
 
                 <div className="space-y-1 bg-black border border-[#3c3c3c] p-2 rounded-none">
-                  <div className="flex justify-between items-center text-[7px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
+                  <div className="flex justify-between items-center text-[9px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
                     <span>arduino_route.c</span>
                     <button
                       onClick={() => handleCopy(getArduinoCode(), 'c')}
-                      className="hover:text-white transition-colors cursor-pointer text-[7px]"
+                      className="hover:text-white transition-colors cursor-pointer text-[9px]"
                     >
                       {copiedType === 'c' ? t.copied : t.copyCode}
                     </button>
                   </div>
-                  <pre className="text-[6.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
+                  <pre className="text-[9.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
                     {getArduinoCode()}
                   </pre>
                 </div>
 
                 <div className="space-y-1 bg-black border border-[#3c3c3c] p-2 rounded-none">
-                  <div className="flex justify-between items-center text-[7px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
+                  <div className="flex justify-between items-center text-[9px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
                     <span>route.asm</span>
                     <button
                       onClick={() => handleCopy(getAssemblyCode(), 'asm')}
-                      className="hover:text-white transition-colors cursor-pointer text-[7px]"
+                      className="hover:text-white transition-colors cursor-pointer text-[9px]"
                     >
                       {copiedType === 'asm' ? t.copied : t.copyCode}
                     </button>
                   </div>
-                  <pre className="text-[6.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
+                  <pre className="text-[9.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
                     {getAssemblyCode()}
                   </pre>
                 </div>
               </div>
             ) : (
-              <p className="text-[8px] text-white/20 font-mono italic">
+              <p className="text-[10px] text-white/20 font-mono italic">
                 {t.statusReady}
               </p>
             )}
@@ -387,7 +387,7 @@ void loop() {
 
             {/* Keyboard Shortcuts */}
             <Collapsible open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 text-[9px] tracking-wider font-mono text-white/15 hover:text-white/30 transition-colors cursor-pointer">
+              <CollapsibleTrigger className="flex items-center gap-1.5 text-[10.5px] tracking-wider font-mono text-white/15 hover:text-white/30 transition-colors cursor-pointer">
                 <Keyboard className="w-3 h-3" />
                 {t.shortcuts}
               </CollapsibleTrigger>
@@ -405,10 +405,10 @@ void loop() {
                     ['4', t.erase],
                   ].map(([key, label]) => (
                     <div key={key} className="flex items-center justify-between">
-                      <kbd className="text-[7.5px] font-mono bg-[#1a1a1a] border border-[#3c3c3c] rounded-none px-1 py-0.5 text-white/40">
+                      <kbd className="text-[9px] font-mono bg-[#1a1a1a] border border-[#3c3c3c] rounded-none px-1 py-0.5 text-white/40">
                         {key}
                       </kbd>
-                      <span className="text-[8px] text-white/30">{label}</span>
+                      <span className="text-[10px] text-white/30">{label}</span>
                     </div>
                   ))}
                 </div>
