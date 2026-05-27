@@ -135,7 +135,7 @@ export const translations: Record<Language, Translations> = {
     slamModeDesc: 'Robot menjelajahi labirin dalam kabut sensor. Peta hanya terungkap melalui LiDAR.',
     uploadImage: 'Unggah Peta Gambar',
     uploadImageDesc: 'Pilih berkas PNG/JPG untuk dijadikan labirin (Gelap = Dinding, Terang = Jalan).',
-    memoryMapTitle: 'Peta Memori / Hex Dump',
+    memoryMapTitle: 'Peta Memori',
     memoryMapDesc: 'Visualisasi penempatan koordinat rute pada SRAM/ROM Arduino.',
   },
   en: {
@@ -222,7 +222,7 @@ export const translations: Record<Language, Translations> = {
     slamModeDesc: 'Robot explores grid within sensor fog. Map reveals dynamically via LiDAR.',
     uploadImage: 'Upload Map Image',
     uploadImageDesc: 'Select PNG/JPG image to generate grid (Dark = Wall, Light = Empty).',
-    memoryMapTitle: 'Memory Map / Hex Dump',
+    memoryMapTitle: 'Memory Map',
     memoryMapDesc: 'Visualizes route coordinates allocation in SRAM/ROM address space.',
   },
 };

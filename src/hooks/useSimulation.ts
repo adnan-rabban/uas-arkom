@@ -236,6 +236,7 @@ export function useSimulation() {
 
   const replan = useCallback((grid: Grid, robotPos: Position, end: Position) => {
     const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
+    lastSentIndexRef.current = -1;
     setVisitOrder(result.visitOrder);
     setPath(result.path);
     setComputeTime(result.time);

@@ -132,7 +132,7 @@ export default function App() {
           <div className="flex-1 min-h-0 flex gap-0 relative">
             {/* Left Panel */}
             <div
-              className={`transition-all duration-300 ease-in-out border-r border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden ${
+              className={`transition-all duration-300 ease-in-out border-r border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none ${
                 leftOpen ? 'w-[260px] p-4' : 'w-0 p-0 border-r-0'
               }`}
             >

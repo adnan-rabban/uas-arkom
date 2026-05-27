@@ -257,6 +257,11 @@ void loop() {
             <span className="flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5" />
               {t.memoryMapTitle}
+              {props.path.length > 127 && (
+                <span className="text-red-500 font-bold text-[9px] animate-pulse ml-2 normal-case tracking-normal">
+                  {props.lang === 'id' ? 'TERPOTONG (MAX 127)' : 'TRUNCATED (MAX 127)'}
+                </span>
+              )}
             </span>
             <span className="text-[9px] text-white/30 font-mono">{memoryOpen ? '[ HIDE ]' : '[ SHOW ]'}</span>
           </CollapsibleTrigger>
@@ -281,7 +286,7 @@ void loop() {
                 {(() => {
                   const mem = Array(256).fill(0);
                   if (props.path && props.path.length > 0) {
-                    mem[0] = Math.min(props.path.length, 255);
+                    mem[0] = Math.min(props.path.length, 127);
                     for (let i = 0; i < props.path.length; i++) {
                       if (1 + i * 2 + 1 < 256) {
                         mem[1 + i * 2] = props.path[i].row;
