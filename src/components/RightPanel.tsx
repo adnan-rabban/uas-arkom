@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Code, Radio, Cpu } from 'lucide-react';
+import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState, useCallback } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
@@ -30,10 +30,12 @@ interface RightPanelProps {
 
 export function RightPanel(props: RightPanelProps) {
   const t = translations[props.lang];
-  const [activeTab, setActiveTab] = useState<'control' | 'memory' | 'export'>('control');
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [serialOpen, setSerialOpen] = useState(false);
   const [copiedType, setCopiedType] = useState<'c' | 'asm' | 'live' | 'mem' | null>(null);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+
+  const [codeModalOpen, setCodeModalOpen] = useState(false);
+  const [selectedModalTab, setSelectedModalTab] = useState<'c' | 'asm' | 'live'>('c');
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const isRunning = props.simulationState !== 'idle' && props.simulationState !== 'done';
 
 
@@ -89,169 +91,176 @@ void loop() {
 
   return (
     <div className="h-full flex flex-col justify-between min-h-0 overflow-hidden">
-      {/* Tab Selector */}
-      <div className="grid grid-cols-3 border border-[#3c3c3c] bg-black p-0.5 rounded-none mb-3 shrink-0">
-        {([
-          { id: 'control', label: 'CTRL' },
-          { id: 'memory', label: 'MEM' },
-          { id: 'export', label: 'CODE' },
-        ] as const).map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`py-1 text-[10.5px] font-mono tracking-wider font-bold transition-all cursor-pointer rounded-none text-center ${
-              activeTab === tab.id
-                ? 'bg-[#1c69d4] text-white'
-                : 'text-white/40 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Contents */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 scrollbar-none pr-0.5">
-        {activeTab === 'control' && (
-          <div className="space-y-3">
-            {/* Speed Control */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
-                  {t.speed}
-                </span>
-                <span className="text-[10.5px] font-mono text-white/25">{props.speed}x</span>
-              </div>
-              <Slider
-                value={[props.speed]}
-                onValueChange={(val) => {
-                  const v = Array.isArray(val) ? val[0] : val;
-                  props.onSetSpeed(v as number);
-                }}
-                min={1}
-                max={20}
-                step={1}
-                className="py-1"
-              />
-            </div>
-
-            <Separator className="bg-white/5" />
-
-            {/* Action Buttons */}
-            <div className="space-y-1.5">
-              <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
-                {t.actions}
-              </span>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Button
-                  onClick={props.onRun}
-                  disabled={isRunning}
-                  size="sm"
-                  className="bg-white text-black font-bold uppercase rounded-none border border-white hover:bg-transparent hover:text-white transition-all text-[9.5px] tracking-widest h-7 cursor-pointer disabled:opacity-40"
-                >
-                  <Play className="w-2.5 h-2.5 mr-1" />
-                  {t.run}
-                </Button>
-
-                <Button
-                  onClick={props.onStep}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
-                >
-                  <SkipForward className="w-2.5 h-2.5 mr-1" />
-                  {t.step}
-                </Button>
-
-                <Button
-                  onClick={props.onReset}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
-                >
-                  <RotateCcw className="w-2.5 h-2.5 mr-1" />
-                  {t.reset}
-                </Button>
-
-                <Button
-                  onClick={props.onClear}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
-                >
-                  <Trash2 className="w-2.5 h-2.5 mr-1" />
-                  {t.clear}
-                </Button>
-              </div>
-            </div>
-
-            <Separator className="bg-white/5" />
-
-            {/* Telemetry */}
-            <TelemetryPanel
-              explored={props.explored}
-              pathLength={props.pathLength}
-              computeTime={props.computeTime}
-              simulationState={props.simulationState}
-              pathFound={props.pathFound}
-              lang={props.lang}
-            />
-
-            <Separator className="bg-white/5" />
-
-            {/* Web Serial Connection */}
-            <Collapsible open={serialOpen} onOpenChange={setSerialOpen}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 text-[10.5px] tracking-wider font-mono text-[#1c69d4] hover:text-[#1c69d4]/80 transition-colors cursor-pointer select-none">
-                <Radio className="w-3 h-3" />
-                {t.serialTitle}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1.5 space-y-1.5">
-                <div className="flex items-center justify-between text-[9.5px] font-mono">
-                  <span className="text-white/30">Status:</span>
-                  <span className={props.serialConnected ? "text-[#2ccb5d] font-bold" : "text-white/20"}>
-                    {props.serialConnected ? t.serialConnected : t.serialDisconnected}
-                  </span>
-                </div>
-
-                <Button
-                  onClick={props.serialConnected ? props.onDisconnectSerial : props.onConnectSerial}
-                  size="sm"
-                  variant="ghost"
-                  className={`w-full text-[9.5px] font-mono tracking-widest uppercase border rounded-none h-6 cursor-pointer ${
-                    props.serialConnected
-                      ? 'bg-red-950/30 text-red-500 border-red-900/50 hover:bg-red-900/40 hover:text-red-400'
-                      : 'border-[#3c3c3c] text-white/60 hover:border-white hover:text-white'
-                  }`}
-                >
-                  {props.serialConnected ? t.serialDisconnect : t.serialConnect}
-                </Button>
-
-                <div className="space-y-1 bg-black border border-[#3c3c3c] p-1.5 rounded-none">
-                  <div className="flex justify-between items-center text-[9px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
-                    <span>{t.arduinoCodeTitle}</span>
-                    <button
-                      onClick={() => handleCopy(getArduinoLiveCode(), 'live')}
-                      className="hover:text-white transition-colors cursor-pointer text-[9px]"
-                    >
-                      {copiedType === 'live' ? t.copied : t.copyCode}
-                    </button>
-                  </div>
-                  <pre className="text-[9.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
-                    {getArduinoLiveCode()}
-                  </pre>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 scrollbar-none pr-0.5">
+        {/* Speed Control */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+              {t.speed}
+            </span>
+            <span className="text-[10.5px] font-mono text-white/25">{props.speed}x</span>
           </div>
-        )}
+          <Slider
+            value={[props.speed]}
+            onValueChange={(val) => {
+              const v = Array.isArray(val) ? val[0] : val;
+              props.onSetSpeed(v as number);
+            }}
+            min={1}
+            max={20}
+            step={1}
+            className="py-1"
+          />
+        </div>
 
-        {activeTab === 'memory' && (
-          <div className="space-y-2">
-            <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
+        <Separator className="bg-white/5" />
+
+        {/* Action Buttons */}
+        <div className="space-y-1.5">
+          <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+            {t.actions}
+          </span>
+          <div className="grid grid-cols-2 gap-1.5">
+            <Button
+              onClick={props.onRun}
+              disabled={isRunning}
+              size="sm"
+              className="bg-white text-black font-bold uppercase rounded-none border border-white hover:bg-transparent hover:text-white transition-all text-[9.5px] tracking-widest h-7 cursor-pointer disabled:opacity-40"
+            >
+              <Play className="w-2.5 h-2.5 mr-1" />
+              {t.run}
+            </Button>
+
+            <Button
+              onClick={props.onStep}
+              size="sm"
+              variant="ghost"
+              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
+            >
+              <SkipForward className="w-2.5 h-2.5 mr-1" />
+              {t.step}
+            </Button>
+
+            <Button
+              onClick={props.onReset}
+              size="sm"
+              variant="ghost"
+              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
+            >
+              <RotateCcw className="w-2.5 h-2.5 mr-1" />
+              {t.reset}
+            </Button>
+
+            <Button
+              onClick={props.onClear}
+              size="sm"
+              variant="ghost"
+              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
+            >
+              <Trash2 className="w-2.5 h-2.5 mr-1" />
+              {t.clear}
+            </Button>
+          </div>
+        </div>
+
+        <Separator className="bg-white/5" />
+
+        {/* Telemetry */}
+        <TelemetryPanel
+          explored={props.explored}
+          pathLength={props.pathLength}
+          computeTime={props.computeTime}
+          simulationState={props.simulationState}
+          pathFound={props.pathFound}
+          lang={props.lang}
+        />
+
+        <Separator className="bg-white/5" />
+
+        {/* Serial & Code Exporters Block */}
+        <div className="space-y-1.5">
+          <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+            {t.serialTitle} & {t.exportPath}
+          </span>
+          <div className="bg-black border border-[#3c3c3c] p-2 space-y-2 rounded-none">
+            {/* Web Serial status & connect button */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[8px] uppercase tracking-wider text-white/30">Serial Status</span>
+                <span className={`text-[9.5px] font-mono font-bold ${props.serialConnected ? "text-[#2ccb5d]" : "text-white/20"}`}>
+                  {props.serialConnected ? t.serialConnected : t.serialDisconnected}
+                </span>
+              </div>
+              <Button
+                onClick={props.serialConnected ? props.onDisconnectSerial : props.onConnectSerial}
+                size="sm"
+                variant="ghost"
+                className={`text-[9px] font-mono tracking-widest uppercase border rounded-none h-6 px-2 cursor-pointer ${
+                  props.serialConnected
+                    ? 'bg-red-950/30 text-red-500 border-red-900/50 hover:bg-red-900/40 hover:text-red-400'
+                    : 'border-[#3c3c3c] text-white/60 hover:border-white hover:text-white'
+                }`}
+              >
+                {props.serialConnected ? t.serialDisconnect : t.serialConnect}
+              </Button>
+            </div>
+
+            {/* Code exporters buttons */}
+            <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-white/5">
+              <Button
+                onClick={() => {
+                  setSelectedModalTab('live');
+                  setCodeModalOpen(true);
+                }}
+                size="sm"
+                variant="ghost"
+                className="text-[9px] font-mono tracking-wider uppercase border border-[#3c3c3c] hover:border-white hover:text-white rounded-none h-6 px-1 cursor-pointer"
+                title={t.arduinoCodeTitle}
+              >
+                live.ino
+              </Button>
+              <Button
+                disabled={!props.pathFound || props.path.length === 0}
+                onClick={() => {
+                  setSelectedModalTab('c');
+                  setCodeModalOpen(true);
+                }}
+                size="sm"
+                variant="ghost"
+                className="text-[9px] font-mono tracking-wider uppercase border border-[#3c3c3c] hover:border-white hover:text-white rounded-none h-6 px-1 cursor-pointer disabled:opacity-30 disabled:hover:border-[#3c3c3c] disabled:hover:text-white/30"
+                title="arduino_route.c"
+              >
+                route.c
+              </Button>
+              <Button
+                disabled={!props.pathFound || props.path.length === 0}
+                onClick={() => {
+                  setSelectedModalTab('asm');
+                  setCodeModalOpen(true);
+                }}
+                size="sm"
+                variant="ghost"
+                className="text-[9px] font-mono tracking-wider uppercase border border-[#3c3c3c] hover:border-white hover:text-white rounded-none h-6 px-1 cursor-pointer disabled:opacity-30 disabled:hover:border-[#3c3c3c] disabled:hover:text-white/30"
+                title="route.asm"
+              >
+                route.asm
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="bg-white/5" />
+
+        {/* Memory Map Collapsible (Open by default) */}
+        <Collapsible open={memoryOpen} onOpenChange={setMemoryOpen}>
+          <CollapsibleTrigger className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
+            <span className="flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5" />
               {t.memoryMapTitle}
             </span>
+            <span className="text-[9px] text-white/30 font-mono">{memoryOpen ? '[ HIDE ]' : '[ SHOW ]'}</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-1.5">
             <p className="text-[10px] text-white/30 font-light leading-normal">
               {t.memoryMapDesc}
             </p>
@@ -331,91 +340,139 @@ void loop() {
                 })()}
               </div>
             </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator className="bg-white/5" />
+
+        {/* Keyboard Shortcuts */}
+        <Button
+          onClick={() => setShortcutsModalOpen(true)}
+          variant="ghost"
+          size="sm"
+          className="w-full flex items-center justify-center gap-1.5 text-[10.5px] tracking-wider font-mono text-white/15 hover:text-white/35 hover:bg-white/5 border border-dashed border-white/10 rounded-none h-7 cursor-pointer"
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+          {t.shortcuts}
+        </Button>
+      </div>
+
+      {/* Code Export Modal */}
+      <Modal 
+        isOpen={codeModalOpen} 
+        onClose={() => setCodeModalOpen(false)} 
+        title={t.exportPath || 'Code Export'}
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 border border-[#3c3c3c] bg-black p-0.5 rounded-none mb-2">
+            {([
+              { id: 'c', label: 'arduino_route.c' },
+              { id: 'asm', label: 'route.asm' },
+              { id: 'live', label: 'live_receiver.ino' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSelectedModalTab(tab.id)}
+                className={`py-1 text-[9px] font-mono tracking-wider font-bold transition-all cursor-pointer rounded-none text-center ${
+                  selectedModalTab === tab.id
+                    ? 'bg-[#1c69d4] text-white'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {activeTab === 'export' && (
-          <div className="space-y-3">
-            <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
-              <Code className="w-3.5 h-3.5" />
-              {t.exportPath}
-            </span>
-
-            {props.pathFound && props.path && props.path.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[10px] text-white/30 font-light leading-normal">
-                  {t.exportPathDesc}
-                </p>
-
-                <div className="space-y-1 bg-black border border-[#3c3c3c] p-2 rounded-none">
-                  <div className="flex justify-between items-center text-[9px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
-                    <span>arduino_route.c</span>
-                    <button
-                      onClick={() => handleCopy(getArduinoCode(), 'c')}
-                      className="hover:text-white transition-colors cursor-pointer text-[9px]"
-                    >
-                      {copiedType === 'c' ? t.copied : t.copyCode}
-                    </button>
-                  </div>
-                  <pre className="text-[9.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
-                    {getArduinoCode()}
-                  </pre>
-                </div>
-
-                <div className="space-y-1 bg-black border border-[#3c3c3c] p-2 rounded-none">
-                  <div className="flex justify-between items-center text-[9px] border-b border-white/5 pb-1 mb-1 font-mono text-white/40">
-                    <span>route.asm</span>
-                    <button
-                      onClick={() => handleCopy(getAssemblyCode(), 'asm')}
-                      className="hover:text-white transition-colors cursor-pointer text-[9px]"
-                    >
-                      {copiedType === 'asm' ? t.copied : t.copyCode}
-                    </button>
-                  </div>
-                  <pre className="text-[9.5px] font-mono text-white/50 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[85px] scrollbar-thin">
-                    {getAssemblyCode()}
-                  </pre>
-                </div>
-              </div>
-            ) : (
-              <p className="text-[10px] text-white/20 font-mono italic">
-                {t.statusReady}
-              </p>
-            )}
-
-            <Separator className="bg-white/5" />
-
-            {/* Keyboard Shortcuts */}
-            <Collapsible open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 text-[10.5px] tracking-wider font-mono text-white/15 hover:text-white/30 transition-colors cursor-pointer">
-                <Keyboard className="w-3 h-3" />
-                {t.shortcuts}
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="mt-2 space-y-1">
-                  {[
-                    ['Space', t.run],
-                    ['S', t.step],
-                    ['R', t.reset],
-                    ['C', t.clear],
-                    ['1', t.wall],
-                    ['2', t.start],
-                    ['3', t.goal],
-                    ['5', t.mud.split(' ')[0]],
-                    ['4', t.erase],
-                  ].map(([key, label]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <kbd className="text-[9px] font-mono bg-[#1a1a1a] border border-[#3c3c3c] rounded-none px-1 py-0.5 text-white/40">
-                        {key}
-                      </kbd>
-                      <span className="text-[10px] text-white/30">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+          <div className="bg-black border border-[#3c3c3c] p-3 rounded-none relative">
+            <div className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1.5 mb-2 font-mono text-white/40">
+              <span>
+                {selectedModalTab === 'c' && 'arduino_route.c'}
+                {selectedModalTab === 'asm' && 'route.asm'}
+                {selectedModalTab === 'live' && 'live_receiver.ino'}
+              </span>
+              <button
+                onClick={() => {
+                  const code = selectedModalTab === 'c' ? getArduinoCode() : selectedModalTab === 'asm' ? getAssemblyCode() : getArduinoLiveCode();
+                  handleCopy(code, selectedModalTab);
+                }}
+                className="hover:text-white transition-colors cursor-pointer text-[10px] text-[#1c69d4] font-bold"
+              >
+                {copiedType === selectedModalTab ? t.copied : t.copyCode}
+              </button>
+            </div>
+            <pre className="text-[11px] font-mono text-white/70 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[350px] scrollbar-thin">
+              {selectedModalTab === 'c' && getArduinoCode()}
+              {selectedModalTab === 'asm' && getAssemblyCode()}
+              {selectedModalTab === 'live' && getArduinoLiveCode()}
+            </pre>
           </div>
-        )}
+        </div>
+      </Modal>
+
+      {/* Keyboard Shortcuts Modal */}
+      <Modal 
+        isOpen={shortcutsModalOpen} 
+        onClose={() => setShortcutsModalOpen(false)} 
+        title={t.shortcuts || 'Keyboard Shortcuts'}
+      >
+        <div className="space-y-1.5 py-1">
+          {[
+            ['Space', t.run],
+            ['S', t.step],
+            ['R', t.reset],
+            ['C', t.clear],
+            ['1', t.wall],
+            ['2', t.start],
+            ['3', t.goal],
+            ['5', t.mud.split(' ')[0]],
+            ['4', t.erase],
+          ].map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between py-1 border-b border-white/5 last:border-0">
+              <kbd className="text-[10px] font-mono bg-[#1a1a1a] border border-[#3c3c3c] rounded-none px-1.5 py-0.5 text-white/60">
+                {key}
+              </kbd>
+              <span className="text-[11px] text-white/50">{label}</span>
+            </div>
+          ))}
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}
+
+function Modal({ isOpen, onClose, title, children }: ModalProps) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div 
+        className="bg-[#0d0d0d] border border-[#3c3c3c] w-full max-w-[500px] flex flex-col justify-between shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#3c3c3c] px-4 py-3 bg-black">
+          <span className="text-[11px] font-mono tracking-widest uppercase font-bold text-[#1c69d4]">
+            {title}
+          </span>
+          <button 
+            onClick={onClose}
+            className="text-white/40 hover:text-white transition-colors cursor-pointer font-mono text-xs uppercase tracking-wider font-bold"
+          >
+            [ Close ]
+          </button>
+        </div>
+        {/* Content */}
+        <div className="p-4 overflow-y-auto max-h-[70vh] scrollbar-thin">
+          {children}
+        </div>
       </div>
     </div>
   );
