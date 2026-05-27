@@ -6,6 +6,30 @@ Aplikasi ini didesain khusus untuk memenuhi praktikum/ujian praktis mata kuliah 
 
 ---
 
+## 🛠️ Tech Stack & Teknologi yang Digunakan
+
+Aplikasi ini dibangun menggunakan kombinasi teknologi modern untuk kinerja maksimal dan estetika visual:
+
+<p align="left">
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://vite.dev/"><img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" /></a>
+  <a href="https://www.arduino.cc/"><img src="https://img.shields.io/badge/Arduino-00979D?style=for-the-badge&logo=Arduino&logoColor=white" alt="Arduino" /></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/HTML"><img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" /></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/CSS"><img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" /></a>
+</p>
+
+
+* **Bahasa & Core**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite 8](https://vite.dev/) (menjamin HMR super cepat dan struktur tipe data yang aman).
+* **Styling & HUD Design**: [Tailwind CSS v4](https://tailwindcss.com/) + `@tailwindcss/vite` (utilitas CSS modern untuk layout grid/flexbox) + [shadcn UI](https://ui.shadcn.com/) (basis komponen tombol, modal, select, dan slider).
+* **Ikonografi (Icons)**: [Lucide React](https://lucide.dev/) (ikon instrumen seperti CPU, Compass, Route, Trophy, Usb, Play, Target, dan lainnya).
+* **Render Kanvas**: HTML5 Canvas API (merender grid peta 40x24 secara presisi, gerakan robot, riak gelombang sensor RPG, lintasan berpendar, dan radar LiDAR secara waktu-nyata).
+* **Interfacing API**: Web Serial API (komunikasi bit serial langsung ke port USB mikrokontroler Arduino).
+* **Tipografi**: [Geist Variable Font](https://fontsource.org/fonts/geist-mono) + [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono) (untuk visual bertema kode komputer monospace).
+
+---
+
 ## 🚀 Fitur Utama
 
 1. **Visualisasi Pencarian Jalur Waktu-Nyata**:

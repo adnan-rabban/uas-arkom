@@ -40,6 +40,7 @@ export function SimulationCanvas({
   const pulseT = useRef(0);
   const animRef = useRef<number>(0);
   const ripplesRef = useRef<{ row: number; col: number; age: number }[]>([]);
+  const revealedOpacitiesRef = useRef<Map<string, number>>(new Map());
   const [hoveredCell, setHoveredCell] = useState<Position | null>(null);
 
   // Set to track cells revealed by LiDAR in SLAM Mode
@@ -52,6 +53,7 @@ export function SimulationCanvas({
     if (simulationState === 'idle') {
       traversedHistoryRef.current = [];
       ripplesRef.current = [];
+      revealedOpacitiesRef.current.clear();
     }
   }, [simulationState]);
 
@@ -59,19 +61,24 @@ export function SimulationCanvas({
   useEffect(() => {
     if (simulationState === 'idle') {
       revealedCellsRef.current.clear();
-      // Add start cell and its neighbors (3x3 area initially visible)
+      revealedOpacitiesRef.current.clear();
+      // Add start cell and its neighbors (5x5 area initially visible)
       const s = startPos;
       for (let r = -2; r <= 2; r++) {
         for (let c = -2; c <= 2; c++) {
           const nr = s.row + r;
           const nc = s.col + c;
           if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-            revealedCellsRef.current.add(`${nr},${nc}`);
+            const key = `${nr},${nc}`;
+            revealedCellsRef.current.add(key);
+            revealedOpacitiesRef.current.set(key, 1.0);
           }
         }
       }
       // Also reveal target cell
-      revealedCellsRef.current.add(`${endPos.row},${endPos.col}`);
+      const endKey = `${endPos.row},${endPos.col}`;
+      revealedCellsRef.current.add(endKey);
+      revealedOpacitiesRef.current.set(endKey, 1.0);
     }
   }, [startPos, endPos, simulationState]);
 
@@ -425,6 +432,31 @@ export function SimulationCanvas({
       ctx.fillStyle = active ? COLORS.robotCenter : COLORS.robotCenterInactive;
       ctx.beginPath(); ctx.arc(rx, ry, 1.5, 0, Math.PI * 2); ctx.fill();
     }
+
+    // -- Post-processing pass for SLAM Fog of War dynamic reveal fade-in (RPG-style) --
+    if (slamMode) {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const key = `${r},${c}`;
+          const isRevealed = revealedCellsRef.current.has(key);
+          if (!isRevealed) continue; // fully black fog is already drawn in the grid loop
+
+          const opacity = revealedOpacitiesRef.current.get(key) ?? 0;
+          if (opacity < 1.0) {
+            const x = c * CELL, y = r * CELL;
+
+            // Fading mask overlay
+            ctx.fillStyle = `rgba(5, 5, 5, ${1.0 - opacity})`;
+            ctx.fillRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+
+            // Retro cyberpunk scan outline reveal
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(1.0 - opacity) * 0.7})`;
+            ctx.lineWidth = 1.0;
+            ctx.strokeRect(x + 1, y + 1, CELL - 2, CELL - 2);
+          }
+        }
+      }
+    }
   }, [getRobotPos, castLidar, slamMode]);
 
   useEffect(() => {
@@ -480,6 +512,19 @@ export function SimulationCanvas({
       ripplesRef.current = ripplesRef.current
         .map((r) => ({ ...r, age: r.age + 1 }))
         .filter((r) => r.age < 30);
+
+      // Update revealed opacities for SLAM mode
+      const opacities = revealedOpacitiesRef.current;
+      for (const key of revealedCellsRef.current) {
+        if (!opacities.has(key)) {
+          opacities.set(key, 0.05);
+        } else {
+          const val = opacities.get(key)!;
+          if (val < 1.0) {
+            opacities.set(key, Math.min(val + 0.07, 1.0));
+          }
+        }
+      }
 
       drawFrame();
       animRef.current = requestAnimationFrame(animate);
