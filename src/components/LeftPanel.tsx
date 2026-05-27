@@ -118,7 +118,10 @@ export function LeftPanel(props: LeftPanelProps) {
             <Compass className="w-3.5 h-3.5" />
             {t.diagonal}
           </span>
-          <span className="text-[8px] font-bold">{props.diagonal ? 'ON' : 'OFF'}</span>
+          <span className="flex items-center gap-1.5">
+            {props.diagonal && <span className="led-dot led-blue led-pulse" />}
+            <span className="text-[8px] font-bold">{props.diagonal ? 'ON' : 'OFF'}</span>
+          </span>
         </button>
 
         {/* SLAM Mode Switch */}
@@ -135,7 +138,10 @@ export function LeftPanel(props: LeftPanelProps) {
             <EyeOff className="w-3.5 h-3.5" />
             {t.slamModeTitle.split(' ')[0] + ' ' + (t.slamModeTitle.split(' ')[1] || 'SLAM')}
           </span>
-          <span className="text-[8px] font-bold">{props.slamMode ? 'ON' : 'OFF'}</span>
+          <span className="flex items-center gap-1.5">
+            {props.slamMode && <span className="led-dot led-green led-pulse" />}
+            <span className="text-[8px] font-bold">{props.slamMode ? 'ON' : 'OFF'}</span>
+          </span>
         </button>
       </div>
 

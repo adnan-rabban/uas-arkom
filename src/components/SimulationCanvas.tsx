@@ -39,6 +39,7 @@ export function SimulationCanvas({
   const lidarAngle = useRef(0);
   const pulseT = useRef(0);
   const animRef = useRef<number>(0);
+  const ripplesRef = useRef<{ row: number; col: number; age: number }[]>([]);
   const [hoveredCell, setHoveredCell] = useState<Position | null>(null);
 
   // Set to track cells revealed by LiDAR in SLAM Mode
@@ -50,6 +51,7 @@ export function SimulationCanvas({
   useEffect(() => {
     if (simulationState === 'idle') {
       traversedHistoryRef.current = [];
+      ripplesRef.current = [];
     }
   }, [simulationState]);
 
@@ -240,6 +242,24 @@ export function SimulationCanvas({
     ctx.fillStyle = COLORS.endText;
     ctx.fillText('E', e.col * CELL + CELL / 2, e.row * CELL + CELL / 2);
 
+    const drawBrackets = (row: number, col: number, color: string) => {
+      const x = col * CELL;
+      const y = row * CELL;
+      const len = 4;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      // Top-Left
+      ctx.beginPath(); ctx.moveTo(x + len, y); ctx.lineTo(x, y); ctx.lineTo(x, y + len); ctx.stroke();
+      // Top-Right
+      ctx.beginPath(); ctx.moveTo(x + CELL - len, y); ctx.lineTo(x + CELL, y); ctx.lineTo(x + CELL, y + len); ctx.stroke();
+      // Bottom-Left
+      ctx.beginPath(); ctx.moveTo(x + len, y + CELL); ctx.lineTo(x, y + CELL); ctx.lineTo(x, y + CELL - len); ctx.stroke();
+      // Bottom-Right
+      ctx.beginPath(); ctx.moveTo(x + CELL - len, y + CELL); ctx.lineTo(x + CELL, y + CELL); ctx.lineTo(x + CELL, y + CELL - len); ctx.stroke();
+    };
+    drawBrackets(s.row, s.col, COLORS.startText);
+    drawBrackets(e.row, e.col, COLORS.endText);
+
     // -- Visited cells --
     const vc = Math.floor(vs);
     for (let i = 0; i < Math.min(vc, vord.length); i++) {
@@ -267,6 +287,20 @@ export function SimulationCanvas({
         ctx.fillStyle = `rgba(226,39,24,${(12 - age) / 12 * 0.4})`;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
       }
+    }
+
+    // -- Draw Exploration Ripples --
+    ctx.lineWidth = 1;
+    for (const r of ripplesRef.current) {
+      if (slamMode && !revealedCellsRef.current.has(`${r.row},${r.col}`)) continue;
+      const x = r.col * CELL + CELL / 2;
+      const y = r.row * CELL + CELL / 2;
+      const radius = (r.age / 30) * CELL * 1.6;
+      const alpha = 1 - r.age / 30;
+      ctx.strokeStyle = `rgba(28, 105, 212, ${alpha * 0.75})`;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
     // -- Traversed History (Garis Memory) --
@@ -303,7 +337,7 @@ export function SimulationCanvas({
         ctx.fillStyle = COLORS.pathCell;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
       }
-      ctx.strokeStyle = COLORS.pathLine; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = COLORS.pathLine; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.beginPath();
       let first = true;
       for (let i = 0; i < Math.min(pc, p.length); i++) {
@@ -318,6 +352,14 @@ export function SimulationCanvas({
         }
       }
       ctx.stroke();
+
+      // -- Marching flow glow path --
+      ctx.strokeStyle = '#38bdf8'; // Glowing cyan
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([6, 5]);
+      ctx.lineDashOffset = -pulseT.current * 0.45;
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset
     }
 
     // -- Robot --
@@ -332,6 +374,30 @@ export function SimulationCanvas({
         ctx.strokeStyle = `rgba(28,105,212,${(1 - fade) * 0.12 + 0.02})`;
         ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(ray.x, ray.y); ctx.stroke();
       }
+
+      // Lidar Radar sweeping scope
+      ctx.strokeStyle = `rgba(28, 105, 212, ${active ? 0.12 : 0.04})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(rx, ry, CELL * 4.2, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Radar crosshairs
+      ctx.strokeStyle = `rgba(28, 105, 212, ${active ? 0.2 : 0.05})`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(rx - CELL * 4.7, ry); ctx.lineTo(rx + CELL * 4.7, ry);
+      ctx.moveTo(rx, ry - CELL * 4.7); ctx.lineTo(rx, ry + CELL * 4.7);
+      ctx.stroke();
+
+      // Rotating dashed outer scope
+      ctx.strokeStyle = `rgba(28, 105, 212, ${active ? 0.18 : 0.05})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 5]);
+      ctx.beginPath();
+      ctx.arc(rx, ry, CELL * 4.7, -lidarAngle.current * 0.8, -lidarAngle.current * 0.8 + Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset
 
       ctx.strokeStyle = `rgba(28,105,212,${active ? 0.22 : 0.08})`;
       ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(rx, ry, CELL * 6, lidarAngle.current, lidarAngle.current + 0.9); ctx.stroke();
@@ -371,6 +437,19 @@ export function SimulationCanvas({
       if (stateRef.current === 'exploring') {
         onSetVstep((prev) => {
           const next = Math.min(prev + spd * 0.55, visitOrderRef.current.length);
+          const prevInt = Math.floor(prev);
+          const nextInt = Math.floor(next);
+          if (nextInt > prevInt) {
+            for (let i = prevInt; i < nextInt; i++) {
+              if (visitOrderRef.current[i]) {
+                ripplesRef.current.push({
+                  row: visitOrderRef.current[i].row,
+                  col: visitOrderRef.current[i].col,
+                  age: 0,
+                });
+              }
+            }
+          }
           if (next >= visitOrderRef.current.length) {
             onSetState(pathRef.current.length > 0 ? 'pathing' : 'done');
           }
@@ -396,6 +475,11 @@ export function SimulationCanvas({
           return next;
         });
       }
+
+      // Update ripple ages
+      ripplesRef.current = ripplesRef.current
+        .map((r) => ({ ...r, age: r.age + 1 }))
+        .filter((r) => r.age < 30);
 
       drawFrame();
       animRef.current = requestAnimationFrame(animate);
@@ -429,7 +513,12 @@ export function SimulationCanvas({
   const t = translations[lang];
 
   return (
-    <div className="relative bg-[#0d0d0d] rounded-none overflow-hidden flex-1 flex items-center justify-center min-h-0 h-full w-full">
+    <div className="relative bg-[#0d0d0d] rounded-none overflow-hidden flex-1 flex items-center justify-center min-h-0 h-full w-full crt-overlay p-2">
+      {/* HUD corner brackets */}
+      <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-white/20 pointer-events-none" />
+      <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-white/20 pointer-events-none" />
+      <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-white/20 pointer-events-none" />
+      <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-white/20 pointer-events-none" />
       <canvas
         ref={canvasRef}
         width={CANVAS_W}
