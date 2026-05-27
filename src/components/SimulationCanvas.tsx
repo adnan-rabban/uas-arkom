@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import type { Grid, Position, SimulationState, Language } from '@/types';
 import { CellType } from '@/types';
 import { ROWS, COLS, CELL, CANVAS_W, CANVAS_H, COLORS, translations } from '@/lib/constants';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface SimulationCanvasProps {
   grid: Grid;
@@ -40,26 +41,39 @@ export function SimulationCanvas({
   const pulseT = useRef(0);
   const animRef = useRef<number>(0);
   const [hoveredCell, setHoveredCell] = useState<Position | null>(null);
+  const [revealAllOnDone, setRevealAllOnDone] = useState(false);
 
   // Set to track cells revealed by LiDAR in SLAM Mode
   const revealedCellsRef = useRef<Set<string>>(new Set());
+  // List of positions traversed by the robot (garis memory)
+  const traversedHistoryRef = useRef<Position[]>([]);
+
+  // Clear history and toggle when reset (idle)
+  useEffect(() => {
+    if (simulationState === 'idle') {
+      traversedHistoryRef.current = [];
+      setRevealAllOnDone(false);
+    }
+  }, [simulationState]);
 
   // Initialize and clear revealed cells
   useEffect(() => {
-    revealedCellsRef.current.clear();
-    // Add start cell and its neighbors (3x3 area initially visible)
-    const s = startPos;
-    for (let r = -2; r <= 2; r++) {
-      for (let c = -2; c <= 2; c++) {
-        const nr = s.row + r;
-        const nc = s.col + c;
-        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-          revealedCellsRef.current.add(`${nr},${nc}`);
+    if (simulationState === 'idle') {
+      revealedCellsRef.current.clear();
+      // Add start cell and its neighbors (3x3 area initially visible)
+      const s = startPos;
+      for (let r = -2; r <= 2; r++) {
+        for (let c = -2; c <= 2; c++) {
+          const nr = s.row + r;
+          const nc = s.col + c;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            revealedCellsRef.current.add(`${nr},${nc}`);
+          }
         }
       }
+      // Also reveal target cell
+      revealedCellsRef.current.add(`${endPos.row},${endPos.col}`);
     }
-    // Also reveal target cell
-    revealedCellsRef.current.add(`${endPos.row},${endPos.col}`);
   }, [startPos, endPos, grid, slamMode, simulationState]);
 
   // Refs for animation loop values
@@ -150,6 +164,26 @@ export function SimulationCanvas({
     const vord = visitOrderRef.current;
     const p = pathRef.current;
 
+    // Record current traversed cell for memory line
+    if (st === 'moving' && p.length > 0) {
+      const idx = Math.min(Math.floor(robotTRef.current), p.length - 1);
+      const currentCell = p[idx];
+      const history = traversedHistoryRef.current;
+      if (history.length === 0 || 
+          history[history.length - 1].row !== currentCell.row || 
+          history[history.length - 1].col !== currentCell.col) {
+        history.push(currentCell);
+      }
+    } else if (st === 'done' && p.length > 0) {
+      const lastCell = p[p.length - 1];
+      const history = traversedHistoryRef.current;
+      if (history.length > 0 && 
+          (history[history.length - 1].row !== lastCell.row || 
+           history[history.length - 1].col !== lastCell.col)) {
+        history.push(lastCell);
+      }
+    }
+
     // -- Background --
     ctx.fillStyle = COLORS.gridBg;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -164,7 +198,7 @@ export function SimulationCanvas({
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const cell = g[r][c];
-        const isRevealed = !slamMode || revealedCellsRef.current.has(`${r},${c}`);
+        const isRevealed = !slamMode || revealAllOnDone || revealedCellsRef.current.has(`${r},${c}`);
 
         if (!isRevealed) {
           const x = c * CELL, y = r * CELL;
@@ -214,7 +248,7 @@ export function SimulationCanvas({
     for (let i = 0; i < Math.min(vc, vord.length); i++) {
       const { row: r, col: c } = vord[i];
       if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
-      if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+      if (slamMode && !revealAllOnDone && !revealedCellsRef.current.has(`${r},${c}`)) continue;
 
       const fresh = Math.max(0, 1 - (vc - i) / 50);
       ctx.fillStyle = COLORS.visited;
@@ -229,7 +263,7 @@ export function SimulationCanvas({
     for (let i = Math.max(0, vc - 15); i < Math.min(vc, vord.length); i++) {
       const { row: r, col: c } = vord[i];
       if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
-      if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+      if (slamMode && !revealAllOnDone && !revealedCellsRef.current.has(`${r},${c}`)) continue;
 
       const age = vc - i;
       if (age < 12) {
@@ -238,13 +272,36 @@ export function SimulationCanvas({
       }
     }
 
+    // -- Traversed History (Garis Memory) --
+    const history = traversedHistoryRef.current;
+    if (history.length > 1) {
+      ctx.strokeStyle = '#e0a800'; // Doff yellow/orange for memory line
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.setLineDash([3, 4]); // Dashed line
+      ctx.beginPath();
+      let first = true;
+      for (const pos of history) {
+        if (slamMode && !revealAllOnDone && !revealedCellsRef.current.has(`${pos.row},${pos.col}`)) continue;
+        if (first) {
+          ctx.moveTo(pos.col * CELL + CELL / 2, pos.row * CELL + CELL / 2);
+          first = false;
+        } else {
+          ctx.lineTo(pos.col * CELL + CELL / 2, pos.row * CELL + CELL / 2);
+        }
+      }
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset dash
+    }
+
     // -- Path cells --
     const pc = Math.floor(ps);
     if (pc > 0 && p.length > 0) {
       for (let i = 0; i < Math.min(pc, p.length); i++) {
         const { row: r, col: c } = p[i];
         if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
-        if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+        if (slamMode && !revealAllOnDone && !revealedCellsRef.current.has(`${r},${c}`)) continue;
 
         ctx.fillStyle = COLORS.pathCell;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
@@ -254,7 +311,7 @@ export function SimulationCanvas({
       let first = true;
       for (let i = 0; i < Math.min(pc, p.length); i++) {
         const { row: r, col: c } = p[i];
-        if (slamMode && !revealedCellsRef.current.has(`${r},${c}`)) continue;
+        if (slamMode && !revealAllOnDone && !revealedCellsRef.current.has(`${r},${c}`)) continue;
 
         if (first) {
           ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
@@ -305,7 +362,7 @@ export function SimulationCanvas({
       ctx.fillStyle = active ? COLORS.robotCenter : COLORS.robotCenterInactive;
       ctx.beginPath(); ctx.arc(rx, ry, 1.5, 0, Math.PI * 2); ctx.fill();
     }
-  }, [getRobotPos, castLidar, slamMode]);
+  }, [getRobotPos, castLidar, slamMode, revealAllOnDone]);
 
   useEffect(() => {
     const animate = () => {
@@ -429,6 +486,27 @@ export function SimulationCanvas({
           </div>
         );
       })()}
+
+      {slamMode && simulationState === 'done' && (
+        <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+          <button
+            onClick={() => setRevealAllOnDone(!revealAllOnDone)}
+            className="px-3 py-1.5 bg-[#0d0d0d]/90 border border-[#3c3c3c] hover:border-white text-white font-mono text-[9px] tracking-widest uppercase transition-all cursor-pointer rounded-none select-none shadow-xl flex items-center gap-1.5"
+          >
+            {revealAllOnDone ? (
+              <>
+                <EyeOff className="w-3.5 h-3.5 text-[#e22718]" />
+                {lang === 'id' ? 'Lihat Yang Dilewati' : 'Show Revealed Only'}
+              </>
+            ) : (
+              <>
+                <Eye className="w-3.5 h-3.5 text-[#2ccb5d]" />
+                {lang === 'id' ? 'Lihat Semua Map' : 'Reveal Entire Map'}
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
