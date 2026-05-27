@@ -3,7 +3,7 @@ import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
 import { SerialModal } from './SerialModal';
 import type { SimulationState, Language, Position } from '@/types';
@@ -32,7 +32,9 @@ interface RightPanelProps {
 export function RightPanel(props: RightPanelProps) {
   const t = translations[props.lang];
   const [copiedType, setCopiedType] = useState<'c' | 'asm' | 'live' | 'mem' | null>(null);
-  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(true);
+  const [consoleOpen, setConsoleOpen] = useState(true);
+  const [logs, setLogs] = useState<string[]>([]);
 
   const [codeModalOpen, setCodeModalOpen] = useState(false);
   const [selectedModalTab, setSelectedModalTab] = useState<'c' | 'asm' | 'live'>('c');
@@ -89,6 +91,98 @@ void loop() {
       setTimeout(() => setCopiedType(null), 1500);
     });
   }, []);
+
+  const currentRobotPos = (() => {
+    if (props.path.length === 0 || (props.simulationState !== 'moving' && props.simulationState !== 'done')) {
+      return null;
+    }
+    const idx = Math.min(Math.floor(props.robotT), props.path.length - 1);
+    return props.path[idx];
+  })();
+
+  const currentDirection = (() => {
+    if (!currentRobotPos || props.path.length === 0 || props.simulationState !== 'moving') {
+      return '—';
+    }
+    const idx = Math.min(Math.floor(props.robotT), props.path.length - 1);
+    if (idx === 0) return 'START';
+    if (idx >= props.path.length - 1) return 'END';
+    
+    const curr = props.path[idx - 1];
+    const next = props.path[idx];
+    const dy = next.row - curr.row;
+    const dx = next.col - curr.col;
+
+    if (dy < 0 && dx === 0) return 'UP (U)';
+    if (dy > 0 && dx === 0) return 'DOWN (D)';
+    if (dy === 0 && dx < 0) return 'LEFT (L)';
+    if (dy === 0 && dx > 0) return 'RIGHT (R)';
+    if (dy < 0 && dx < 0) return 'UP-LEFT (1)';
+    if (dy < 0 && dx > 0) return 'UP-RIGHT (2)';
+    if (dy > 0 && dx < 0) return 'DOWN-LEFT (3)';
+    if (dy > 0 && dx > 0) return 'DOWN-RIGHT (4)';
+    return '—';
+  })();
+
+  // Logging Effect: Serial Status changes
+  useEffect(() => {
+    const addLog = (msg: string) => {
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      setLogs((prev) => [`[${timeStr}] ${msg}`, ...prev].slice(0, 15));
+    };
+
+    addLog(props.serialConnected ? "SERIAL: Connected to COM Port." : "SERIAL: Disconnected.");
+  }, [props.serialConnected]);
+
+  // Logging Effect: Simulation State changes
+  useEffect(() => {
+    const addLog = (msg: string) => {
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      setLogs((prev) => [`[${timeStr}] ${msg}`, ...prev].slice(0, 15));
+    };
+
+    if (props.simulationState === 'idle') {
+      addLog("SIM: System ready. Idle.");
+    } else if (props.simulationState === 'exploring') {
+      addLog("SIM: Exploring grid frontier...");
+    } else if (props.simulationState === 'pathing') {
+      addLog("SIM: Optimal path found. Generating output code.");
+    } else if (props.simulationState === 'moving') {
+      addLog("MOTOR: Navigating robot. Streaming serial.");
+    } else if (props.simulationState === 'done') {
+      if (props.pathFound) {
+        addLog("SIM: Done. Target reached. Sent 'E'.");
+      } else {
+        addLog("SIM: Done. No path exists.");
+      }
+    }
+  }, [props.simulationState, props.pathFound]);
+
+  // Logging Effect: Coordinates transmission
+  useEffect(() => {
+    if (props.simulationState !== 'moving' || currentDirection === '—') return;
+    const addLog = (msg: string) => {
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      setLogs((prev) => [`[${timeStr}] ${msg}`, ...prev].slice(0, 15));
+    };
+
+    let char = '';
+    if (currentDirection.includes('UP (U)')) char = 'U';
+    else if (currentDirection.includes('DOWN (D)')) char = 'D';
+    else if (currentDirection.includes('LEFT (L)')) char = 'L';
+    else if (currentDirection.includes('RIGHT (R)')) char = 'R';
+    else if (currentDirection.includes('UP-LEFT (1)')) char = '1';
+    else if (currentDirection.includes('UP-RIGHT (2)')) char = '2';
+    else if (currentDirection.includes('DOWN-LEFT (3)')) char = '3';
+    else if (currentDirection.includes('DOWN-RIGHT (4)')) char = '4';
+
+    if (char) {
+      addLog(`TX: '${char}' -> [Col: ${currentRobotPos?.col}, Row: ${currentRobotPos?.row}]`);
+    }
+  }, [currentDirection, props.simulationState, currentRobotPos?.col, currentRobotPos?.row]);
 
 
   return (
@@ -175,6 +269,9 @@ void loop() {
           simulationState={props.simulationState}
           pathFound={props.pathFound}
           lang={props.lang}
+          currentCol={currentRobotPos ? currentRobotPos.col : '—'}
+          currentRow={currentRobotPos ? currentRobotPos.row : '—'}
+          direction={currentDirection}
         />
 
         <Separator className="bg-white/5" />
@@ -272,7 +369,10 @@ void loop() {
               {t.memoryMapDesc}
             </p>
 
-            <div className="bg-black border border-[#3c3c3c] p-1.5 rounded-none font-mono text-[8.5px] leading-tight select-none">
+            <div className="bg-black border border-[#3c3c3c] p-1.5 rounded-none font-mono text-[8.5px] leading-tight select-none pcb-grid relative overflow-hidden">
+              {/* Mini PCB corner details */}
+              <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#1c69d4]/30 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#1c69d4]/30 pointer-events-none" />
               {/* Header */}
               <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
                 <span className="w-[15px] shrink-0">ADR</span>
@@ -346,6 +446,32 @@ void loop() {
                   return rows;
                 })()}
               </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Live Console Logs */}
+        <Separator className="bg-white/5" />
+        
+        <Collapsible open={consoleOpen} onOpenChange={setConsoleOpen}>
+          <CollapsibleTrigger className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
+            <span className="flex items-center gap-1.5">
+              <span className="led-dot led-blue led-pulse" />
+              {props.lang === 'id' ? 'KONSOL SERIAL' : 'SERIAL CONSOLE'}
+            </span>
+            <span className="text-[9px] text-white/30 font-mono">{consoleOpen ? '[ HIDE ]' : '[ SHOW ]'}</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="bg-black border border-[#3c3c3c] p-2 rounded-none font-mono text-[9px] text-emerald-500 h-[100px] overflow-y-auto scrollbar-thin space-y-0.5 leading-normal select-none">
+              {logs.length === 0 ? (
+                <div className="text-white/20 italic">No activity logs yet.</div>
+              ) : (
+                logs.map((log, idx) => (
+                  <div key={idx} className="whitespace-pre-wrap font-mono">
+                    {log}
+                  </div>
+                ))
+              )}
             </div>
           </CollapsibleContent>
         </Collapsible>

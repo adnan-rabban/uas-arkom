@@ -44,38 +44,64 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
       </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="px-5 py-4 bg-black border-t border-[#3c3c3c]">
+        <div className="px-5 py-4 bg-black border-t border-[#3c3c3c] select-none">
           <div className="grid grid-cols-4 gap-2">
-            {results.map((r) => {
-              const isBest = r.result.visitOrder.length === minExplored;
-              return (
-                <Card key={r.algorithm} className={`bg-[#0d0d0d] border-[#3c3c3c] rounded-none ${isBest ? `${algoColors[r.algorithm]} border-t-2` : ''}`}>
-                  <CardContent className="p-3 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <span className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
-                        {r.label}
-                      </span>
-                      {isBest && (
-                        <Badge variant="secondary" className="bg-[#e22718] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider">
-                          <Trophy className="w-2.5 h-2.5 mr-0.5" />
-                          {t.bestLabel}
-                        </Badge>
+            {(() => {
+              const maxExplored = Math.max(...results.map((r) => r.result.visitOrder.length));
+              const maxPath = Math.max(...results.map((r) => r.result.path.length));
+
+              return results.map((r) => {
+                const isBest = r.result.visitOrder.length === minExplored;
+                return (
+                  <Card key={r.algorithm} className={`bg-[#0d0d0d] border-[#3c3c3c] rounded-none ${isBest ? `${algoColors[r.algorithm]} border-t-2` : ''}`}>
+                    <CardContent className="p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-2">
+                        <span className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
+                          {r.label}
+                        </span>
+                        {isBest && (
+                          <Badge variant="secondary" className="bg-[#e22718] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider">
+                            <Trophy className="w-2.5 h-2.5 mr-0.5" />
+                            {t.bestLabel}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Explored Nodes count & bar */}
+                      <div className={`text-xl font-mono font-bold ${isBest ? 'text-white' : 'text-white/30'}`}>
+                        {r.result.visitOrder.length}
+                      </div>
+                      <div className="text-[8px] tracking-wider uppercase text-white/15 mt-0.5">{t.nodesExplored}</div>
+                      <div className="w-full bg-white/5 h-1 mt-1 rounded-none overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            r.algorithm === 'astar' ? 'bg-[#1c69d4]' : r.algorithm === 'bfs' ? 'bg-[#e22718]' : 'bg-white/40'
+                          }`} 
+                          style={{ width: `${maxExplored > 0 ? (r.result.visitOrder.length / maxExplored) * 100 : 0}%` }}
+                        />
+                      </div>
+
+                      {/* Path Length count & bar */}
+                      <div className={`text-sm font-mono mt-3 ${r.result.path.length > 0 ? 'text-emerald-400' : 'text-red-400/50'}`}>
+                        {r.result.path.length || 'N/A'}
+                      </div>
+                      <div className="text-[8px] tracking-wider uppercase text-white/15">{t.pathLength}</div>
+                      {r.result.path.length > 0 && (
+                        <div className="w-full bg-white/5 h-1 mt-1 rounded-none overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500/60 transition-all duration-500" 
+                            style={{ width: `${maxPath > 0 ? (r.result.path.length / maxPath) * 100 : 0}%` }}
+                          />
+                        </div>
                       )}
-                    </div>
-                    <div className={`text-xl font-mono font-bold ${isBest ? 'text-white' : 'text-white/30'}`}>
-                      {r.result.visitOrder.length}
-                    </div>
-                    <div className="text-[8px] tracking-wider uppercase text-white/15 mt-0.5">{t.nodesExplored}</div>
-                    <div className={`text-sm font-mono mt-2 ${r.result.path.length > 0 ? 'text-emerald-400' : 'text-red-400/50'}`}>
-                      {r.result.path.length || 'N/A'}
-                    </div>
-                    <div className="text-[8px] tracking-wider uppercase text-white/15">{t.pathLength}</div>
-                    <div className="text-[10px] font-mono text-white/20 mt-2">{r.result.time}ms</div>
-                    <div className="text-[8px] tracking-wider uppercase text-white/15">{t.computeTime}</div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+
+                      <div className="text-[10px] font-mono text-white/20 mt-3">{r.result.time}ms</div>
+                      <div className="text-[8px] tracking-wider uppercase text-white/15">{t.computeTime}</div>
+                    </CardContent>
+                  </Card>
+                );
+              });
+            })()}
 
             <Card className="bg-[#0d0d0d] border-[#3c3c3c] rounded-none border-l-2 border-l-[#e22718]">
               <CardContent className="p-3 text-center flex flex-col justify-center h-full">

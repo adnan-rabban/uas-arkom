@@ -8,9 +8,22 @@ interface TelemetryPanelProps {
   simulationState: SimulationState;
   pathFound: boolean;
   lang: Language;
+  currentCol: number | string;
+  currentRow: number | string;
+  direction: string;
 }
 
-export function TelemetryPanel({ explored, pathLength, computeTime, simulationState, pathFound, lang }: TelemetryPanelProps) {
+export function TelemetryPanel({
+  explored,
+  pathLength,
+  computeTime,
+  simulationState,
+  pathFound,
+  lang,
+  currentCol,
+  currentRow,
+  direction,
+}: TelemetryPanelProps) {
   const t = translations[lang];
 
   const getStatusDisplay = () => {
@@ -33,10 +46,13 @@ export function TelemetryPanel({ explored, pathLength, computeTime, simulationSt
     { label: t.explored, value: explored > 0 ? Math.floor(explored) : '—', color: 'text-white' },
     { label: t.pathLength, value: pathLength > 0 ? pathLength : '—', color: 'text-white' },
     { label: t.computeTime, value: computeTime > 0 ? `${computeTime}ms` : '—', color: 'text-white' },
+    { label: lang === 'id' ? 'KOLOM ROBOT' : 'ROBOT COL', value: currentCol, color: 'text-[#1c69d4] font-bold' },
+    { label: lang === 'id' ? 'BARIS ROBOT' : 'ROBOT ROW', value: currentRow, color: 'text-[#1c69d4] font-bold' },
+    { label: lang === 'id' ? 'ARAH GERAKAN' : 'COMMAND TX', value: direction, color: 'text-[#e0a800] font-bold' },
   ];
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 select-none">
       <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
         {t.telemetry}
       </span>
@@ -44,7 +60,7 @@ export function TelemetryPanel({ explored, pathLength, computeTime, simulationSt
         {stats.map((s) => (
           <div key={s.label} className="flex justify-between items-center border-b border-white/5 pb-1 last:border-0 last:pb-0">
             <span className="text-white/30 uppercase tracking-wider text-[9px]">{s.label}</span>
-            <span className={`${s.color} font-bold tracking-wider`}>{s.value}</span>
+            <span className={`${s.color} tracking-wider`}>{s.value}</span>
           </div>
         ))}
       </div>
