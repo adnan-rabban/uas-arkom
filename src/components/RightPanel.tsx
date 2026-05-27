@@ -5,6 +5,7 @@ import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu } from 'lucide-reac
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState, useCallback } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
+import { SerialModal } from './SerialModal';
 import type { SimulationState, Language, Position } from '@/types';
 import { translations } from '@/lib/constants';
 
@@ -36,6 +37,7 @@ export function RightPanel(props: RightPanelProps) {
   const [codeModalOpen, setCodeModalOpen] = useState(false);
   const [selectedModalTab, setSelectedModalTab] = useState<'c' | 'asm' | 'live'>('c');
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [serialModalOpen, setSerialModalOpen] = useState(false);
   const isRunning = props.simulationState !== 'idle' && props.simulationState !== 'done';
 
 
@@ -192,7 +194,7 @@ void loop() {
                 </span>
               </div>
               <Button
-                onClick={props.serialConnected ? props.onDisconnectSerial : props.onConnectSerial}
+                onClick={() => setSerialModalOpen(true)}
                 size="sm"
                 variant="ghost"
                 className={`text-[9px] font-mono tracking-widest uppercase border rounded-none h-6 px-2 cursor-pointer ${
@@ -443,6 +445,16 @@ void loop() {
           ))}
         </div>
       </Modal>
+
+      {/* Serial Connection Modal */}
+      <SerialModal
+        isOpen={serialModalOpen}
+        onClose={() => setSerialModalOpen(false)}
+        serialConnected={props.serialConnected}
+        onConnectSerial={props.onConnectSerial}
+        onDisconnectSerial={props.onDisconnectSerial}
+        lang={props.lang}
+      />
     </div>
   );
 }
