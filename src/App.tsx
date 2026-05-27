@@ -11,6 +11,7 @@ import { useGrid } from '@/hooks/useGrid';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useKeyboard } from '@/hooks/useKeyboard';
 import type { Language, Grid, Position } from '@/types';
+import { Toast } from '@/components/Toast';
 import './App.css';
 
 export default function App() {
@@ -31,11 +32,11 @@ export default function App() {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
     diagonal, gScores, hScores,
-    serialConnected, slamMode,
+    serialConnected, slamMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setSlamMode, connectSerial, disconnectSerial,
     replan,
-    reset, run, stepOnce, compareAll,
+    reset, run, stepOnce, compareAll, setToast,
   } = useSimulation();
 
   const handleRun = useCallback(() => {
@@ -240,6 +241,13 @@ export default function App() {
           <LegendBar lang={lang} />
         </div>
       </div>
+      {toast && (
+        <Toast 
+          type={toast.type} 
+          message={toast.message} 
+          onClose={() => setToast(null)} 
+        />
+      )}
     </TooltipProvider>
   );
 }

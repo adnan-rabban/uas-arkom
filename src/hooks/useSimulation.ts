@@ -41,6 +41,12 @@ export function useSimulation() {
   // Web Serial & SLAM Innovation States
   const [serialConnected, setSerialConnected] = useState(false);
   const [slamMode, setSlamMode] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
+
+  const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
+    setToast({ type, message });
+  }, []);
+
   const serialPortRef = useRef<SerialPort | null>(null);
   const serialWriterRef = useRef<SerialWriter | null>(null);
   const lastSentIndexRef = useRef<number>(-1);
@@ -154,7 +160,7 @@ export function useSimulation() {
   // Web Serial Helper Functions
   const connectSerial = useCallback(async () => {
     if (!('serial' in navigator)) {
-      alert('Web Serial API tidak didukung di browser ini. Gunakan Chrome atau Edge.');
+      showToast('warning', 'Web Serial API tidak didukung di browser ini. Gunakan Chrome atau Edge.');
       return;
     }
     try {
@@ -163,11 +169,19 @@ export function useSimulation() {
       serialPortRef.current = port;
       serialWriterRef.current = port.writable.getWriter();
       setSerialConnected(true);
+      showToast('success', 'Berhasil terhubung ke Arduino pada Baud Rate 9600.');
     } catch (err) {
       console.error('Gagal menghubungkan serial:', err);
-      alert('Gagal membuka port serial: ' + (err as Error).message);
+      const errMsg = (err as Error).message;
+      let userFriendlyMsg: string;
+      if (errMsg.includes('No port selected')) {
+        userFriendlyMsg = 'Koneksi dibatalkan: Anda tidak memilih port serial.';
+      } else {
+        userFriendlyMsg = `Gagal membuka port serial: ${errMsg}`;
+      }
+      showToast('error', userFriendlyMsg);
     }
-  }, []);
+  }, [showToast]);
 
   const disconnectSerial = useCallback(async () => {
     try {
@@ -183,7 +197,8 @@ export function useSimulation() {
       console.error('Error saat memutuskan serial:', err);
     }
     setSerialConnected(false);
-  }, []);
+    showToast('info', 'Koneksi Serial diputuskan.');
+  }, [showToast]);
 
   const sendSerialChar = useCallback(async (char: string) => {
     if (!serialWriterRef.current) return;
@@ -256,10 +271,10 @@ export function useSimulation() {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
     diagonal, gScores, hScores,
-    serialConnected, slamMode,
+    serialConnected, slamMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setSlamMode, connectSerial, disconnectSerial, sendSerialChar,
     replan,
-    reset, run, stepOnce, compareAll,
+    reset, run, stepOnce, compareAll, showToast, setToast,
   };
 }
