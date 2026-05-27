@@ -28,6 +28,21 @@ Aplikasi ini didesain khusus untuk memenuhi praktikum/ujian praktis mata kuliah 
 
 ---
 
+## 🌾 Konsep Sel Lumpur (Weighted Terrain)
+
+Pada simulator ini, **Lumpur (Mud)** digunakan untuk mendemonstrasikan konsep **Jalur Berbobot (Weighted Graph)** dalam pencarian rute:
+
+1. **Skema Nilai Bobot**:
+   - Sel Kosong (Jalan Biasa) = **1**
+   - Sel Lumpur (Mud) = **5**
+   - Sel Dinding (Wall) = **Tak Terhingga / Infinity (Tidak dapat dilewati)**
+
+2. **Dampak pada Algoritma**:
+   - **A* dan Dijkstra**: Kedua algoritma ini menghitung biaya pergerakan sesungguhnya ($\text{Biaya} = \text{Jarak Arah} \times \text{Bobot Sel}$). Jika terdapat lumpur, algoritma akan menganalisis apakah lebih hemat biaya untuk memutar sejauh $\le 4$ langkah di jalan biasa (total bobot $\le 4$) daripada menerobos 1 sel lumpur secara lurus (bobot 5). Robot otomatis akan menghindari lumpur jika jalur memutar lebih efisien secara matematis.
+   - **BFS (Breadth-First Search)**: Mengasumsikan graf tidak berbobot (seluruh langkah bernilai 1). BFS akan mengabaikan lumpur dan tetap menerobosnya jika itu merupakan jalur terpendek secara jumlah sel, mendemonstrasikan perbedaan logis algoritma berbobot vs tidak berbobot.
+
+---
+
 ## 📊 Diagram Sistem & Alur Logika
 
 Berikut adalah representasi visual dari alur kerja aplikasi dan komunikasi data antarkomponen.

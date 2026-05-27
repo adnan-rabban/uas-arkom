@@ -3,7 +3,7 @@ import type { Translations, Language } from '@/types';
 // ── Grid Dimensions ──
 export const COLS = 40;
 export const ROWS = 24;
-export const CELL = 18;
+export const CELL = 22;
 export const CANVAS_W = COLS * CELL;
 export const CANVAS_H = ROWS * CELL;
 

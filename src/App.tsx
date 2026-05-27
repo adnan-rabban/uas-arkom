@@ -127,7 +127,7 @@ export default function App() {
   return (
     <TooltipProvider delay={300}>
       <div className="h-screen w-screen bg-black flex items-center justify-center p-2 lg:p-4 overflow-hidden">
-        <div className={`w-full max-w-[1200px] h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col transition-all duration-500 ${getGlowClass()}`}>
+        <div className={`w-full max-w-[1440px] h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col transition-all duration-500 ${getGlowClass()}`}>
           {/* Header */}
           <TopBar
             lang={lang}
