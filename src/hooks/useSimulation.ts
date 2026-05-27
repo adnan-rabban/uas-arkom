@@ -40,6 +40,7 @@ export function useSimulation() {
 
   // Web Serial & SLAM Innovation States
   const [serialConnected, setSerialConnected] = useState(false);
+  const [isVirtualSerial, setIsVirtualSerial] = useState(false);
   const [slamMode, setSlamMode] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
@@ -158,17 +159,40 @@ export function useSimulation() {
   );
 
   // Web Serial Helper Functions
-  const connectSerial = useCallback(async () => {
-    if (!('serial' in navigator)) {
-      showToast('warning', 'Web Serial API tidak didukung di browser ini. Gunakan Chrome atau Edge.');
+  const connectSerial = useCallback(async (isVirtual = false) => {
+    if (!isVirtual && !('serial' in navigator)) {
+      showToast('warning', 'Web Serial API tidak didukung di browser ini. Menghubungkan secara Virtual...');
+      isVirtual = true;
+    }
+
+    if (isVirtual) {
+      serialPortRef.current = {
+        open: async () => {},
+        close: async () => {},
+        writable: {
+          getWriter: () => ({
+            write: async (chunk: Uint8Array) => {
+              const text = new TextDecoder().decode(chunk);
+              console.log('[VIRTUAL SERIAL] Sent:', text);
+            },
+            releaseLock: async () => {}
+          })
+        }
+      } as SerialPort;
+      serialWriterRef.current = serialPortRef.current.writable.getWriter();
+      setSerialConnected(true);
+      setIsVirtualSerial(true);
+      showToast('success', 'Terhubung ke Virtual COM Port (Emulator Serial).');
       return;
     }
+
     try {
       const port = await (navigator as unknown as NavigatorWithSerial).serial.requestPort();
       await port.open({ baudRate: 9600 });
       serialPortRef.current = port;
       serialWriterRef.current = port.writable.getWriter();
       setSerialConnected(true);
+      setIsVirtualSerial(false);
       showToast('success', 'Berhasil terhubung ke Arduino pada Baud Rate 9600.');
     } catch (err) {
       console.error('Gagal menghubungkan serial:', err);
@@ -196,9 +220,11 @@ export function useSimulation() {
     } catch (err) {
       console.error('Error saat memutuskan serial:', err);
     }
+    const wasVirtual = isVirtualSerial;
     setSerialConnected(false);
-    showToast('info', 'Koneksi Serial diputuskan.');
-  }, [showToast]);
+    setIsVirtualSerial(false);
+    showToast('info', wasVirtual ? 'Koneksi Serial Virtual diputuskan.' : 'Koneksi Serial diputuskan.');
+  }, [showToast, isVirtualSerial]);
 
   const sendSerialChar = useCallback(async (char: string) => {
     if (!serialWriterRef.current) return;
@@ -274,7 +300,7 @@ export function useSimulation() {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
     diagonal, gScores, hScores,
-    serialConnected, slamMode, toast,
+    serialConnected, isVirtualSerial, slamMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setSlamMode, connectSerial, disconnectSerial, sendSerialChar,
     replan,

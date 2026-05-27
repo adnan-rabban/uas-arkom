@@ -32,7 +32,7 @@ export default function App() {
     state, algorithm, visitOrder, path,
     vstep, pstep, robotT, speed, computeTime, comparison,
     diagonal, gScores, hScores,
-    serialConnected, slamMode, toast,
+    serialConnected, isVirtualSerial, slamMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setSlamMode, connectSerial, disconnectSerial,
     replan,
@@ -232,6 +232,7 @@ export default function App() {
                   path={path}
                   robotT={robotT}
                   serialConnected={serialConnected}
+                  isVirtualSerial={isVirtualSerial}
                   onConnectSerial={connectSerial}
                   onDisconnectSerial={disconnectSerial}
                   onSetSpeed={setSpeed}

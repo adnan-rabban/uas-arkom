@@ -1,14 +1,11 @@
-# Simulation Robot Navigation System (UAS Arsitektur Komputer)
+# Robot Navigation Simulation System
 
-Aplikasi simulator sistem navigasi robot berbasis web interaktif. Proyek ini memvisualisasikan algoritma pencarian jalur (*pathfinding*) populer (**A***, **Dijkstra**, dan **BFS**) di atas peta grid, serta mengintegrasikan data pergerakan robot secara langsung (*real-time streaming*) ke mikrokontroler Arduino menggunakan **Web Serial API**.
-
-Aplikasi ini didesain khusus untuk memenuhi praktikum/ujian praktis mata kuliah **Arsitektur Komputer (Arkom)**, menunjukkan bagaimana data logika rute memori perangkat lunak dikirimkan dan diproses oleh arsitektur perangkat keras secara fisik.
+> **Mata Kuliah:** Arsitektur Komputer (UAS)  
+> **Deskripsi:** Simulator interaktif berbasis web yang memvisualisasikan algoritma _pathfinding_ pada peta grid dan mengintegrasikan komunikasi data gerakan robot secara _real-time_ ke mikrokontroler Arduino melalui **Web Serial API**.
 
 ---
 
-## 🛠️ Tech Stack & Teknologi yang Digunakan
-
-Aplikasi ini dibangun menggunakan kombinasi teknologi modern untuk kinerja maksimal dan estetika visual:
+## 🛠️ Tech Stack
 
 <p align="left">
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></a>
@@ -20,228 +17,262 @@ Aplikasi ini dibangun menggunakan kombinasi teknologi modern untuk kinerja maksi
   <a href="https://developer.mozilla.org/en-US/docs/Web/CSS"><img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" /></a>
 </p>
 
-
-* **Bahasa & Core**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite 8](https://vite.dev/) (menjamin HMR super cepat dan struktur tipe data yang aman).
-* **Styling & HUD Design**: [Tailwind CSS v4](https://tailwindcss.com/) + `@tailwindcss/vite` (utilitas CSS modern untuk layout grid/flexbox) + [shadcn UI](https://ui.shadcn.com/) (basis komponen tombol, modal, select, dan slider).
-* **Ikonografi (Icons)**: [Lucide React](https://lucide.dev/) (ikon instrumen seperti CPU, Compass, Route, Trophy, Usb, Play, Target, dan lainnya).
-* **Render Kanvas**: HTML5 Canvas API (merender grid peta 40x24 secara presisi, gerakan robot, riak gelombang sensor RPG, lintasan berpendar, dan radar LiDAR secara waktu-nyata).
-* **Interfacing API**: Web Serial API (komunikasi bit serial langsung ke port USB mikrokontroler Arduino).
-* **Tipografi**: [Geist Variable Font](https://fontsource.org/fonts/geist-mono) + [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono) (untuk visual bertema kode komputer monospace).
+| Kategori               | Teknologi                                        |
+| ---------------------- | ------------------------------------------------ |
+| **Core Framework**     | React 19 + TypeScript + Vite 6                   |
+| **Styling & UI**       | Tailwind CSS v4 + shadcn/ui                      |
+| **Rendering**          | HTML5 Canvas API (grid 40×24, animasi real-time) |
+| **Hardware Interface** | Web Serial API (komunikasi USB ke Arduino)       |
+| **Ikonografi**         | Lucide React                                     |
+| **Tipografi**          | Geist Mono + JetBrains Mono                      |
 
 ---
 
 ## 🚀 Fitur Utama
 
-1. **Visualisasi Pencarian Jalur Waktu-Nyata**:
-   - **A* (A-Star)**: Algoritma pencarian terpimpin menggunakan heuristik jarak Manhattan/Octile untuk efisiensi maksimal.
-   - **Dijkstra**: Menjamin rute terpendek dengan menjelajahi area secara merata berdasarkan bobot sel.
-   - **BFS (Breadth-First Search)**: Menjelajahi seluruh node tetangga secara bertahap pada graf tanpa bobot.
-2. **Interaktivitas Peta Grid (HUD Style)**:
-   - Menggambar rintangan **Dinding** dan jalan berbobot **Lumpur (bobot: 5)**.
-   - Mengubah letak Titik Awal (**S**) dan Titik Akhir (**E**) secara dinamis (klik & seret).
-   - Memuat berbagai peta preset (*Maze, Open Field, Bottleneck*).
-   - **Unggah Gambar Peta**: Unggah berkas PNG/JPG untuk otomatis diubah menjadi dinding grid (Gelap = Dinding, Terang = Jalan).
-3. **Mode Sensor SLAM (Sensor Fog of War)**:
-   - Robot menjelajahi labirin dalam kabut sensor. Peta grid hanya akan terungkap secara dinamis melalui sapuan visual sensor LiDAR.
-4. **Koneksi Serial Mikrokontroler (Arduino)**:
-   - Mengirim karakter perintah gerak robot (`U`, `D`, `L`, `R` untuk arah utama, `1`, `2`, `3`, `4` untuk diagonal, dan `E` untuk sukses/selesai) secara langsung ke port COM mikrokontroler.
-5. **Visual Peta Memori (SRAM/ROM Map)**:
-   - Menampilkan visualisasi penempatan byte koordinat rute lintasan robot pada sel alamat memori 0x00 hingga 0xFF secara langsung saat rute berhasil dibangun.
-6. **Konsol Monitor Log Serial**:
-   - Terminal terintegrasi yang mencatat aktivitas kalkulasi algoritma, status sambungan COM, dan histori karakter byte data arah yang dikirimkan.
+### 1. Visualisasi Algoritma Pathfinding Real-Time
+
+Tiga algoritma klasik diimplementasikan secara penuh dengan dukungan **gerakan 8-arah (diagonal)**:
+
+| Algoritma    | Heuristik                              | Weighted? | Optimal?                    |
+| ------------ | -------------------------------------- | --------- | --------------------------- |
+| **A\***      | Octile (diagonal) / Manhattan (4-arah) | ✅ Ya     | ✅ Ya                       |
+| **Dijkstra** | — (eksplorasi penuh berbasis bobot)    | ✅ Ya     | ✅ Ya                       |
+| **BFS**      | — (jumlah langkah, bukan bobot)        | ❌ Tidak  | Hanya jika semua bobot sama |
+
+> **Catatan Implementasi:** A\* dan Dijkstra menggunakan _Min-Heap_ (priority queue) untuk efisiensi O((V + E) log V). BFS menggunakan antrian FIFO standar.
+
+### 2. Interaktivitas Peta Grid (HUD Style)
+
+- Menggambar **Dinding** (tidak dapat dilewati) dan **Lumpur** (bobot: 5).
+- Mengubah posisi **Titik Awal (S)** dan **Titik Akhir (E)** secara dinamis.
+- Memuat peta _preset_: Maze, Open Field, Bottleneck.
+- **Unggah Gambar Peta**: PNG/JPG dikonversi otomatis menjadi dinding grid (piksel gelap = dinding, piksel terang = jalan).
+
+### 3. Dynamic Re-routing (Rute Ulang Dinamis)
+
+Saat simulasi berjalan, pengguna dapat **menggambar dinding baru** di atas sel yang berada pada jalur aktif robot. Sistem akan secara otomatis mendeteksi hambatan dan menjalankan ulang algoritma dari **posisi robot saat ini** untuk menemukan rute alternatif—tanpa harus me-reset simulasi.
+
+### 4. Mode SLAM (Sensor Fog of War)
+
+Robot menjelajahi grid dalam kondisi peta tersembunyi (_fog of war_). Area grid hanya terungkap secara bertahap melalui sapuan visual sensor LiDAR, mensimulasikan kondisi navigasi otonom di lingkungan yang belum dikenal.
+
+### 5. Koneksi Serial Arduino (Web Serial API)
+
+Mengirimkan instruksi gerakan robot secara _real-time_ ke port USB mikrokontroler. Karakter yang dikirim:
+
+| Karakter | Arah                 |
+| :------: | -------------------- |
+|   `U`    | Atas (Up)            |
+|   `D`    | Bawah (Down)         |
+|   `L`    | Kiri (Left)          |
+|   `R`    | Kanan (Right)        |
+|   `1`    | Diagonal Atas-Kiri   |
+|   `2`    | Diagonal Atas-Kanan  |
+|   `3`    | Diagonal Bawah-Kiri  |
+|   `4`    | Diagonal Bawah-Kanan |
+|   `E`    | Selesai / End        |
+
+### 6. Visualisasi Peta Memori (SRAM/ROM Map)
+
+Menampilkan pemetaan koordinat jalur robot pada alamat memori `0x00`–`0xFF`, memperlihatkan representasi data rute dalam konteks arsitektur memori perangkat keras.
+
+### 7. Serial Monitor Console
+
+Terminal terintegrasi untuk mencatat log kalkulasi algoritma, status koneksi COM, dan histori karakter serial yang dikirimkan.
 
 ---
 
-## 🌾 Konsep Sel Lumpur (Weighted Terrain)
+## 🌾 Konsep Weighted Terrain (Sel Berbobot)
 
-Pada simulator ini, **Lumpur (Mud)** digunakan untuk mendemonstrasikan konsep **Jalur Berbobot (Weighted Graph)** dalam pencarian rute:
+Sel **Lumpur (Mud)** mendemonstrasikan konsep _Weighted Graph_ dalam pencarian rute:
 
-1. **Skema Nilai Bobot**:
-   - Sel Kosong (Jalan Biasa) = **1**
-   - Sel Lumpur (Mud) = **5**
-   - Sel Dinding (Wall) = **Tak Terhingga / Infinity (Tidak dapat dilewati)**
+| Tipe Sel            |       Bobot (Cost)       |
+| ------------------- | :----------------------: |
+| Jalan Biasa (Empty) |            1             |
+| Lumpur (Mud)        |            5             |
+| Dinding (Wall)      | ∞ (tidak dapat dilewati) |
 
-2. **Dampak pada Algoritma**:
-   - **A* dan Dijkstra**: Kedua algoritma ini menghitung biaya pergerakan sesungguhnya ($\text{Biaya} = \text{Jarak Arah} \times \text{Bobot Sel}$). Jika terdapat lumpur, algoritma akan menganalisis apakah lebih hemat biaya untuk memutar sejauh $\le 4$ langkah di jalan biasa (total bobot $\le 4$) daripada menerobos 1 sel lumpur secara lurus (bobot 5). Robot otomatis akan menghindari lumpur jika jalur memutar lebih efisien secara matematis.
-   - **BFS (Breadth-First Search)**: Mengasumsikan graf tidak berbobot (seluruh langkah bernilai 1). BFS akan mengabaikan lumpur dan tetap menerobosnya jika itu merupakan jalur terpendek secara jumlah sel, mendemonstrasikan perbedaan logis algoritma berbobot vs tidak berbobot.
+**Formula biaya langkah:**
+
+```
+Cost = Direction Cost × Cell Weight
+```
+
+- **Langkah Ortogonal:** Direction Cost = 1.0
+- **Langkah Diagonal:** Direction Cost = √2 ≈ 1.414
+
+**Implikasi per Algoritma:**
+
+- **A\* & Dijkstra**: Menghitung biaya kumulatif sesungguhnya. Robot akan memutar melalui jalan biasa jika total bobotnya lebih kecil dari melewati sel lumpur. Contoh: memutar 4 langkah (total biaya ≤ 4) lebih efisien daripada menerobos 1 sel lumpur (biaya = 5).
+- **BFS**: Mengabaikan bobot sel—setiap langkah dianggap bernilai 1. BFS akan menerobos lumpur jika itu adalah jalur dengan _jumlah langkah_ paling sedikit, mendemonstrasikan perbedaan mendasar antara algoritma berbobot dan tidak berbobot.
 
 ---
 
 ## 📊 Diagram Sistem & Alur Logika
 
-Berikut adalah representasi visual dari alur kerja aplikasi dan komunikasi data antarkomponen.
+### 1. System Flowchart — Alur Kerja Aplikasi
 
-### 1. Flowchart Alur Kerja Sistem (System Flowchart)
-
-Menggambarkan alur eksekusi aplikasi dari inisialisasi hingga robot sampai ke koordinat tujuan:
+Menggambarkan alur eksekusi dari inisialisasi hingga robot mencapai titik tujuan, termasuk mekanisme _dynamic re-routing_ saat pengguna menambahkan rintangan baru secara interaktif.
 
 ```mermaid
 graph TD
-  A[Start: Aplikasi Dimuat] --> B[Inisialisasi Grid & Titik S/E]
-  B --> C[Konfigurasi Pengguna]
-  C --> C1[Pilih Algoritma: A* / Dijkstra / BFS]
-  C --> C2[Gambar Rintangan / Lumpur / Unggah Gambar]
-  C --> C3[Atur Diagonal & Mode SLAM]
-  C --> D{Klik Tombol JALANKAN / RUN}
-  D --> E[Proses Pemecahan Jalur Solver Engine]
-  E --> F{Apakah Rute Ditemukan?}
-  F -- Tidak --> G[Tampilkan Status: TIDAK ADA JALUR]
-  F -- Ya --> H[Bangun Rute Optimal & Tulis Peta Memori]
-  H --> I[Robot Mulai Bergerak Sel-demi-Sel]
-  I --> J{Apakah Serial USB Terhubung?}
-  J -- Ya --> K[Kirim Karakter Arah U/D/L/R/1/2/3/4 via COM Port]
-  J -- No --> L[Lanjutkan Animasi Visual Saja]
-  K --> M{Apakah Node Jalur di Depan Terhalang Dinding Baru?}
-  L --> M
-  M -- Ya --> N[Memicu Re-Routing Dinamis dari Posisi Sekarang]
-  N --> H
-  M -- No --> O{Apakah Robot Tiba di Titik Tujuan?}
-  O -- No --> I
-  O -- Yes --> P[Kirim Karakter Akhir 'E' ke Serial]
-  P --> Q[Tampilkan Status: SUKSES & Hentikan Motor]
-  G --> R[End]
-  Q --> R
+  A([Start: Aplikasi Dimuat]) --> B[Inisialisasi Grid 40×24\nTitik Awal S & Titik Akhir E]
+  B --> C{Konfigurasi Pengguna}
+  C --> C1[Pilih Algoritma\nA* / Dijkstra / BFS]
+  C --> C2[Gambar Rintangan & Lumpur\natau Unggah Gambar Peta]
+  C --> C3[Atur Mode Diagonal &\nMode SLAM]
+  C1 & C2 & C3 --> D[/Klik RUN atau tekan Space/]
+  D --> E[Jalankan Pathfinding Engine\npada Grid saat ini]
+  E --> F{Rute Ditemukan?}
+  F -- Tidak --> G([Tampilkan Status: TIDAK ADA JALUR\nSimulasi Selesai])
+  F -- Ya --> H[Animasikan Eksplorasi Node\n& Gambar Jalur Optimal]
+  H --> I[Robot Bergerak Sel-demi-Sel\ndi Atas Jalur Optimal]
+  I --> J{Koneksi Serial\nAktif?}
+  J -- Ya --> K[Kirim Karakter Arah\nU/D/L/R/1/2/3/4 via COM Port]
+  J -- Tidak --> L[Lanjutkan Animasi\nVisual Saja]
+  K --> M
+  L --> M{Pengguna Menggambar Dinding\npada Sel Jalur Aktif?}
+  M -- Ya --> N[Deteksi Hambatan\nTriger Re-routing Dinamis]
+  N --> O[Jalankan Ulang Algoritma\ndari Posisi Robot Saat Ini]
+  O --> P{Rute Alternatif\nDitemukan?}
+  P -- Tidak --> G
+  P -- Ya --> I
+  M -- Tidak --> Q{Robot Tiba\ndi Titik Tujuan?}
+  Q -- Tidak --> I
+  Q -- Ya --> R[Kirim Karakter E ke Serial\nTampilkan Status: SUKSES]
+  R --> S([End])
 ```
 
-### 2. Diagram Tangga Pesan (Sequence Diagram)
+---
 
-Menggambarkan urutan pengiriman pesan dan instruksi komunikasi dari aksi pengguna hingga ke tingkat perangkat keras:
+### 2. Sequence Diagram — Alur Komunikasi Antarkomponen
+
+Menggambarkan urutan pertukaran pesan dari aksi pengguna hingga ke level perangkat keras Arduino, termasuk skenario re-routing dinamis.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Pengguna
     participant WebUI as Web UI & Canvas
-    participant Solver as Pathfinder Engine
+    participant Solver as Pathfinding Engine
     participant Serial as Web Serial API
     participant Arduino as Board Arduino
-    participant Hardware as Motor / LED Fisik
+    participant Hardware as Motor / LED
 
-    User->>WebUI: Klik tombol "Jalankan" (atau ketuk Space)
-    WebUI->>Solver: Minta rute (kirim Grid, Start, End, Diagonal)
-    Solver->>Solver: Hitung jalur optimal
-    Solver-->>WebUI: Kembalikan daftar koordinat & urutan eksplorasi
-    WebUI->>WebUI: Tampilkan visualisasi pencarian & garis jalur optimal
-    
+    User->>WebUI: Klik tombol RUN (atau tekan Space)
+    WebUI->>Solver: Kirim Grid, posisi Start & End, flag Diagonal
+    Solver->>Solver: Hitung jalur optimal (A* / Dijkstra / BFS)
+    Solver-->>WebUI: Kembalikan visitOrder, path, gScores, hScores
+    WebUI->>WebUI: Animasikan eksplorasi node & jalur optimal di Canvas
+
     loop Pergerakan Robot (Sel-demi-Sel)
-        WebUI->>WebUI: Update posisi koordinat [Col, Row] & Log Konsol
-        alt Serial Terhubung (Web Serial)
+        WebUI->>WebUI: Update koordinat robot [Col, Row]
+        alt Koneksi Serial Aktif
             WebUI->>Serial: Kirim karakter instruksi arah (U/D/L/R/1/2/3/4)
-            Serial->>Arduino: Transmisi byte serial ke port USB
-            Arduino->>Hardware: Proses bit-masking & aktifkan pin motor ke arah tujuan
-        else Serial Terputus
-            WebUI->>WebUI: Lanjutkan animasi pergerakan di kanvas saja
+            Serial->>Arduino: Transmisi byte via USB (9600 bps)
+            Arduino->>Hardware: Aktifkan pin motor sesuai arah yang diterima
+        else Serial Tidak Terhubung
+            WebUI->>WebUI: Lanjutkan animasi gerakan di Canvas
         end
     end
-    
-    WebUI->>Serial: Kirim karakter penyelesaian 'E' (End)
+
+    opt Pengguna Menggambar Dinding pada Jalur Aktif
+        User->>WebUI: Gambar rintangan baru di atas sel jalur aktif
+        WebUI->>WebUI: Deteksi hambatan — cek apakah path[currentIndex..] terblokir
+        WebUI->>Solver: Re-routing dari posisi robot saat ini ke End
+        Solver-->>WebUI: Kembalikan jalur alternatif
+        WebUI->>WebUI: Ganti path aktif, lanjutkan pergerakan robot
+    end
+
+    WebUI->>Serial: Kirim karakter E (End / Selesai)
     Serial->>Arduino: Transmisi byte 'E' via USB
-    Arduino->>Hardware: Matikan pin motor & aktifkan lampu LED sukses (kedip)
-    WebUI->>User: Tampilkan visual "JALUR DITEMUKAN" di layar
-```
-
-### 3. Diagram Tangga Logika Kendali (PLC Ladder Diagram)
-
-Menggambarkan logika kelistrikan/relay mikrokontroler Arduino dalam memproses sinyal masukan data serial untuk menggerakkan motor robot secara aman:
-
-```text
-  Rung 1 (Sistem Run / Aktivasi Gerakan):
-  +----------------------------------------------------------------------+
-  |                                                                      |
-  |   START_CMD       STOP_CMD                                [ RUN ]    |
-  |------| |-------------|/|------------------------------------( )------|
-  |       RUN                                                            |
-  |------| |------+                                                      |
-  |                                                                      |
-  +----------------------------------------------------------------------+
-
-  Rung 2 (Instruksi Arah Motor Utama):
-  +----------------------------------------------------------------------+
-  |                                                                      |
-  |      RUN         BYTE == 'U'                              MOTOR_UP   |
-  |------| |-------------| |------------------------------------( )------|
-  |                                                                      |
-  |      RUN         BYTE == 'D'                             MOTOR_DOWN  |
-  |------| |-------------| |------------------------------------( )------|
-  |                                                                      |
-  |      RUN         BYTE == 'L'                             MOTOR_LEFT  |
-  |------| |-------------| |------------------------------------( )------|
-  |                                                                      |
-  |      RUN         BYTE == 'R'                             MOTOR_RIGHT |
-  |------| |-------------| |------------------------------------( )------|
-  |                                                                      |
-  +----------------------------------------------------------------------+
-
-  Rung 3 (Instruksi Berhenti & Indikator LED Sukses):
-  +----------------------------------------------------------------------+
-  |                                                                      |
-  |    BYTE == 'E'                                            [RESET]    |
-  |------| |----------------------------------------------------(R) RUN  |
-  |                                                                      |
-  |    BYTE == 'E'                                            LED_READY  |
-  |------| |----------------------------------------------------(S) LED  |
-  |                                                                      |
-  +----------------------------------------------------------------------+
+    Arduino->>Hardware: Matikan pin motor, aktifkan LED sukses (kedip 5×)
+    WebUI->>User: Tampilkan notifikasi JALUR DITEMUKAN
 ```
 
 ---
 
-## ⌨️ Pintasan Keyboard (Shortcuts)
+### 3. PLC Ladder Diagram — Logika Kendali Arduino
 
-Untuk mengoperasikan simulator dengan cepat, Anda dapat menggunakan tombol-tombol keyboard berikut:
+Representasi logika relay mikrokontroler Arduino dalam memproses byte serial untuk menggerakkan motor robot secara aman dan terstruktur.
 
-| Tombol | Aksi |
-| :---: | --- |
-| `Space` | Menjalankan simulasi secara langsung dari titik Awal ke Tujuan |
-| `S` | Menjalankan simulasi langkah-demi-langkah (*step solver*) |
-| `R` | Mengatur ulang (*reset*) robot dan visualisasi pencarian |
-| `C` | Membersihkan (*clear*) grid dari seluruh rintangan & lumpur |
-| `1` | Memilih alat gambar: **Dinding** |
-| `2` | Memilih alat gambar: **Titik Mulai (S)** |
-| `3` | Memilih alat gambar: **Titik Tujuan (E)** |
-| `4` | Memilih alat gambar: **Hapus (Eraser)** |
-| `5` | Memilih alat gambar: **Lumpur (Mud)** |
+```mermaid
+flowchart TD
+    Start(["Start Loop"]) --> Read{"Serial.available > 0?"}
+    Read -- Tidak --> Start
+    Read -- Ya --> GetCmd["cmd = Serial.read()"]
+    
+    GetCmd --> CheckRun{"Apakah System Run?"}
+    
+    %% Rung 1: Activation
+    CheckRun -- Tidak --> IsStart{"cmd == START_CMD?"}
+    IsStart -- Ya --> SetRun["Set RUN = True"] --> Start
+    IsStart -- Tidak --> Start
+    
+    CheckRun -- Ya --> IsStop{"cmd == 'E'?"}
+    IsStop -- Ya --> ResetRun["Reset RUN = False\nBlink LED Sukses 5x"] --> Start
+    
+    IsStop -- Tidak --> CheckDir{"cmd ∈ {U, D, L, R, 1, 2, 3, 4}?"}
+    CheckDir -- Ya --> MoveMotor["Nyalakan Motor Sesuai Arah\nBlink LED Gerak 50ms"] --> Start
+    CheckDir -- Tidak --> Start
+```
 
 ---
 
-## 🔌 Mengunggah Kode Penerima ke Arduino
+## ⌨️ Pintasan Keyboard
 
-Salin kode C++ berikut ke **Arduino IDE** Anda dan unggah ke modul Arduino (Uno/Nano/Mega/dll) sebelum menghubungkannya melalui tombol **Hubungkan Serial** pada panel kanan web.
+| Tombol  | Aksi                                                 |
+| :-----: | ---------------------------------------------------- |
+| `Space` | Jalankan simulasi penuh (Start → End)                |
+|   `S`   | Jalankan simulasi langkah-demi-langkah (_step mode_) |
+|   `R`   | Reset robot & visualisasi pencarian                  |
+|   `C`   | Bersihkan seluruh rintangan dan lumpur dari grid     |
+|   `1`   | Pilih alat: **Dinding (Wall)**                       |
+|   `2`   | Pilih alat: **Titik Awal (Start)**                   |
+|   `3`   | Pilih alat: **Titik Tujuan (End)**                   |
+|   `4`   | Pilih alat: **Penghapus (Eraser)**                   |
+|   `5`   | Pilih alat: **Lumpur (Mud)**                         |
+
+---
+
+## 🔌 Kode Arduino (Receiver Sketch)
+
+Unggah sketch berikut ke Arduino (Uno/Nano/Mega) menggunakan **Arduino IDE** sebelum menghubungkan perangkat melalui tombol **Hubungkan Serial** di panel aplikasi.
 
 ```cpp
-// ── Arduino Live Receiver Sketch ──
-// Menerima data serial: U(Up), D(Down), L(Left), R(Right), E(End)
+// ─────────────────────────────────────────────────────────────
+//  Robot Navigation Receiver — Arduino Sketch
+//  Protokol: U(Up), D(Down), L(Left), R(Right),
+//            1–4 (Diagonal), E(End/Selesai)
+//  Baud Rate: 9600 bps
+// ─────────────────────────────────────────────────────────────
 
-const int LED_PIN = LED_BUILTIN; // Pin LED bawaan (biasanya 13)
+const int LED_PIN = LED_BUILTIN; // Pin 13 pada sebagian besar board
 
 void setup() {
-  // Inisialisasi komunikasi serial pada Baud Rate 9600 bps
   Serial.begin(9600);
-  
-  // Set pin LED sebagai OUTPUT
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  
-  // Log inisiasi sistem sukses
-  Serial.println("ARDUINO: System Ready.");
+  Serial.println("[SYSTEM] Arduino Ready. Awaiting commands...");
 }
 
 void loop() {
-  // Memeriksa ketersediaan data pada buffer serial
   if (Serial.available() > 0) {
-    char cmd = Serial.read(); // Membaca karakter byte data
-    
-    // Logika respon berdasarkan karakter gerak
+    char cmd = Serial.read();
+
     if (cmd == 'U' || cmd == 'D' || cmd == 'L' || cmd == 'R' ||
         cmd == '1' || cmd == '2' || cmd == '3' || cmd == '4') {
-      
-      // Indikator aktif: LED menyala saat menerima instruksi gerak
+      // Indikator gerak: kedip singkat 50ms
       digitalWrite(LED_PIN, HIGH);
-      delay(50); // Delay kedip singkat
+      delay(50);
       digitalWrite(LED_PIN, LOW);
-      
+      Serial.print("[CMD] Move: ");
+      Serial.println(cmd);
+
     } else if (cmd == 'E') {
-      // Indikator sukses: Berkedip 5 kali dengan cepat saat robot tiba
+      // Indikator sukses: kedip 5× cepat
+      Serial.println("[CMD] End — Target reached.");
       for (int i = 0; i < 5; i++) {
         digitalWrite(LED_PIN, HIGH);
         delay(100);
@@ -255,22 +286,31 @@ void loop() {
 
 ---
 
-## 🛠️ Panduan Instalasi & Menjalankan Lokal
+## 🛠️ Panduan Instalasi & Menjalankan Secara Lokal
 
-Pastikan Anda telah memasang [Node.js](https://nodejs.org/) di sistem Anda.
+**Prasyarat:** [Node.js](https://nodejs.org/) v18 atau lebih baru.
 
-1. **Kloning atau Unduh Repositori**:
-   ```bash
-   git clone <url-repository-anda>
-   cd uas-arkom
-   ```
-2. **Pasang Dependensi**:
-   ```bash
-   npm install
-   ```
-3. **Jalankan Server Pengembangan**:
-   ```bash
-   npm run dev
-   ```
-4. **Buka Aplikasi**:
-   - Salin dan buka alamat localhost yang muncul di terminal (contoh: `http://localhost:5173`) pada peramban Chrome atau Edge (diperlukan untuk dukungan Web Serial API).
+```bash
+# 1. Kloning repositori
+git clone <url-repositori>
+cd uas-arkom
+
+# 2. Pasang seluruh dependensi
+npm install
+
+# 3. Jalankan server pengembangan
+npm run dev
+```
+
+Buka URL localhost yang muncul di terminal (contoh: `http://localhost:5173`). Browser berbasis Chromium (seperti Google Chrome atau Microsoft Edge) serta Firefox 151+ disarankan untuk koneksi fisik langsung ke perangkat keras Arduino. Browser lain seperti Safari didukung penuh melalui **Mode Emulator Serial (Virtual)** yang disematkan langsung di dalam sistem untuk menyimulasikan data gerakan robot.
+
+---
+
+## ⚠️ Kompatibilitas Browser
+
+| Browser            | Web Serial (Fisik) | Emulator (Virtual) | Keterangan |
+| ------------------ | :----------------: | :----------------: | ---------- |
+| Google Chrome 89+  |         ✅         |         ✅         | Didukung penuh |
+| Microsoft Edge 89+ |         ✅         |         ✅         | Didukung penuh |
+| Firefox 151+       |         ✅         |         ✅         | Didukung penuh (Fisik & Virtual) |
+| Safari             |         ❌         |         ✅         | Didukung menggunakan Emulator Serial Virtual |

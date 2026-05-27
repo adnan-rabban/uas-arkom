@@ -20,7 +20,8 @@ interface RightPanelProps {
   path: Position[];
   robotT: number;
   serialConnected: boolean;
-  onConnectSerial: () => void;
+  isVirtualSerial: boolean;
+  onConnectSerial: (isVirtual?: boolean) => void;
   onDisconnectSerial: () => void;
   onSetSpeed: (s: number) => void;
   onRun: () => void;
@@ -86,10 +87,30 @@ void loop() {
   }, []);
 
   const handleCopy = useCallback((code: string, type: 'c' | 'asm' | 'live' | 'mem') => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopiedType(type);
-      setTimeout(() => setCopiedType(null), 1500);
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(() => {
+        setCopiedType(type);
+        setTimeout(() => setCopiedType(null), 1500);
+      }).catch((err) => {
+        console.error('Failed to copy: ', err);
+      });
+    } else {
+      // Fallback copy method for unsupported clipboard API in Firefox/Safari or HTTP
+      const textArea = document.createElement('textarea');
+      textArea.value = code;
+      textArea.style.position = 'absolute';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedType(type);
+        setTimeout(() => setCopiedType(null), 1500);
+      } catch (err) {
+        console.error('Fallback copy failed: ', err);
+      }
+      document.body.removeChild(textArea);
+    }
   }, []);
 
   const currentRobotPos = (() => {
@@ -132,8 +153,12 @@ void loop() {
       setLogs((prev) => [`[${timeStr}] ${msg}`, ...prev].slice(0, 15));
     };
 
-    addLog(props.serialConnected ? "SERIAL: Connected to COM Port." : "SERIAL: Disconnected.");
-  }, [props.serialConnected]);
+    if (props.serialConnected) {
+      addLog(props.isVirtualSerial ? "SERIAL: Connected to Virtual COM Port." : "SERIAL: Connected to COM Port.");
+    } else {
+      addLog("SERIAL: Disconnected.");
+    }
+  }, [props.serialConnected, props.isVirtualSerial]);
 
   // Logging Effect: Simulation State changes
   useEffect(() => {
@@ -180,9 +205,10 @@ void loop() {
     else if (currentDirection.includes('DOWN-RIGHT (4)')) char = '4';
 
     if (char) {
-      addLog(`TX: '${char}' -> [Col: ${currentRobotPos?.col}, Row: ${currentRobotPos?.row}]`);
+      const prefix = props.isVirtualSerial ? "TX (VIRTUAL)" : "TX";
+      addLog(`${prefix}: '${char}' -> [Col: ${currentRobotPos?.col}, Row: ${currentRobotPos?.row}]`);
     }
-  }, [currentDirection, props.simulationState, currentRobotPos?.col, currentRobotPos?.row]);
+  }, [currentDirection, props.simulationState, currentRobotPos?.col, currentRobotPos?.row, props.isVirtualSerial]);
 
 
   return (
@@ -287,7 +313,11 @@ void loop() {
               <div className="flex flex-col">
                 <span className="text-[8px] uppercase tracking-wider text-white/30">Serial Status</span>
                 <span className={`text-[9.5px] font-mono font-bold ${props.serialConnected ? "text-[#2ccb5d]" : "text-white/20"}`}>
-                  {props.serialConnected ? t.serialConnected : t.serialDisconnected}
+                  {props.serialConnected 
+                    ? (props.isVirtualSerial 
+                        ? (props.lang === 'id' ? 'Terhubung (Virtual)' : 'Connected (Virtual)') 
+                        : t.serialConnected)
+                    : t.serialDisconnected}
                 </span>
               </div>
               <Button
@@ -577,6 +607,7 @@ void loop() {
         isOpen={serialModalOpen}
         onClose={() => setSerialModalOpen(false)}
         serialConnected={props.serialConnected}
+        isVirtualSerial={props.isVirtualSerial}
         onConnectSerial={props.onConnectSerial}
         onDisconnectSerial={props.onDisconnectSerial}
         lang={props.lang}
