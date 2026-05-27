@@ -113,18 +113,27 @@ export default function App() {
     }
   }, [grid, state, path, robotT, endPos, replan]);
 
-  const pathFound = path.length > 0;
+  const getGlowClass = () => {
+    const isRunning = state !== 'idle' && state !== 'done';
+    if (algorithm === 'astar') {
+      return isRunning ? 'shadow-glow-astar shadow-glow-pulse-astar' : 'shadow-glow-astar';
+    } else if (algorithm === 'bfs') {
+      return isRunning ? 'shadow-glow-bfs shadow-glow-pulse-bfs' : 'shadow-glow-bfs';
+    } else {
+      return 'shadow-glow-dijkstra';
+    }
+  };
 
   return (
     <TooltipProvider delay={300}>
       <div className="h-screen w-screen bg-black flex items-center justify-center p-2 lg:p-4 overflow-hidden">
-        <div className="w-full max-w-[1200px] h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col">
+        <div className={`w-full max-w-[1200px] h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col transition-all duration-500 ${getGlowClass()}`}>
           {/* Header */}
           <TopBar
             lang={lang}
             onToggleLang={toggleLang}
             simulationState={state}
-            pathFound={pathFound}
+            pathFound={path.length > 0}
           />
           {/* M Tricolor Stripe Divider */}
           <div className="m-stripe h-1 w-full shrink-0" />
@@ -218,7 +227,7 @@ export default function App() {
                   pathLength={path.length}
                   computeTime={computeTime}
                   simulationState={state}
-                  pathFound={pathFound}
+                  pathFound={path.length > 0}
                   path={path}
                   robotT={robotT}
                   serialConnected={serialConnected}

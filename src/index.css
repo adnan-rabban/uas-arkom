@@ -116,7 +116,118 @@
 
 .m-stripe {
     background: linear-gradient(90deg, #0066b1 0%, #0066b1 33.3%, #1c69d4 33.3%, #1c69d4 66.6%, #e22718 66.6%, #e22718 100%);
+    box-shadow: 0 1px 10px rgba(28, 105, 212, 0.3);
 }
+
+/* ── HUD Upgraded Aesthetics ── */
+@keyframes march {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.path-flow-line {
+  stroke-dasharray: 8, 5;
+  animation: march 0.8s linear infinite;
+}
+
+/* Glowing LED Dots */
+.led-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.led-blue {
+  background-color: #1c69d4;
+  box-shadow: 0 0 8px #1c69d4, 0 0 15px rgba(28, 105, 212, 0.4);
+}
+
+.led-green {
+  background-color: #2ccb5d;
+  box-shadow: 0 0 8px #2ccb5d, 0 0 15px rgba(44, 203, 93, 0.4);
+}
+
+.led-red {
+  background-color: #e22718;
+  box-shadow: 0 0 8px #e22718, 0 0 15px rgba(226, 39, 24, 0.4);
+}
+
+.led-orange {
+  background-color: #e0a800;
+  box-shadow: 0 0 8px #e0a800, 0 0 15px rgba(224, 168, 0, 0.4);
+}
+
+.led-pulse {
+  animation: led-blink 1.8s infinite ease-in-out;
+}
+
+@keyframes led-blink {
+  0%, 100% { opacity: 0.5; filter: brightness(0.7); }
+  50% { opacity: 1; filter: brightness(1.3); }
+}
+
+/* Dynamic glow effects for main container */
+.shadow-glow-astar {
+  box-shadow: 0 0 35px rgba(28, 105, 212, 0.12);
+  border-color: rgba(28, 105, 212, 0.3) !important;
+}
+
+.shadow-glow-dijkstra {
+  box-shadow: 0 0 35px rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.shadow-glow-bfs {
+  box-shadow: 0 0 35px rgba(226, 39, 24, 0.12);
+  border-color: rgba(226, 39, 24, 0.3) !important;
+}
+
+.shadow-glow-pulse-astar {
+  animation: shadow-breath-astar 3s infinite ease-in-out;
+}
+
+.shadow-glow-pulse-bfs {
+  animation: shadow-breath-bfs 3s infinite ease-in-out;
+}
+
+@keyframes shadow-breath-astar {
+  0%, 100% { box-shadow: 0 0 20px rgba(28, 105, 212, 0.08); border-color: rgba(28, 105, 212, 0.2) !important; }
+  50% { box-shadow: 0 0 45px rgba(28, 105, 212, 0.22); border-color: rgba(28, 105, 212, 0.45) !important; }
+}
+
+@keyframes shadow-breath-bfs {
+  0%, 100% { box-shadow: 0 0 20px rgba(226, 39, 24, 0.08); border-color: rgba(226, 39, 24, 0.2) !important; }
+  50% { box-shadow: 0 0 45px rgba(226, 39, 24, 0.22); border-color: rgba(226, 39, 24, 0.45) !important; }
+}
+
+/* Subtle CRT Scanline overlay */
+.crt-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-overlay::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  background-size: 100% 4px;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* PCB styling components */
+.pcb-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
 
 @layer base {
   * {
