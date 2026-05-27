@@ -87,6 +87,10 @@ export function LeftPanel(props: LeftPanelProps) {
           }
         }
 
+        // Force start and end node coordinates to be empty to prevent wall blockage
+        newGrid[customStart.row][customStart.col] = 0;
+        newGrid[customEnd.row][customEnd.col] = 0;
+
         props.onUploadPreset(newGrid, customStart, customEnd);
       };
       img.src = event.target?.result as string;

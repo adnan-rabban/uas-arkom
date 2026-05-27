@@ -37,10 +37,12 @@ export function useGrid() {
             next[row][col] = CellType.EMPTY;
             break;
           case 'start':
+            if (row === endPos.row && col === endPos.col) return prev;
             next[row][col] = CellType.EMPTY;
             setStartPos({ row, col });
             break;
           case 'end':
+            if (row === startPos.row && col === startPos.col) return prev;
             next[row][col] = CellType.EMPTY;
             setEndPos({ row, col });
             break;
