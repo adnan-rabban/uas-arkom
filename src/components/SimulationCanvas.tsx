@@ -71,7 +71,7 @@ export function SimulationCanvas({
       // Also reveal target cell
       revealedCellsRef.current.add(`${endPos.row},${endPos.col}`);
     }
-  }, [startPos, endPos, grid, slamMode, simulationState]);
+  }, [startPos, endPos, simulationState]);
 
   // Refs for animation loop values
   const stateRef = useRef(simulationState);

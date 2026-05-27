@@ -132,7 +132,7 @@ function bfs(grid: Grid, start: Position, end: Position, diagonal: boolean): Omi
     const dr = Math.abs(r - end.row);
     const dc = Math.abs(c - end.col);
     if (diagonal) {
-      return (dr + dc) + (Math.sqrt(2) - 2) * Math.min(dr, dc);
+      return Math.max(dr, dc);
     } else {
       return dr + dc;
     }
@@ -166,7 +166,7 @@ function bfs(grid: Grid, start: Position, end: Position, diagonal: boolean): Omi
       if (!visited.has(key)) {
         visited.add(key);
         parentMap.set(key, current);
-        dist[key] = currDist + neighbor.cost; // BFS moves at standard speed, ignoring mud weight
+        dist[key] = currDist + 1; // BFS moves at standard speed, ignoring mud weight and diagonal weight
         queue.push({ row: neighbor.row, col: neighbor.col });
       }
     }
