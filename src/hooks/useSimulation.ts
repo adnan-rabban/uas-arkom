@@ -220,24 +220,27 @@ export function useSimulation() {
       if (lastSentIndexRef.current === -1) {
         lastSentIndexRef.current = 0;
       } else if (currentIndex > lastSentIndexRef.current && currentIndex < path.length) {
-        const curr = path[lastSentIndexRef.current];
-        const next = path[currentIndex];
-        
-        let cmd = '';
-        const dy = next.row - curr.row;
-        const dx = next.col - curr.col;
+        // Send a serial command character for every step traversed sequentially
+        for (let i = lastSentIndexRef.current + 1; i <= currentIndex; i++) {
+          const curr = path[i - 1];
+          const next = path[i];
+          
+          let cmd = '';
+          const dy = next.row - curr.row;
+          const dx = next.col - curr.col;
 
-        if (dy < 0 && dx === 0) cmd = 'U';      // Up
-        else if (dy > 0 && dx === 0) cmd = 'D'; // Down
-        else if (dy === 0 && dx < 0) cmd = 'L'; // Left
-        else if (dy === 0 && dx > 0) cmd = 'R'; // Right
-        else if (dy < 0 && dx < 0) cmd = '1';   // Up-Left (Diagonal)
-        else if (dy < 0 && dx > 0) cmd = '2';   // Up-Right (Diagonal)
-        else if (dy > 0 && dx < 0) cmd = '3';   // Down-Left (Diagonal)
-        else if (dy > 0 && dx > 0) cmd = '4';   // Down-Right (Diagonal)
+          if (dy < 0 && dx === 0) cmd = 'U';      // Up
+          else if (dy > 0 && dx === 0) cmd = 'D'; // Down
+          else if (dy === 0 && dx < 0) cmd = 'L'; // Left
+          else if (dy === 0 && dx > 0) cmd = 'R'; // Right
+          else if (dy < 0 && dx < 0) cmd = '1';   // Up-Left (Diagonal)
+          else if (dy < 0 && dx > 0) cmd = '2';   // Up-Right (Diagonal)
+          else if (dy > 0 && dx < 0) cmd = '3';   // Down-Left (Diagonal)
+          else if (dy > 0 && dx > 0) cmd = '4';   // Down-Right (Diagonal)
 
-        if (cmd) {
-          sendSerialChar(cmd);
+          if (cmd) {
+            sendSerialChar(cmd);
+          }
         }
         lastSentIndexRef.current = currentIndex;
       }

@@ -111,7 +111,8 @@ export default function App() {
       const robotPos = path[currIndex];
       replan(grid, robotPos, endPos);
     }
-  }, [grid, state, path, robotT, endPos, replan]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grid]);
 
   const getGlowClass = () => {
     const isRunning = state !== 'idle' && state !== 'done';
