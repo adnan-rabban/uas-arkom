@@ -4,7 +4,7 @@ import { CellType } from '@/types';
 import { createGrid, inBounds, applyWalls } from '@/lib/grid';
 import { DEFAULT_START, DEFAULT_END, CELL } from '@/lib/constants';
 import { MAP_PRESETS } from '@/lib/presets';
-import { generateRecursiveDivisionMaze } from '@/lib/maze';
+import { generateDFSMaze } from '@/lib/maze';
 
 export function useGrid() {
   const [grid, setGrid] = useState<Grid>(() => {
@@ -105,7 +105,7 @@ export function useGrid() {
   }, []);
 
   const generateMaze = useCallback(() => {
-    const walls = generateRecursiveDivisionMaze(startPos, endPos);
+    const walls = generateDFSMaze(startPos, endPos);
     const g = createGrid();
     setGrid(applyWalls(g, walls));
     setCurrentPreset('maze');

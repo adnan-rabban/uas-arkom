@@ -1,102 +1,111 @@
 import type { Position } from '@/types';
 import { ROWS, COLS } from '@/lib/constants';
 
-export function generateRecursiveDivisionMaze(start: Position, end: Position): Position[] {
+export function generateDFSMaze(start: Position, end: Position): Position[] {
   const walls: Position[] = [];
+  
+  // Start with a grid where all cells are walls
+  const isWall = Array.from({ length: ROWS }, () => new Array(COLS).fill(true));
+  
+  // Track visited cells in our passage grid
+  // We only carve cells at even row and col indices to maintain walls in between
+  const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
+  const stack: Position[] = [];
 
-  const addWall = (row: number, col: number) => {
-    // Avoid blocking start, end, or their immediate orthogonal neighbors
-    const isStartOrNeighbor = Math.abs(row - start.row) + Math.abs(col - start.col) <= 1;
-    const isEndOrNeighbor = Math.abs(row - end.row) + Math.abs(col - end.col) <= 1;
-    if (isStartOrNeighbor || isEndOrNeighbor) return;
-    
-    // Add wall coordinate if it's within bounds
-    if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
-      walls.push({ row, col });
-    }
-  };
+  // Find a suitable even-indexed start coordinate close to the start node
+  const startRow = Math.floor(start.row / 2) * 2;
+  const startCol = Math.floor(start.col / 2) * 2;
 
-  const divide = (
-    rStart: number,
-    rEnd: number,
-    cStart: number,
-    cEnd: number,
-    orientation: 'horizontal' | 'vertical'
-  ) => {
-    if (rEnd - rStart < 2 || cEnd - cStart < 2) return;
+  visited[startRow][startCol] = true;
+  isWall[startRow][startCol] = false;
+  stack.push({ row: startRow, col: startCol });
 
-    const horizontal = orientation === 'horizontal';
+  while (stack.length > 0) {
+    const current = stack[stack.length - 1];
+    const neighbors: Position[] = [];
 
-    // Decide where to draw the wall (must be on an even index for nice alignment)
-    let wy = rStart;
-    let wx = cStart;
+    // Neighbors are 2 steps away
+    const dirs = [
+      { dr: -2, dc: 0 },
+      { dr: 2, dc: 0 },
+      { dr: 0, dc: -2 },
+      { dr: 0, dc: 2 }
+    ];
 
-    if (horizontal) {
-      const possibleY = [];
-      for (let y = rStart + 1; y < rEnd; y += 2) possibleY.push(y);
-      if (possibleY.length === 0) return;
-      wy = possibleY[Math.floor(Math.random() * possibleY.length)];
-    } else {
-      const possibleX = [];
-      for (let x = cStart + 1; x < cEnd; x += 2) possibleX.push(x);
-      if (possibleX.length === 0) return;
-      wx = possibleX[Math.floor(Math.random() * possibleX.length)];
-    }
-
-    // Decide where to leave a gap (must be on an odd index)
-    let gap: number;
-    if (horizontal) {
-      const possibleGaps = [];
-      for (let x = cStart; x <= cEnd; x += 2) possibleGaps.push(x);
-      // fallback if no even indices
-      if (possibleGaps.length === 0) possibleGaps.push(cStart);
-      gap = possibleGaps[Math.floor(Math.random() * possibleGaps.length)];
-    } else {
-      const possibleGaps = [];
-      for (let y = rStart; y <= rEnd; y += 2) possibleGaps.push(y);
-      if (possibleGaps.length === 0) possibleGaps.push(rStart);
-      gap = possibleGaps[Math.floor(Math.random() * possibleGaps.length)];
-    }
-
-    if (horizontal) {
-      for (let x = cStart; x <= cEnd; x++) {
-        if (x !== gap) {
-          addWall(wy, x);
-        }
-      }
-    } else {
-      for (let y = rStart; y <= rEnd; y++) {
-        if (y !== gap) {
-          addWall(y, wx);
-        }
+    for (const { dr, dc } of dirs) {
+      const nr = current.row + dr;
+      const nc = current.col + dc;
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc]) {
+        neighbors.push({ row: nr, col: nc });
       }
     }
 
-    // Recurse
-    if (horizontal) {
-      // Top subgrid
-      divide(rStart, wy - 1, cStart, cEnd, getOrientation(rStart, wy - 1, cStart, cEnd));
-      // Bottom subgrid
-      divide(wy + 1, rEnd, cStart, cEnd, getOrientation(wy + 1, rEnd, cStart, cEnd));
+    if (neighbors.length > 0) {
+      // Choose a random unvisited neighbor
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+      
+      // Carve the cell between current and next
+      const wallRow = current.row + (next.row - current.row) / 2;
+      const wallCol = current.col + (next.col - current.col) / 2;
+      
+      visited[next.row][next.col] = true;
+      isWall[next.row][next.col] = false;
+      isWall[wallRow][wallCol] = false;
+      
+      stack.push(next);
     } else {
-      // Left subgrid
-      divide(rStart, rEnd, cStart, wx - 1, getOrientation(rStart, rEnd, cStart, wx - 1));
-      // Right subgrid
-      divide(rStart, rEnd, wx + 1, cEnd, getOrientation(rStart, rEnd, wx + 1, cEnd));
+      stack.pop();
     }
-  };
+  }
 
-  const getOrientation = (rs: number, re: number, cs: number, ce: number): 'horizontal' | 'vertical' => {
-    const w = ce - cs;
-    const h = re - rs;
-    if (w < h) return 'horizontal';
-    if (h < w) return 'vertical';
-    return Math.random() < 0.5 ? 'horizontal' : 'vertical';
-  };
+  // Ensure start, end, and their immediate orthogonal neighbors are cleared
+  const startNeighbors = [
+    start,
+    { row: start.row - 1, col: start.col },
+    { row: start.row + 1, col: start.col },
+    { row: start.row, col: start.col - 1 },
+    { row: start.row, col: start.col + 1 }
+  ];
 
-  // Start with division
-  const initialOrientation = getOrientation(0, ROWS - 1, 0, COLS - 1);
-  divide(0, ROWS - 1, 0, COLS - 1, initialOrientation);
+  const endNeighbors = [
+    end,
+    { row: end.row - 1, col: end.col },
+    { row: end.row + 1, col: end.col },
+    { row: end.row, col: end.col - 1 },
+    { row: end.row, col: end.col + 1 }
+  ];
+
+  for (const pos of [...startNeighbors, ...endNeighbors]) {
+    if (pos.row >= 0 && pos.row < ROWS && pos.col >= 0 && pos.col < COLS) {
+      isWall[pos.row][pos.col] = false;
+    }
+  }
+
+  // Convert the perfect maze into a Braid Maze (similar to city streets)
+  // by removing 25% of internal walls randomly to create multiple alternative routes.
+  const wallRemovalChance = 0.25;
+  for (let r = 1; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      if (isWall[r][c]) {
+        // Skip start and end neighborhoods so we don't clear their setup
+        const nearStart = Math.abs(r - start.row) + Math.abs(c - start.col) <= 2;
+        const nearEnd = Math.abs(r - end.row) + Math.abs(c - end.col) <= 2;
+        if (!nearStart && !nearEnd && Math.random() < wallRemovalChance) {
+          isWall[r][c] = false;
+        }
+      }
+    }
+  }
+
+  // Convert isWall grid back to a list of wall Positions
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (isWall[r][c]) {
+        walls.push({ row: r, col: c });
+      }
+    }
+  }
 
   return walls;
 }
+
