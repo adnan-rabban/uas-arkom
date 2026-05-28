@@ -2,7 +2,8 @@ import type { Position, Grid, AlgorithmResult } from '@/types';
 import { CellType } from '@/types';
 import { ROWS, COLS } from '@/lib/constants';
 
-// ── Min-Heap ──
+const SQRT2_MINUS_2 = Math.SQRT2 - 2;
+
 class MinHeap {
   private data: number[][] = [];
 
@@ -51,275 +52,234 @@ class MinHeap {
   }
 }
 
-// ── Reconstruct path from parent map ──
+function encodePos(row: number, col: number): number {
+  return row * COLS + col;
+}
+
+function decodePos(key: number): Position {
+  return { row: (key / COLS) | 0, col: key % COLS };
+}
+
 function reconstructPath(
-  parentMap: Map<string, Position>,
+  parentMap: Map<number, number>,
   start: Position,
   end: Position
 ): Position[] {
   const path: Position[] = [];
-  let current = end;
-  while (current.row !== start.row || current.col !== start.col) {
-    path.unshift(current);
-    const key = `${current.row},${current.col}`;
-    const parent = parentMap.get(key);
-    if (!parent) return [];
-    current = parent;
+  let cur = encodePos(end.row, end.col);
+  const startKey = encodePos(start.row, start.col);
+  while (cur !== startKey) {
+    path.push(decodePos(cur));
+    const parent = parentMap.get(cur);
+    if (parent === undefined) return [];
+    cur = parent;
   }
-  path.unshift(start);
+  path.push({ row: start.row, col: start.col });
+  path.reverse();
   return path;
 }
 
-// ── Helper to get cost weight ──
 function getWeight(grid: Grid, row: number, col: number): number {
-  if (grid[row][col] === CellType.MUD) return 5;
-  return 1;
+  return grid[row][col] === CellType.MUD ? 5 : 1;
 }
 
-// ── Helper to get valid neighbors (supports 8-way diagonal with corner-cutting prevention) ──
-function getNeighbors(r: number, c: number, grid: Grid, diagonal: boolean): { row: number; col: number; cost: number }[] {
+const ORTH_DIRS: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+const DIAG_DIRS: [number, number][] = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+
+function getNeighbors(
+  r: number,
+  c: number,
+  grid: Grid,
+  diagonal: boolean
+): { row: number; col: number; cost: number }[] {
   const neighbors: { row: number; col: number; cost: number }[] = [];
-  
-  // Orthogonal directions
-  const orthDirs = [
-    [-1, 0], // up
-    [1, 0],  // down
-    [0, -1], // left
-    [0, 1]   // right
-  ];
-  for (const [dr, dc] of orthDirs) {
-    const nr = r + dr;
-    const nc = c + dc;
+  for (const [dr, dc] of ORTH_DIRS) {
+    const nr = r + dr, nc = c + dc;
     if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc] !== CellType.WALL) {
       neighbors.push({ row: nr, col: nc, cost: 1 });
     }
   }
-
-  // Diagonal directions
   if (diagonal) {
-    const diagDirs = [
-      [-1, -1], // up-left
-      [-1, 1],  // up-right
-      [1, -1],  // down-left
-      [1, 1]    // down-right
-    ];
-    for (const [dr, dc] of diagDirs) {
-      const nr = r + dr;
-      const nc = c + dc;
-      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc] !== CellType.WALL) {
-        // Prevent corner cutting if both adjacent orthogonal cells are walls
-        const corner1 = grid[r][nc] === CellType.WALL;
-        const corner2 = grid[nr][c] === CellType.WALL;
-        if (!(corner1 && corner2)) {
-          neighbors.push({ row: nr, col: nc, cost: Math.SQRT2 });
-        }
+    for (const [dr, dc] of DIAG_DIRS) {
+      const nr = r + dr, nc = c + dc;
+      if (
+        nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS &&
+        grid[nr][nc] !== CellType.WALL &&
+        !(grid[r][nc] === CellType.WALL && grid[nr][c] === CellType.WALL)
+      ) {
+        neighbors.push({ row: nr, col: nc, cost: Math.SQRT2 });
       }
     }
   }
-
   return neighbors;
 }
 
-// ── BFS ──
-function bfs(grid: Grid, start: Position, end: Position, diagonal: boolean): Omit<AlgorithmResult, 'time'> {
-  const queue: Position[] = [start];
-  const visited = new Set<string>([`${start.row},${start.col}`]);
-  const parentMap = new Map<string, Position>();
+function octileH(r: number, c: number, er: number, ec: number): number {
+  const dr = Math.abs(r - er), dc = Math.abs(c - ec);
+  return (dr + dc) + SQRT2_MINUS_2 * Math.min(dr, dc);
+}
+
+function manhattanH(r: number, c: number, er: number, ec: number): number {
+  return Math.abs(r - er) + Math.abs(c - ec);
+}
+
+function bfs(
+  grid: Grid,
+  start: Position,
+  end: Position,
+  diagonal: boolean
+): Omit<AlgorithmResult, 'time'> {
+  const startKey = encodePos(start.row, start.col);
+  const queue: number[] = [startKey];
+  let head = 0;
+  const visited = new Set<number>([startKey]);
+  const parentMap = new Map<number, number>();
+  const dist = new Map<number, number>([[startKey, 0]]);
   const visitOrder: Position[] = [];
-  const dist: Record<string, number> = { [`${start.row},${start.col}`]: 0 };
 
-  const heuristic = (r: number, c: number) => {
-    const dr = Math.abs(r - end.row);
-    const dc = Math.abs(c - end.col);
-    if (diagonal) {
-      return Math.max(dr, dc);
-    } else {
-      return dr + dc;
-    }
-  };
+  const hFn = diagonal
+    ? (r: number, c: number) => octileH(r, c, end.row, end.col)
+    : (r: number, c: number) => manhattanH(r, c, end.row, end.col);
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    visitOrder.push(current);
-    const currKey = `${current.row},${current.col}`;
-    const currDist = dist[currKey];
+  while (head < queue.length) {
+    const curKey = queue[head++];
+    const cur = decodePos(curKey);
+    visitOrder.push(cur);
+    const currDist = dist.get(curKey)!;
 
-    if (current.row === end.row && current.col === end.col) {
+    if (cur.row === end.row && cur.col === end.col) {
       const gScores: Record<string, number> = {};
       const hScores: Record<string, number> = {};
       for (const node of visitOrder) {
-        const k = `${node.row},${node.col}`;
-        gScores[k] = +(dist[k] ?? 0).toFixed(1);
-        hScores[k] = +heuristic(node.row, node.col).toFixed(1);
+        const sk = `${node.row},${node.col}`;
+        const nk = encodePos(node.row, node.col);
+        gScores[sk] = +(dist.get(nk) ?? 0).toFixed(1);
+        hScores[sk] = +hFn(node.row, node.col).toFixed(1);
       }
-      return { 
-        visitOrder, 
-        path: reconstructPath(parentMap, start, end),
-        gScores,
-        hScores
-      };
+      return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    const neighbors = getNeighbors(current.row, current.col, grid, diagonal);
-    for (const neighbor of neighbors) {
-      const key = `${neighbor.row},${neighbor.col}`;
-      if (!visited.has(key)) {
-        visited.add(key);
-        parentMap.set(key, current);
-        dist[key] = currDist + 1; // BFS moves at standard speed, ignoring mud weight and diagonal weight
-        queue.push({ row: neighbor.row, col: neighbor.col });
+    for (const nb of getNeighbors(cur.row, cur.col, grid, diagonal)) {
+      const nk = encodePos(nb.row, nb.col);
+      if (!visited.has(nk)) {
+        visited.add(nk);
+        parentMap.set(nk, curKey);
+        dist.set(nk, currDist + 1);
+        queue.push(nk);
       }
     }
   }
-
   return { visitOrder, path: [] };
 }
 
-// ── Dijkstra ──
-function dijkstra(grid: Grid, start: Position, end: Position, diagonal: boolean): Omit<AlgorithmResult, 'time'> {
+function dijkstra(
+  grid: Grid,
+  start: Position,
+  end: Position,
+  diagonal: boolean
+): Omit<AlgorithmResult, 'time'> {
   const dist: number[][] = Array.from({ length: ROWS }, () => new Array(COLS).fill(1e9));
   dist[start.row][start.col] = 0;
 
   const heap = new MinHeap();
   heap.push([0, start.row, start.col]);
 
-  const parentMap = new Map<string, Position>();
-  const closed = new Set<string>();
+  const parentMap = new Map<number, number>();
+  const closed = new Set<number>();
   const visitOrder: Position[] = [];
+  const gScores: Record<string, number> = {};
+  const hScores: Record<string, number> = {};
 
-  const heuristic = (r: number, c: number) => {
-    const dr = Math.abs(r - end.row);
-    const dc = Math.abs(c - end.col);
-    if (diagonal) {
-      return (dr + dc) + (Math.sqrt(2) - 2) * Math.min(dr, dc);
-    } else {
-      return dr + dc;
-    }
-  };
+  const hFn = diagonal
+    ? (r: number, c: number) => octileH(r, c, end.row, end.col)
+    : (r: number, c: number) => manhattanH(r, c, end.row, end.col);
 
   while (heap.length > 0) {
     const [d, r, c] = heap.pop()!;
-    const key = `${r},${c}`;
+    const key = encodePos(r, c);
 
     if (closed.has(key)) continue;
     closed.add(key);
     visitOrder.push({ row: r, col: c });
+    gScores[`${r},${c}`] = +d.toFixed(1);
+    hScores[`${r},${c}`] = +hFn(r, c).toFixed(1);
 
     if (r === end.row && c === end.col) {
-      const gScores: Record<string, number> = {};
-      const hScores: Record<string, number> = {};
-      for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-          if (dist[row][col] < 1e9) {
-            const k = `${row},${col}`;
-            gScores[k] = +dist[row][col].toFixed(1);
-            hScores[k] = +heuristic(row, col).toFixed(1);
-          }
-        }
-      }
-      return { 
-        visitOrder, 
-        path: reconstructPath(parentMap, start, end),
-        gScores,
-        hScores
-      };
+      return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    const neighbors = getNeighbors(r, c, grid, diagonal);
-    for (const neighbor of neighbors) {
-      const nk = `${neighbor.row},${neighbor.col}`;
+    for (const nb of getNeighbors(r, c, grid, diagonal)) {
+      const nk = encodePos(nb.row, nb.col);
       if (closed.has(nk)) continue;
-
-      const stepCost = neighbor.cost * getWeight(grid, neighbor.row, neighbor.col);
-      const nextDist = d + stepCost;
-
-      if (nextDist < dist[neighbor.row][neighbor.col]) {
-        dist[neighbor.row][neighbor.col] = nextDist;
-        parentMap.set(nk, { row: r, col: c });
-        heap.push([nextDist, neighbor.row, neighbor.col]);
+      const nextDist = d + nb.cost * getWeight(grid, nb.row, nb.col);
+      if (nextDist < dist[nb.row][nb.col]) {
+        dist[nb.row][nb.col] = nextDist;
+        parentMap.set(nk, key);
+        heap.push([nextDist, nb.row, nb.col]);
       }
     }
   }
-
   return { visitOrder, path: [] };
 }
 
-// ── A* ──
-function astar(grid: Grid, start: Position, end: Position, diagonal: boolean): Omit<AlgorithmResult, 'time'> {
-  const heuristic = (r: number, c: number) => {
-    const dr = Math.abs(r - end.row);
-    const dc = Math.abs(c - end.col);
-    if (diagonal) {
-      return (dr + dc) + (Math.sqrt(2) - 2) * Math.min(dr, dc);
-    } else {
-      return dr + dc;
-    }
-  };
+function astar(
+  grid: Grid,
+  start: Position,
+  end: Position,
+  diagonal: boolean
+): Omit<AlgorithmResult, 'time'> {
+  const hFn = diagonal
+    ? (r: number, c: number) => octileH(r, c, end.row, end.col)
+    : (r: number, c: number) => manhattanH(r, c, end.row, end.col);
 
   const gScore: number[][] = Array.from({ length: ROWS }, () => new Array(COLS).fill(1e9));
   gScore[start.row][start.col] = 0;
 
   const heap = new MinHeap();
-  heap.push([heuristic(start.row, start.col), 0, start.row, start.col]);
+  heap.push([hFn(start.row, start.col), 0, start.row, start.col]);
 
-  const parentMap = new Map<string, Position>();
-  const closed = new Set<string>();
+  const parentMap = new Map<number, number>();
+  const closed = new Set<number>();
   const visitOrder: Position[] = [];
+  const gScores: Record<string, number> = {};
+  const hScores: Record<string, number> = {};
 
   while (heap.length > 0) {
     const [, gv, r, c] = heap.pop()!;
-    const key = `${r},${c}`;
+    const key = encodePos(r, c);
 
     if (closed.has(key)) continue;
     closed.add(key);
     visitOrder.push({ row: r, col: c });
+    gScores[`${r},${c}`] = +gv.toFixed(1);
+    hScores[`${r},${c}`] = +hFn(r, c).toFixed(1);
 
     if (r === end.row && c === end.col) {
-      const gScores: Record<string, number> = {};
-      const hScores: Record<string, number> = {};
-      for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-          if (gScore[row][col] < 1e9) {
-            const k = `${row},${col}`;
-            gScores[k] = +gScore[row][col].toFixed(1);
-            hScores[k] = +heuristic(row, col).toFixed(1);
-          }
-        }
-      }
-      return { 
-        visitOrder, 
-        path: reconstructPath(parentMap, start, end),
-        gScores,
-        hScores
-      };
+      return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    const neighbors = getNeighbors(r, c, grid, diagonal);
-    for (const neighbor of neighbors) {
-      const nk = `${neighbor.row},${neighbor.col}`;
+    for (const nb of getNeighbors(r, c, grid, diagonal)) {
+      const nk = encodePos(nb.row, nb.col);
       if (closed.has(nk)) continue;
-
-      const stepCost = neighbor.cost * getWeight(grid, neighbor.row, neighbor.col);
-      const ng = gv + stepCost;
-      if (ng < gScore[neighbor.row][neighbor.col]) {
-        gScore[neighbor.row][neighbor.col] = ng;
-        parentMap.set(nk, { row: r, col: c });
-        heap.push([ng + heuristic(neighbor.row, neighbor.col), ng, neighbor.row, neighbor.col]);
+      const ng = gv + nb.cost * getWeight(grid, nb.row, nb.col);
+      if (ng < gScore[nb.row][nb.col]) {
+        gScore[nb.row][nb.col] = ng;
+        parentMap.set(nk, key);
+        heap.push([ng + hFn(nb.row, nb.col), ng, nb.row, nb.col]);
       }
     }
   }
-
   return { visitOrder, path: [] };
 }
 
-// ── Public API ──
-type AlgorithmFn = (grid: Grid, start: Position, end: Position, diagonal: boolean) => Omit<AlgorithmResult, 'time'>;
+type AlgorithmFn = (
+  grid: Grid,
+  start: Position,
+  end: Position,
+  diagonal: boolean
+) => Omit<AlgorithmResult, 'time'>;
 
-const ALGORITHM_MAP: Record<string, AlgorithmFn> = {
-  bfs,
-  dijkstra,
-  astar,
-};
+const ALGORITHM_MAP: Record<string, AlgorithmFn> = { bfs, dijkstra, astar };
 
 export function runAlgorithm(
   algorithmKey: string,
@@ -331,7 +291,5 @@ export function runAlgorithm(
   const fn = ALGORITHM_MAP[algorithmKey] || astar;
   const t0 = performance.now();
   const result = fn(grid, start, end, diagonal);
-  const time = +(performance.now() - t0).toFixed(2);
-  return { ...result, time };
+  return { ...result, time: +(performance.now() - t0).toFixed(2) };
 }
-

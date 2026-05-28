@@ -12,17 +12,17 @@ export function inBounds(row: number, col: number): boolean {
 
 export function setCell(grid: Grid, row: number, col: number, value: CellValue): Grid {
   if (!inBounds(row, col)) return grid;
-  const newGrid = grid.map((r) => [...r]);
-  newGrid[row][col] = value;
+  const newRow = grid[row].slice();
+  newRow[col] = value;
+  const newGrid = grid.slice() as Grid;
+  newGrid[row] = newRow;
   return newGrid;
 }
 
 export function applyWalls(grid: Grid, walls: Position[]): Grid {
-  const newGrid = grid.map((r) => [...r]);
+  const newGrid = grid.map((r) => r.slice()) as Grid;
   for (const { row, col } of walls) {
-    if (inBounds(row, col)) {
-      newGrid[row][col] = CellType.WALL;
-    }
+    if (inBounds(row, col)) newGrid[row][col] = CellType.WALL;
   }
   return newGrid;
 }
