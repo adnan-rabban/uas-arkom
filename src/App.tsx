@@ -9,7 +9,7 @@ import { LegendBar } from '@/components/LegendBar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGrid } from '@/hooks/useGrid';
 import { useSimulation } from '@/hooks/useSimulation';
-import { useSlam } from '@/hooks/useSlam';
+import { useFogOfWar } from '@/hooks/useSlam';
 import { useKeyboard } from '@/hooks/useKeyboard';
 import { CellType } from '@/types';
 import type { Language, Grid, Position } from '@/types';
@@ -35,14 +35,14 @@ export default function App() {
     state, algorithm, visitOrder, path, pathCost,
     vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
     diagonal, gScores, hScores,
-    serialConnected, isVirtualSerial, slamMode, toast,
+    serialConnected, isVirtualSerial, fogMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
-    setSlamMode, connectSerial, disconnectSerial,
+    setFogMode, connectSerial, disconnectSerial,
     replan, selectComparisonAlgorithm, setSimultaneous,
     reset, run, stepOnce, compareAll, setToast,
   } = useSimulation();
 
-  const { knownGridRef, revealedCellsRef, resetSlam, revealCell } = useSlam();
+  const { knownGridRef, revealedCellsRef, resetFog, revealCell } = useFogOfWar();
 
   const gridRef = useRef(grid);
   const stateRef = useRef(state);
@@ -50,7 +50,7 @@ export default function App() {
   const pathRef = useRef(path);
   const endPosRef = useRef(endPos);
   const replanRef = useRef(replan);
-  const slamModeRef = useRef(slamMode);
+  const fogModeRef = useRef(fogMode);
 
   useEffect(() => {
     gridRef.current = grid;
@@ -59,22 +59,22 @@ export default function App() {
     pathRef.current = path;
     endPosRef.current = endPos;
     replanRef.current = replan;
-    slamModeRef.current = slamMode;
-  }, [grid, state, robotT, path, endPos, replan, slamMode]);
+    fogModeRef.current = fogMode;
+  }, [grid, state, robotT, path, endPos, replan, fogMode]);
 
   const handleRun = useCallback(() => {
     reset();
-    if (slamMode) {
+    if (fogMode) {
       setTimeout(() => run(knownGridRef.current, startPos, endPos), 10);
     } else {
       setTimeout(() => run(grid, startPos, endPos), 10);
     }
-  }, [reset, run, grid, startPos, endPos, slamMode, knownGridRef]);
+  }, [reset, run, grid, startPos, endPos, fogMode, knownGridRef]);
 
   const handleStep = useCallback(() => {
-    const effectiveGrid = slamMode ? knownGridRef.current : grid;
+    const effectiveGrid = fogMode ? knownGridRef.current : grid;
     stepOnce(effectiveGrid, startPos, endPos);
-  }, [stepOnce, grid, startPos, endPos, slamMode, knownGridRef]);
+  }, [stepOnce, grid, startPos, endPos, fogMode, knownGridRef]);
 
   const handleReset = useCallback(() => reset(), [reset]);
 
@@ -115,7 +115,7 @@ export default function App() {
   );
 
   const handleWallDiscovered = useCallback(() => {
-    if (!slamModeRef.current || stateRef.current !== 'moving') return;
+    if (!fogModeRef.current || stateRef.current !== 'moving') return;
     const currIdx = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
     const remaining = pathRef.current.slice(currIdx);
     const blocked = remaining.some((pos) => knownGridRef.current[pos.row]?.[pos.col] === CellType.WALL);
@@ -124,10 +124,10 @@ export default function App() {
     }
   }, [knownGridRef]);
 
-  // Reset SLAM memory when preset, startPos, or endPos changes
+  // Reset Fog of War memory when preset, startPos, or endPos changes
   useEffect(() => {
-    resetSlam(gridRef.current, startPos, endPos);
-  }, [currentPreset, startPos, endPos, resetSlam]);
+    resetFog(gridRef.current, startPos, endPos);
+  }, [currentPreset, startPos, endPos, resetFog]);
 
   const keyboardActions = useMemo(
     () => ({
@@ -147,7 +147,7 @@ export default function App() {
   useKeyboard(keyboardActions);
 
   useEffect(() => {
-    if (slamModeRef.current) {
+    if (fogModeRef.current) {
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const key = r * COLS + c;
@@ -161,7 +161,7 @@ export default function App() {
     if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
     const currIndex = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
     const remainingPath = pathRef.current.slice(currIndex);
-    const effectiveGrid = slamModeRef.current ? knownGridRef.current : gridRef.current;
+    const effectiveGrid = fogModeRef.current ? knownGridRef.current : gridRef.current;
     const isBlocked = remainingPath.some((pos) => effectiveGrid[pos.row]?.[pos.col] === CellType.WALL);
     if (isBlocked) {
       replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
@@ -172,7 +172,7 @@ export default function App() {
   useEffect(() => {
     if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
     const currIndex = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
-    const effectiveGrid = slamModeRef.current ? knownGridRef.current : gridRef.current;
+    const effectiveGrid = fogModeRef.current ? knownGridRef.current : gridRef.current;
     replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [algorithm]);
@@ -209,9 +209,9 @@ export default function App() {
                   tool={tool}
                   currentPreset={currentPreset}
                   diagonal={diagonal}
-                  slamMode={slamMode}
+                  fogMode={fogMode}
                   onToggleDiagonal={() => setDiagonal((prev) => !prev)}
-                  onToggleSlamMode={() => setSlamMode((prev) => !prev)}
+                  onToggleFogMode={() => setFogMode((prev) => !prev)}
                   onGenerateMaze={generateMaze}
                   onSelectAlgorithm={setAlgorithm}
                   onSelectTool={setTool}
@@ -246,8 +246,8 @@ export default function App() {
                 gScores={gScores}
                 hScores={hScores}
                 lang={lang}
-                slamMode={slamMode}
-                slamRevealedCells={revealedCellsRef}
+                fogMode={fogMode}
+                fogRevealedCells={revealedCellsRef}
                 onRevealCell={handleRevealCell}
                 onWallDiscovered={handleWallDiscovered}
                 onSetVstep={setVstep}

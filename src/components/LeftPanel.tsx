@@ -12,9 +12,9 @@ interface LeftPanelProps {
   tool: Tool;
   currentPreset: string;
   diagonal: boolean;
-  slamMode: boolean;
+  fogMode: boolean;
   onToggleDiagonal: () => void;
-  onToggleSlamMode: () => void;
+  onToggleFogMode: () => void;
   onGenerateMaze: () => void;
   onSelectAlgorithm: (a: AlgorithmKey) => void;
   onSelectTool: (t: Tool) => void;
@@ -128,23 +128,23 @@ export function LeftPanel(props: LeftPanelProps) {
           </span>
         </button>
 
-        {/* SLAM Mode Switch */}
+        {/* Fog of War Mode Switch */}
         <button
-          onClick={props.onToggleSlamMode}
+          onClick={props.onToggleFogMode}
           className={`w-full flex items-center justify-between px-3 py-1.5 rounded-none text-[9px] font-mono tracking-widest uppercase border transition-all cursor-pointer mt-1.5 ${
-            props.slamMode
+            props.fogMode
               ? 'bg-[#1c69d4]/10 text-[#1c69d4] border-[#1c69d4]'
               : 'border-[#3c3c3c] bg-transparent text-white/40 hover:border-white hover:text-white'
           }`}
-          title={t.slamModeDesc}
+          title={t.fogModeDesc}
         >
           <span className="flex items-center gap-1.5">
             <EyeOff className="w-3.5 h-3.5" />
-            {t.slamModeTitle.split(' ')[0] + ' ' + (t.slamModeTitle.split(' ')[1] || 'SLAM')}
+            {t.fogModeTitle.split('(')[0].trim()}
           </span>
           <span className="flex items-center gap-1.5">
-            {props.slamMode && <span className="led-dot led-green led-pulse" />}
-            <span className="text-[8px] font-bold">{props.slamMode ? 'ON' : 'OFF'}</span>
+            {props.fogMode && <span className="led-dot led-green led-pulse" />}
+            <span className="text-[8px] font-bold">{props.fogMode ? 'ON' : 'OFF'}</span>
           </span>
         </button>
       </div>

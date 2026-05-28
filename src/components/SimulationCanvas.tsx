@@ -20,8 +20,8 @@ interface SimulationCanvasProps {
   gScores?: Record<string, number>;
   hScores?: Record<string, number>;
   lang: Language;
-  slamMode: boolean;
-  slamRevealedCells: React.MutableRefObject<Set<number>>;
+  fogMode: boolean;
+  fogRevealedCells: React.MutableRefObject<Set<number>>;
   onRevealCell: (row: number, col: number) => boolean;
   onWallDiscovered: () => void;
   onSetVstep: (fn: (v: number) => number) => void;
@@ -38,8 +38,8 @@ interface SimulationCanvasProps {
 export function SimulationCanvas({
   grid, startPos, endPos, visitOrder, path,
   vstep, pstep, robotT, simulationState, speed,
-  gScores, hScores, lang, slamMode,
-  slamRevealedCells, onRevealCell, onWallDiscovered,
+  gScores, hScores, lang, fogMode,
+  fogRevealedCells, onRevealCell, onWallDiscovered,
   onSetVstep, onSetPstep, onSetRobotT, onSetState,
   onMouseDown, onMouseMove, onMouseUp,
   comparison, simultaneous,
@@ -67,7 +67,7 @@ export function SimulationCanvas({
   const gridRef = useRef(grid);
   const startRef = useRef(startPos);
   const endRef = useRef(endPos);
-  const slamModeRef = useRef(slamMode);
+  const slamModeRef = useRef(fogMode);
   const onRevealCellRef = useRef(onRevealCell);
   const onWallDiscoveredRef = useRef(onWallDiscovered);
   const comparisonRef = useRef(comparison);
@@ -84,13 +84,13 @@ export function SimulationCanvas({
     gridRef.current = grid;
     startRef.current = startPos;
     endRef.current = endPos;
-    slamModeRef.current = slamMode;
+    slamModeRef.current = fogMode;
     onRevealCellRef.current = onRevealCell;
     onWallDiscoveredRef.current = onWallDiscovered;
     comparisonRef.current = comparison;
     simultaneousRef.current = simultaneous;
     staticLayerDirtyRef.current = true;
-  }, [simulationState, vstep, pstep, robotT, speed, visitOrder, path, grid, startPos, endPos, slamMode, onRevealCell, onWallDiscovered, comparison, simultaneous]);
+  }, [simulationState, vstep, pstep, robotT, speed, visitOrder, path, grid, startPos, endPos, fogMode, onRevealCell, onWallDiscovered, comparison, simultaneous]);
 
   useEffect(() => {
     if (simulationState === 'idle') {
@@ -98,13 +98,13 @@ export function SimulationCanvas({
       ripplesRef.current = [];
       revealedOpacitiesRef.current.clear();
     } else if (simulationState === 'exploring') {
-      for (const key of slamRevealedCells.current) {
+      for (const key of fogRevealedCells.current) {
         if (!revealedOpacitiesRef.current.has(key)) {
           revealedOpacitiesRef.current.set(key, 1.0);
         }
       }
     }
-  }, [simulationState, slamRevealedCells]);
+  }, [simulationState, fogRevealedCells]);
 
   const getRobotPos = useCallback(() => {
     const p = pathRef.current;
@@ -220,7 +220,7 @@ export function SimulationCanvas({
     const vord = visitOrderRef.current;
     const p = pathRef.current;
     const isSlam = slamModeRef.current;
-    const rc = slamRevealedCells.current;
+    const rc = fogRevealedCells.current;
 
     if (st === 'moving' && p.length > 0) {
       const idx = Math.min(Math.floor(robotTRef.current), p.length - 1);
@@ -690,7 +690,7 @@ export function SimulationCanvas({
         ctx.strokeRect(x + 1, y + 1, CELL - 2, CELL - 2);
       }
     }
-  }, [getRobotPos, castLidar, buildStaticLayer, slamRevealedCells]);
+  }, [getRobotPos, castLidar, buildStaticLayer, fogRevealedCells]);
 
   useEffect(() => {
     const animate = () => {
@@ -766,7 +766,7 @@ export function SimulationCanvas({
       }
 
       const opacities = revealedOpacitiesRef.current;
-      for (const key of slamRevealedCells.current) {
+      for (const key of fogRevealedCells.current) {
         if (!opacities.has(key)) {
           opacities.set(key, 0.05);
         } else {
@@ -780,7 +780,7 @@ export function SimulationCanvas({
     };
     animRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animRef.current);
-  }, [drawFrame, onSetVstep, onSetPstep, onSetRobotT, onSetState, slamRevealedCells]);
+  }, [drawFrame, onSetVstep, onSetPstep, onSetRobotT, onSetState, fogRevealedCells]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
