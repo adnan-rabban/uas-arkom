@@ -105,7 +105,7 @@ function getNeighbors(
       if (
         nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS &&
         grid[nr][nc] !== CellType.WALL &&
-        !(grid[r][nc] === CellType.WALL && grid[nr][c] === CellType.WALL)
+        !(grid[r][nc] === CellType.WALL || grid[nr][c] === CellType.WALL)
       ) {
         neighbors.push({ row: nr, col: nc, cost: Math.SQRT2 });
       }
