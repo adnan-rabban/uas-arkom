@@ -51,6 +51,7 @@ export default function App() {
   const endPosRef = useRef(endPos);
   const replanRef = useRef(replan);
   const fogModeRef = useRef(fogMode);
+  const replanPendingRef = useRef(false);
 
   useEffect(() => {
     gridRef.current = grid;
@@ -60,23 +61,30 @@ export default function App() {
     endPosRef.current = endPos;
     replanRef.current = replan;
     fogModeRef.current = fogMode;
+    replanPendingRef.current = false;
   }, [grid, state, robotT, path, endPos, replan, fogMode]);
 
   const handleRun = useCallback(() => {
     reset();
     if (fogMode) {
+      resetFog(grid, startPos, endPos);
       setTimeout(() => run(knownGridRef.current, startPos, endPos), 10);
     } else {
       setTimeout(() => run(grid, startPos, endPos), 10);
     }
-  }, [reset, run, grid, startPos, endPos, fogMode, knownGridRef]);
+  }, [reset, run, grid, startPos, endPos, fogMode, knownGridRef, resetFog]);
 
   const handleStep = useCallback(() => {
     const effectiveGrid = fogMode ? knownGridRef.current : grid;
     stepOnce(effectiveGrid, startPos, endPos);
   }, [stepOnce, grid, startPos, endPos, fogMode, knownGridRef]);
 
-  const handleReset = useCallback(() => reset(), [reset]);
+  const handleReset = useCallback(() => {
+    reset();
+    if (fogMode) {
+      resetFog(grid, startPos, endPos);
+    }
+  }, [reset, resetFog, grid, startPos, endPos, fogMode]);
 
   const handleClear = useCallback(() => {
     reset();
@@ -85,8 +93,9 @@ export default function App() {
 
   const handleCompareAll = useCallback(() => {
     reset();
-    setTimeout(() => compareAll(grid, startPos, endPos), 10);
-  }, [reset, compareAll, grid, startPos, endPos]);
+    const effectiveGrid = fogMode ? knownGridRef.current : grid;
+    setTimeout(() => compareAll(effectiveGrid, startPos, endPos), 10);
+  }, [reset, compareAll, grid, startPos, endPos, fogMode, knownGridRef]);
 
   const handleLoadPreset = useCallback(
     (id: string) => {
@@ -107,6 +116,11 @@ export default function App() {
     [reset, setGrid, setStartPos, setEndPos, setCurrentPreset]
   );
 
+  const handleToggleFogMode = useCallback(() => {
+    if (stateRef.current !== 'idle' && stateRef.current !== 'done') return;
+    setFogMode((prev) => !prev);
+  }, [setFogMode]);
+
   const handleRevealCell = useCallback(
     (r: number, c: number): boolean => {
       return revealCell(r, c, gridRef.current);
@@ -116,18 +130,22 @@ export default function App() {
 
   const handleWallDiscovered = useCallback(() => {
     if (!fogModeRef.current || stateRef.current !== 'moving') return;
+    if (replanPendingRef.current) return;
     const currIdx = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
     const remaining = pathRef.current.slice(currIdx);
     const blocked = remaining.some((pos) => knownGridRef.current[pos.row]?.[pos.col] === CellType.WALL);
     if (blocked) {
+      replanPendingRef.current = true;
       replanRef.current(knownGridRef.current, pathRef.current[currIdx], endPosRef.current);
     }
   }, [knownGridRef]);
 
-  // Reset Fog of War memory when preset, startPos, or endPos changes
+  // Reset Fog of War memory when preset, startPos, endPos, grid, or fogMode changes
   useEffect(() => {
-    resetFog(gridRef.current, startPos, endPos);
-  }, [currentPreset, startPos, endPos, resetFog]);
+    if (stateRef.current === 'idle') {
+      resetFog(grid, startPos, endPos);
+    }
+  }, [currentPreset, startPos, endPos, grid, fogMode, resetFog]);
 
   const keyboardActions = useMemo(
     () => ({
@@ -159,23 +177,25 @@ export default function App() {
     }
 
     if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
+    if (replanPendingRef.current) return;
     const currIndex = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
     const remainingPath = pathRef.current.slice(currIndex);
     const effectiveGrid = fogModeRef.current ? knownGridRef.current : gridRef.current;
     const isBlocked = remainingPath.some((pos) => effectiveGrid[pos.row]?.[pos.col] === CellType.WALL);
     if (isBlocked) {
+      replanPendingRef.current = true;
       replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
     }
   }, [grid, knownGridRef, revealedCellsRef]);
 
-  // Replan when the user changes the pathfinding algorithm during movement
   useEffect(() => {
     if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
+    if (replanPendingRef.current) return;
     const currIndex = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
     const effectiveGrid = fogModeRef.current ? knownGridRef.current : gridRef.current;
+    replanPendingRef.current = true;
     replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [algorithm]);
+  }, [algorithm, knownGridRef]);
 
   const getGlowClass = () => {
     const isRunning = state !== 'idle' && state !== 'done';
@@ -211,7 +231,7 @@ export default function App() {
                   diagonal={diagonal}
                   fogMode={fogMode}
                   onToggleDiagonal={() => setDiagonal((prev) => !prev)}
-                  onToggleFogMode={() => setFogMode((prev) => !prev)}
+                  onToggleFogMode={handleToggleFogMode}
                   onGenerateMaze={generateMaze}
                   onSelectAlgorithm={setAlgorithm}
                   onSelectTool={setTool}

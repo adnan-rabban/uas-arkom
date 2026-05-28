@@ -109,7 +109,14 @@ export function SimulationCanvas({
   const getRobotPos = useCallback(() => {
     const p = pathRef.current;
     const s = startRef.current;
-    if (p.length === 0) return { x: s.col * CELL + CELL / 2, y: s.row * CELL + CELL / 2, a: 0 };
+    if (p.length === 0) {
+      const history = traversedHistoryRef.current;
+      if (history.length > 0) {
+        const last = history[history.length - 1];
+        return { x: last.col * CELL + CELL / 2, y: last.row * CELL + CELL / 2, a: 0 };
+      }
+      return { x: s.col * CELL + CELL / 2, y: s.row * CELL + CELL / 2, a: 0 };
+    }
     const t = Math.min(robotTRef.current, p.length - 1);
     const fi = Math.min(Math.floor(t), p.length - 1);
     const frac = t - fi;
