@@ -40,10 +40,10 @@ export function useSimulation() {
   const [gScores, setGScores] = useState<Record<string, number>>({});
   const [hScores, setHScores] = useState<Record<string, number>>({});
 
-  // Web Serial & SLAM Innovation States
+  // Web Serial & Fog of War Innovation States
   const [serialConnected, setSerialConnected] = useState(false);
   const [isVirtualSerial, setIsVirtualSerial] = useState(false);
-  const [slamMode, setSlamMode] = useState(false);
+  const [fogMode, setFogMode] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
   const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
@@ -325,9 +325,9 @@ export function useSimulation() {
     state, algorithm, visitOrder, path, pathCost,
     vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
     diagonal, gScores, hScores,
-    serialConnected, isVirtualSerial, slamMode, toast,
+    serialConnected, isVirtualSerial, fogMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
-    setSlamMode, connectSerial, disconnectSerial, sendSerialChar,
+    setFogMode, connectSerial, disconnectSerial, sendSerialChar,
     replan, selectComparisonAlgorithm, setSimultaneous,
     reset, run, stepOnce, compareAll, showToast, setToast,
   };

@@ -4,11 +4,11 @@ import { CellType } from '@/types';
 import { ROWS, COLS } from '@/lib/constants';
 import { createGrid } from '@/lib/grid';
 
-export function useSlam() {
+export function useFogOfWar() {
   const knownGridRef = useRef<Grid>(createGrid());
   const revealedCellsRef = useRef<Set<number>>(new Set());
 
-  const resetSlam = useCallback((realGrid: Grid, startPos: Position, endPos: Position) => {
+  const resetFog = useCallback((realGrid: Grid, startPos: Position, endPos: Position) => {
     const kg = createGrid();
     const rc = new Set<number>();
 
@@ -45,7 +45,7 @@ export function useSlam() {
   return {
     knownGridRef,
     revealedCellsRef,
-    resetSlam,
+    resetFog,
     revealCell,
   };
 }
