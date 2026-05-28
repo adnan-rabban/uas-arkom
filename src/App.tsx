@@ -32,13 +32,13 @@ export default function App() {
   } = useGrid();
 
   const {
-    state, algorithm, visitOrder, path,
-    vstep, pstep, robotT, speed, computeTime, comparison,
+    state, algorithm, visitOrder, path, pathCost,
+    vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
     diagonal, gScores, hScores,
     serialConnected, isVirtualSerial, slamMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setSlamMode, connectSerial, disconnectSerial,
-    replan,
+    replan, selectComparisonAlgorithm, setSimultaneous,
     reset, run, stepOnce, compareAll, setToast,
   } = useSimulation();
 
@@ -65,20 +65,16 @@ export default function App() {
   const handleRun = useCallback(() => {
     reset();
     if (slamMode) {
-      resetSlam(grid, startPos, endPos);
       setTimeout(() => run(knownGridRef.current, startPos, endPos), 10);
     } else {
       setTimeout(() => run(grid, startPos, endPos), 10);
     }
-  }, [reset, run, grid, startPos, endPos, slamMode, resetSlam, knownGridRef]);
+  }, [reset, run, grid, startPos, endPos, slamMode, knownGridRef]);
 
   const handleStep = useCallback(() => {
-    if (state === 'idle' && slamMode) {
-      resetSlam(grid, startPos, endPos);
-    }
     const effectiveGrid = slamMode ? knownGridRef.current : grid;
     stepOnce(effectiveGrid, startPos, endPos);
-  }, [state, stepOnce, grid, startPos, endPos, slamMode, resetSlam, knownGridRef]);
+  }, [stepOnce, grid, startPos, endPos, slamMode, knownGridRef]);
 
   const handleReset = useCallback(() => reset(), [reset]);
 
@@ -128,12 +124,10 @@ export default function App() {
     }
   }, [knownGridRef]);
 
-  // Reset SLAM when state is 'idle' or when grid, startPos, endPos changes
+  // Reset SLAM memory when preset, startPos, or endPos changes
   useEffect(() => {
-    if (state === 'idle') {
-      resetSlam(grid, startPos, endPos);
-    }
-  }, [state, grid, startPos, endPos, slamMode, resetSlam]);
+    resetSlam(gridRef.current, startPos, endPos);
+  }, [currentPreset, startPos, endPos, resetSlam]);
 
   const keyboardActions = useMemo(
     () => ({
@@ -173,6 +167,15 @@ export default function App() {
       replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
     }
   }, [grid, knownGridRef, revealedCellsRef]);
+
+  // Replan when the user changes the pathfinding algorithm during movement
+  useEffect(() => {
+    if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
+    const currIndex = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
+    const effectiveGrid = slamModeRef.current ? knownGridRef.current : gridRef.current;
+    replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [algorithm]);
 
   const getGlowClass = () => {
     const isRunning = state !== 'idle' && state !== 'done';
@@ -254,6 +257,8 @@ export default function App() {
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}
                 onMouseUp={handleCanvasMouseUp}
+                comparison={comparison}
+                simultaneous={simultaneous}
               />
             </div>
 
@@ -277,6 +282,7 @@ export default function App() {
                   speed={speed}
                   explored={vstep}
                   pathLength={path.length}
+                  pathCost={pathCost}
                   computeTime={computeTime}
                   simulationState={state}
                   pathFound={path.length > 0}
@@ -296,7 +302,14 @@ export default function App() {
             </div>
           </div>
 
-          <ComparisonPanel results={comparison} lang={lang} />
+          <ComparisonPanel
+            results={comparison}
+            lang={lang}
+            visualizedAlgo={algorithm}
+            onSelectVisualization={selectComparisonAlgorithm}
+            simultaneous={simultaneous}
+            onToggleSimultaneous={setSimultaneous}
+          />
           <LegendBar lang={lang} />
         </div>
       </div>

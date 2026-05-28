@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import type { Grid, Position, SimulationState, Language } from '@/types';
+import type { Grid, Position, SimulationState, Language, ComparisonResult } from '@/types';
 import { CellType } from '@/types';
 import { ROWS, COLS, CELL, CANVAS_W, CANVAS_H, COLORS, translations } from '@/lib/constants';
 
@@ -31,6 +31,8 @@ interface SimulationCanvasProps {
   onMouseDown: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   onMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   onMouseUp: () => void;
+  comparison: ComparisonResult[] | null;
+  simultaneous: boolean;
 }
 
 export function SimulationCanvas({
@@ -40,6 +42,7 @@ export function SimulationCanvas({
   slamRevealedCells, onRevealCell, onWallDiscovered,
   onSetVstep, onSetPstep, onSetRobotT, onSetState,
   onMouseDown, onMouseMove, onMouseUp,
+  comparison, simultaneous,
 }: SimulationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lidarAngle = useRef(0);
@@ -67,6 +70,8 @@ export function SimulationCanvas({
   const slamModeRef = useRef(slamMode);
   const onRevealCellRef = useRef(onRevealCell);
   const onWallDiscoveredRef = useRef(onWallDiscovered);
+  const comparisonRef = useRef(comparison);
+  const simultaneousRef = useRef(simultaneous);
 
   useEffect(() => {
     stateRef.current = simulationState;
@@ -82,8 +87,10 @@ export function SimulationCanvas({
     slamModeRef.current = slamMode;
     onRevealCellRef.current = onRevealCell;
     onWallDiscoveredRef.current = onWallDiscovered;
+    comparisonRef.current = comparison;
+    simultaneousRef.current = simultaneous;
     staticLayerDirtyRef.current = true;
-  }, [simulationState, vstep, pstep, robotT, speed, visitOrder, path, grid, startPos, endPos, slamMode, onRevealCell, onWallDiscovered]);
+  }, [simulationState, vstep, pstep, robotT, speed, visitOrder, path, grid, startPos, endPos, slamMode, onRevealCell, onWallDiscovered, comparison, simultaneous]);
 
   useEffect(() => {
     if (simulationState === 'idle') {
@@ -320,27 +327,109 @@ export function SimulationCanvas({
     drawBrackets(e.row, e.col, COLORS.endText);
 
     const vc = Math.floor(vs);
-    for (let i = 0; i < Math.min(vc, vord.length); i++) {
-      const { row: r, col: c } = vord[i];
-      if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
-      if (isSlam && !rc.has(r * COLS + c)) continue;
-      const fresh = Math.max(0, 1 - (vc - i) / 50);
-      ctx.fillStyle = COLORS.visited;
-      ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
-      if (fresh > 0.6) {
-        ctx.fillStyle = `rgba(0,102,177,${(fresh - 0.6) * 0.35})`;
-        ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
-      }
-    }
+    const isSimul = simultaneousRef.current && comparisonRef.current && comparisonRef.current.length > 0;
 
-    for (let i = Math.max(0, vc - 15); i < Math.min(vc, vord.length); i++) {
-      const { row: r, col: c } = vord[i];
-      if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
-      if (isSlam && !rc.has(r * COLS + c)) continue;
-      const age = vc - i;
-      if (age < 12) {
-        ctx.fillStyle = `rgba(226,39,24,${(12 - age) / 12 * 0.4})`;
+    if (isSimul) {
+      // 1. Draw BFS Explored (Red - Widest front)
+      const bfsData = comparisonRef.current!.find(r => r.algorithm === 'bfs');
+      if (bfsData) {
+        const bfsV = bfsData.result.visitOrder;
+        const limit = Math.min(vc, bfsV.length);
+        for (let i = 0; i < limit; i++) {
+          const { row: r, col: c } = bfsV[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          ctx.fillStyle = 'rgba(226, 39, 24, 0.08)';
+          ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        }
+        for (let i = Math.max(0, limit - 15); i < limit; i++) {
+          const { row: r, col: c } = bfsV[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          const age = limit - i;
+          if (age < 12) {
+            ctx.fillStyle = `rgba(226, 39, 24, ${(12 - age) / 12 * 0.3})`;
+            ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+          }
+        }
+      }
+
+      // 2. Draw Dijkstra Explored (Indigo - Medium front)
+      const dijkstraData = comparisonRef.current!.find(r => r.algorithm === 'dijkstra');
+      if (dijkstraData) {
+        const dijkstraV = dijkstraData.result.visitOrder;
+        const limit = Math.min(vc, dijkstraV.length);
+        for (let i = 0; i < limit; i++) {
+          const { row: r, col: c } = dijkstraV[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          ctx.fillStyle = 'rgba(6, 83, 182, 0.12)';
+          ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        }
+        for (let i = Math.max(0, limit - 15); i < limit; i++) {
+          const { row: r, col: c } = dijkstraV[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          const age = limit - i;
+          if (age < 12) {
+            ctx.fillStyle = `rgba(6, 83, 182, ${(12 - age) / 12 * 0.3})`;
+            ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+          }
+        }
+      }
+
+      // 3. Draw A* Explored (Cyan - Targeted front)
+      const astarData = comparisonRef.current!.find(r => r.algorithm === 'astar');
+      if (astarData) {
+        const astarV = astarData.result.visitOrder;
+        const limit = Math.min(vc, astarV.length);
+        for (let i = 0; i < limit; i++) {
+          const { row: r, col: c } = astarV[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          const fresh = Math.max(0, 1 - (limit - i) / 50);
+          ctx.fillStyle = 'rgba(28, 105, 212, 0.16)';
+          ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+          if (fresh > 0.6) {
+            ctx.fillStyle = `rgba(56, 189, 248, ${(fresh - 0.6) * 0.3})`;
+            ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+          }
+        }
+        for (let i = Math.max(0, limit - 15); i < limit; i++) {
+          const { row: r, col: c } = astarV[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          const age = limit - i;
+          if (age < 12) {
+            ctx.fillStyle = `rgba(56, 189, 248, ${(12 - age) / 12 * 0.35})`;
+            ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+          }
+        }
+      }
+    } else {
+      // Single visualization mode (BFS / Dijkstra / A* as selected)
+      for (let i = 0; i < Math.min(vc, vord.length); i++) {
+        const { row: r, col: c } = vord[i];
+        if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+        if (isSlam && !rc.has(r * COLS + c)) continue;
+        const fresh = Math.max(0, 1 - (vc - i) / 50);
+        ctx.fillStyle = COLORS.visited;
         ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        if (fresh > 0.6) {
+          ctx.fillStyle = `rgba(0,102,177,${(fresh - 0.6) * 0.35})`;
+          ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        }
+      }
+
+      for (let i = Math.max(0, vc - 15); i < Math.min(vc, vord.length); i++) {
+        const { row: r, col: c } = vord[i];
+        if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+        if (isSlam && !rc.has(r * COLS + c)) continue;
+        const age = vc - i;
+        if (age < 12) {
+          ctx.fillStyle = `rgba(226,39,24,${(12 - age) / 12 * 0.4})`;
+          ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        }
       }
     }
 
@@ -381,39 +470,129 @@ export function SimulationCanvas({
     }
 
     const pc = Math.floor(ps);
-    if (pc > 0 && p.length > 0) {
-      for (let i = 0; i < Math.min(pc, p.length); i++) {
-        const { row: r, col: c } = p[i];
-        if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
-        if (isSlam && !rc.has(r * COLS + c)) continue;
-        ctx.fillStyle = COLORS.pathCell;
-        ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
-      }
-
-      ctx.strokeStyle = COLORS.pathLine;
-      ctx.lineWidth = 2.2;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      let firstP = true;
-      for (let i = 0; i < Math.min(pc, p.length); i++) {
-        const { row: r, col: c } = p[i];
-        if (isSlam && !rc.has(r * COLS + c)) continue;
-        if (firstP) {
-          ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
-          firstP = false;
-        } else {
-          ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+    if (pc > 0) {
+      if (isSimul) {
+        // Draw BFS Path (Red dotted)
+        const bfsData = comparisonRef.current!.find(r => r.algorithm === 'bfs');
+        if (bfsData && bfsData.result.path.length > 0) {
+          const bfsP = bfsData.result.path;
+          const limitP = Math.min(pc, bfsP.length);
+          ctx.strokeStyle = '#e22718';
+          ctx.lineWidth = 1.8;
+          ctx.setLineDash([2, 4]);
+          ctx.beginPath();
+          let first = true;
+          for (let i = 0; i < limitP; i++) {
+            const { row: r, col: c } = bfsP[i];
+            if (isSlam && !rc.has(r * COLS + c)) continue;
+            if (first) {
+              ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+              first = false;
+            } else {
+              ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+            }
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
-      }
-      ctx.stroke();
 
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([6, 5]);
-      ctx.lineDashOffset = -pulseT.current * 0.45;
-      ctx.stroke();
-      ctx.setLineDash([]);
+        // Draw Dijkstra Path (Indigo dashed)
+        const dijkstraData = comparisonRef.current!.find(r => r.algorithm === 'dijkstra');
+        if (dijkstraData && dijkstraData.result.path.length > 0) {
+          const dijkstraP = dijkstraData.result.path;
+          const limitP = Math.min(pc, dijkstraP.length);
+          ctx.strokeStyle = '#0653b6';
+          ctx.lineWidth = 2.0;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          let first = true;
+          for (let i = 0; i < limitP; i++) {
+            const { row: r, col: c } = dijkstraP[i];
+            if (isSlam && !rc.has(r * COLS + c)) continue;
+            if (first) {
+              ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+              first = false;
+            } else {
+              ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+            }
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Draw A* Path (Solid Cyan with pulse)
+        const astarData = comparisonRef.current!.find(r => r.algorithm === 'astar');
+        if (astarData && astarData.result.path.length > 0) {
+          const astarP = astarData.result.path;
+          const limitP = Math.min(pc, astarP.length);
+          for (let i = 0; i < limitP; i++) {
+            const { row: r, col: c } = astarP[i];
+            if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+            if (isSlam && !rc.has(r * COLS + c)) continue;
+            ctx.fillStyle = 'rgba(28, 105, 212, 0.15)';
+            ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+          }
+
+          ctx.strokeStyle = '#1c69d4';
+          ctx.lineWidth = 2.5;
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          let first = true;
+          for (let i = 0; i < limitP; i++) {
+            const { row: r, col: c } = astarP[i];
+            if (isSlam && !rc.has(r * COLS + c)) continue;
+            if (first) {
+              ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+              first = false;
+            } else {
+              ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+            }
+          }
+          ctx.stroke();
+
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([6, 5]);
+          ctx.lineDashOffset = -pulseT.current * 0.45;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      } else if (p.length > 0) {
+        // Single algorithm path
+        for (let i = 0; i < Math.min(pc, p.length); i++) {
+          const { row: r, col: c } = p[i];
+          if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          ctx.fillStyle = COLORS.pathCell;
+          ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        }
+
+        ctx.strokeStyle = COLORS.pathLine;
+        ctx.lineWidth = 2.2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        let firstP = true;
+        for (let i = 0; i < Math.min(pc, p.length); i++) {
+          const { row: r, col: c } = p[i];
+          if (isSlam && !rc.has(r * COLS + c)) continue;
+          if (firstP) {
+            ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+            firstP = false;
+          } else {
+            ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
+          }
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([6, 5]);
+        ctx.lineDashOffset = -pulseT.current * 0.45;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
 
     const showRobot = st === 'moving' || st === 'done' || (st === 'pathing' && pc > 0) || st === 'idle';
@@ -520,24 +699,35 @@ export function SimulationCanvas({
 
       const spd = speedRef.current;
 
+      const isSimul = simultaneousRef.current && comparisonRef.current && comparisonRef.current.length > 0;
+
       if (stateRef.current === 'exploring') {
         onSetVstep((prev) => {
-          const next = Math.min(prev + spd * 0.55, visitOrderRef.current.length);
+          const maxVisitOrderLen = isSimul
+            ? Math.max(...comparisonRef.current!.map(r => r.result.visitOrder.length))
+            : visitOrderRef.current.length;
+
+          const next = Math.min(prev + spd * 0.55, maxVisitOrderLen);
           const prevInt = Math.floor(prev);
           const nextInt = Math.floor(next);
           if (nextInt > prevInt) {
+            // Ripples for currently active algorithm
+            const activeVord = visitOrderRef.current;
             for (let i = prevInt; i < nextInt; i++) {
-              if (visitOrderRef.current[i]) {
+              if (activeVord[i]) {
                 ripplesRef.current.push({
-                  row: visitOrderRef.current[i].row,
-                  col: visitOrderRef.current[i].col,
+                  row: activeVord[i].row,
+                  col: activeVord[i].col,
                   age: 0,
                 });
               }
             }
           }
-          if (next >= visitOrderRef.current.length) {
-            onSetState(pathRef.current.length > 0 ? 'pathing' : 'done');
+          if (next >= maxVisitOrderLen) {
+            const hasAnyPath = isSimul
+              ? comparisonRef.current!.some(r => r.result.path.length > 0)
+              : pathRef.current.length > 0;
+            onSetState(hasAnyPath ? 'pathing' : 'done');
           }
           return next;
         });
@@ -545,8 +735,12 @@ export function SimulationCanvas({
 
       if (stateRef.current === 'pathing') {
         onSetPstep((prev) => {
-          const next = Math.min(prev + spd * 0.22, pathRef.current.length);
-          if (next >= pathRef.current.length) {
+          const maxPathLen = isSimul
+            ? Math.max(...comparisonRef.current!.map(r => r.result.path.length))
+            : pathRef.current.length;
+
+          const next = Math.min(prev + spd * 0.22, maxPathLen);
+          if (next >= maxPathLen) {
             onSetState('moving');
             onSetRobotT(() => 0);
           }

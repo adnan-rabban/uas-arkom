@@ -3,15 +3,26 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Trophy } from 'lucide-react';
 import { useState } from 'react';
-import type { ComparisonResult, Language } from '@/types';
+import type { ComparisonResult, Language, AlgorithmKey } from '@/types';
 import { translations } from '@/lib/constants';
 
 interface ComparisonPanelProps {
   results: ComparisonResult[] | null;
   lang: Language;
+  visualizedAlgo: AlgorithmKey;
+  onSelectVisualization: (algo: AlgorithmKey) => void;
+  simultaneous: boolean;
+  onToggleSimultaneous: (v: boolean) => void;
 }
 
-export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
+export function ComparisonPanel({
+  results,
+  lang,
+  visualizedAlgo,
+  onSelectVisualization,
+  simultaneous,
+  onToggleSimultaneous,
+}: ComparisonPanelProps) {
   const [open, setOpen] = useState(true);
   const t = translations[lang];
 
@@ -45,6 +56,17 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
 
       <CollapsibleContent>
         <div className="px-5 py-4 bg-black border-t border-[#3c3c3c] select-none">
+          <div className="flex items-center justify-end mb-3">
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/50 hover:text-white/80 transition-colors select-none text-[9px] uppercase font-mono tracking-wider">
+              <input
+                type="checkbox"
+                checked={simultaneous}
+                onChange={(e) => onToggleSimultaneous(e.target.checked)}
+                className="w-3.5 h-3.5 rounded-none border-[#3c3c3c] bg-black text-[#1c69d4] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              />
+              <span>{lang === 'id' ? 'Animasikan Bersamaan' : 'Animate Simultaneously'}</span>
+            </label>
+          </div>
           <div className="grid grid-cols-4 gap-2">
             {(() => {
               const maxExplored = Math.max(...results.map((r) => r.result.visitOrder.length));
@@ -52,8 +74,17 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
 
               return results.map((r) => {
                 const isBest = r.result.visitOrder.length === minExplored;
+                const isVisualizing = visualizedAlgo === r.algorithm;
                 return (
-                  <Card key={r.algorithm} className={`bg-[#0d0d0d] border-[#3c3c3c] rounded-none ${isBest ? `${algoColors[r.algorithm]} border-t-2` : ''}`}>
+                  <Card
+                    key={r.algorithm}
+                    onClick={() => onSelectVisualization(r.algorithm as AlgorithmKey)}
+                    className={`bg-[#0d0d0d] rounded-none cursor-pointer transition-all duration-300 hover:scale-[1.01] select-none ${
+                      isVisualizing
+                        ? `border-2 ${algoColors[r.algorithm]} shadow-[0_0_12px_rgba(28,105,212,0.2)]`
+                        : 'border-[#3c3c3c] hover:border-white/20'
+                    }`}
+                  >
                     <CardContent className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1 mb-2">
                         <span className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
@@ -63,6 +94,11 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
                           <Badge variant="secondary" className="bg-[#e22718] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider">
                             <Trophy className="w-2.5 h-2.5 mr-0.5" />
                             {t.bestLabel}
+                          </Badge>
+                        )}
+                        {isVisualizing && (
+                          <Badge variant="secondary" className="bg-[#1c69d4] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider animate-pulse">
+                            {lang === 'id' ? 'AKTIF' : 'ACTIVE'}
                           </Badge>
                         )}
                       </div>
@@ -81,11 +117,21 @@ export function ComparisonPanel({ results, lang }: ComparisonPanelProps) {
                         />
                       </div>
 
-                      {/* Path Length count & bar */}
-                      <div className={`text-sm font-mono mt-3 ${r.result.path.length > 0 ? 'text-emerald-400' : 'text-red-400/50'}`}>
-                        {r.result.path.length || 'N/A'}
+                      {/* Path Steps & Cost */}
+                      <div className="grid grid-cols-2 gap-1 mt-3 border-t border-white/5 pt-2">
+                        <div>
+                          <div className={`text-sm font-mono font-bold ${r.result.path.length > 0 ? 'text-emerald-400' : 'text-red-400/50'}`}>
+                            {r.result.path.length || 'N/A'}
+                          </div>
+                          <div className="text-[7px] tracking-wider uppercase text-white/30">{t.pathLength}</div>
+                        </div>
+                        <div>
+                          <div className={`text-sm font-mono font-bold ${r.result.path.length > 0 ? 'text-[#38bdf8]' : 'text-red-400/50'}`}>
+                            {r.result.pathCost !== undefined ? r.result.pathCost : 'N/A'}
+                          </div>
+                          <div className="text-[7px] tracking-wider uppercase text-white/30">{t.pathCost}</div>
+                        </div>
                       </div>
-                      <div className="text-[8px] tracking-wider uppercase text-white/15">{t.pathLength}</div>
                       {r.result.path.length > 0 && (
                         <div className="w-full bg-white/5 h-1 mt-1 rounded-none overflow-hidden">
                           <div 

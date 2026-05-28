@@ -26,12 +26,14 @@ export function useSimulation() {
   const [algorithm, setAlgorithm] = useState<AlgorithmKey>('astar');
   const [visitOrder, setVisitOrder] = useState<Position[]>([]);
   const [path, setPath] = useState<Position[]>([]);
+  const [pathCost, setPathCost] = useState(0);
   const [vstep, setVstep] = useState(0);
   const [pstep, setPstep] = useState(0);
   const [robotT, setRobotT] = useState(0);
   const [speed, setSpeed] = useState(8);
   const [computeTime, setComputeTime] = useState(0);
   const [comparison, setComparison] = useState<ComparisonResult[] | null>(null);
+  const [simultaneous, setSimultaneous] = useState(true);
   
   // Settings & Debug Scores
   const [diagonal, setDiagonal] = useState(false);
@@ -65,6 +67,7 @@ export function useSimulation() {
     setRobotT(0);
     setVisitOrder([]);
     setPath([]);
+    setPathCost(0);
     setComputeTime(0);
     setComparison(null);
     setGScores({});
@@ -76,6 +79,7 @@ export function useSimulation() {
       const result = runAlgorithm(algorithm, grid, start, end, diagonal);
       setVisitOrder(result.visitOrder);
       setPath(result.path);
+      setPathCost(result.pathCost || 0);
       setComputeTime(result.time);
       setGScores(result.gScores || {});
       setHScores(result.hScores || {});
@@ -93,6 +97,7 @@ export function useSimulation() {
         const result = runAlgorithm(algorithm, grid, start, end, diagonal);
         setVisitOrder(result.visitOrder);
         setPath(result.path);
+        setPathCost(result.pathCost || 0);
         setComputeTime(result.time);
         setGScores(result.gScores || {});
         setHScores(result.hScores || {});
@@ -147,6 +152,7 @@ export function useSimulation() {
       const best = results.find((r) => r.algorithm === 'astar')!;
       setVisitOrder(best.result.visitOrder);
       setPath(best.result.path);
+      setPathCost(best.result.pathCost || 0);
       setComputeTime(best.result.time);
       setGScores(best.result.gScores || {});
       setHScores(best.result.hScores || {});
@@ -157,6 +163,24 @@ export function useSimulation() {
     },
     [diagonal]
   );
+
+  const selectComparisonAlgorithm = useCallback((algo: AlgorithmKey) => {
+    if (!comparison) return;
+    const target = comparison.find((r) => r.algorithm === algo);
+    if (!target) return;
+    
+    setAlgorithm(algo);
+    setVisitOrder(target.result.visitOrder);
+    setPath(target.result.path);
+    setPathCost(target.result.pathCost || 0);
+    setComputeTime(target.result.time);
+    setGScores(target.result.gScores || {});
+    setHScores(target.result.hScores || {});
+    setVstep(0);
+    setPstep(0);
+    setRobotT(0);
+    setState('exploring');
+  }, [comparison]);
 
   // Web Serial Helper Functions
   const connectSerial = useCallback(async (isVirtual = false) => {
@@ -283,6 +307,7 @@ export function useSimulation() {
     lastSentIndexRef.current = -1;
     setVisitOrder(result.visitOrder);
     setPath(result.path);
+    setPathCost(result.pathCost || 0);
     setComputeTime(result.time);
     setGScores(result.gScores || {});
     setHScores(result.hScores || {});
@@ -297,13 +322,13 @@ export function useSimulation() {
   }, [algorithm, diagonal]);
 
   return {
-    state, algorithm, visitOrder, path,
-    vstep, pstep, robotT, speed, computeTime, comparison,
+    state, algorithm, visitOrder, path, pathCost,
+    vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
     diagonal, gScores, hScores,
     serialConnected, isVirtualSerial, slamMode, toast,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setSlamMode, connectSerial, disconnectSerial, sendSerialChar,
-    replan,
+    replan, selectComparisonAlgorithm, setSimultaneous,
     reset, run, stepOnce, compareAll, showToast, setToast,
   };
 }
