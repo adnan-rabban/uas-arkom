@@ -133,8 +133,8 @@ export interface Translations {
   serialBaudRate: string;
   arduinoCodeTitle: string;
   arduinoCodeDesc: string;
-  slamModeTitle: string;
-  slamModeDesc: string;
+  fogModeTitle: string;
+  fogModeDesc: string;
   uploadImage: string;
   uploadImageDesc: string;
   memoryMapTitle: string;
