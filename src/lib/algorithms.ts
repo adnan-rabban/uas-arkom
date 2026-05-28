@@ -281,6 +281,20 @@ type AlgorithmFn = (
 
 const ALGORITHM_MAP: Record<string, AlgorithmFn> = { bfs, dijkstra, astar };
 
+export function getPathCost(path: Position[], grid: Grid): number {
+  if (path.length <= 1) return 0;
+  let cost = 0;
+  for (let i = 1; i < path.length; i++) {
+    const from = path[i - 1];
+    const to = path[i];
+    const isDiagonal = from.row !== to.row && from.col !== to.col;
+    const stepCost = isDiagonal ? Math.SQRT2 : 1.0;
+    const weight = grid[to.row][to.col] === CellType.MUD ? 5 : 1;
+    cost += stepCost * weight;
+  }
+  return +cost.toFixed(1);
+}
+
 export function runAlgorithm(
   algorithmKey: string,
   grid: Grid,
@@ -291,5 +305,7 @@ export function runAlgorithm(
   const fn = ALGORITHM_MAP[algorithmKey] || astar;
   const t0 = performance.now();
   const result = fn(grid, start, end, diagonal);
-  return { ...result, time: +(performance.now() - t0).toFixed(2) };
+  const time = +(performance.now() - t0).toFixed(2);
+  const pathCost = getPathCost(result.path, grid);
+  return { ...result, time, pathCost };
 }

@@ -4,6 +4,7 @@ import { translations } from '@/lib/constants';
 interface TelemetryPanelProps {
   explored: number;
   pathLength: number;
+  pathCost: number;
   computeTime: number;
   simulationState: SimulationState;
   pathFound: boolean;
@@ -16,6 +17,7 @@ interface TelemetryPanelProps {
 export function TelemetryPanel({
   explored,
   pathLength,
+  pathCost,
   computeTime,
   simulationState,
   pathFound,
@@ -45,6 +47,7 @@ export function TelemetryPanel({
     { label: t.status, value: status.text, color: status.color },
     { label: t.explored, value: explored > 0 ? Math.floor(explored) : '—', color: 'text-white' },
     { label: t.pathLength, value: pathLength > 0 ? pathLength : '—', color: 'text-white' },
+    { label: t.pathCost, value: pathCost > 0 ? pathCost : '—', color: 'text-[#38bdf8]' },
     { label: t.computeTime, value: computeTime > 0 ? `${computeTime}ms` : '—', color: 'text-white' },
     { label: lang === 'id' ? 'KOLOM ROBOT' : 'ROBOT COL', value: currentCol, color: 'text-[#1c69d4] font-bold' },
     { label: lang === 'id' ? 'BARIS ROBOT' : 'ROBOT ROW', value: currentRow, color: 'text-[#1c69d4] font-bold' },

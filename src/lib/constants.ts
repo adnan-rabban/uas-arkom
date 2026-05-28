@@ -77,6 +77,7 @@ export const translations: Record<Language, Translations> = {
     telemetry: 'Telemetri',
     explored: 'Dijelajahi',
     pathLength: 'Panjang Jalur',
+    pathCost: 'Total Bobot',
     computeTime: 'Waktu Komputasi',
     status: 'Status',
 
@@ -164,6 +165,7 @@ export const translations: Record<Language, Translations> = {
     telemetry: 'Telemetry',
     explored: 'Explored',
     pathLength: 'Path Length',
+    pathCost: 'Total Cost',
     computeTime: 'Compute Time',
     status: 'Status',
 

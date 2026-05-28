@@ -14,6 +14,7 @@ interface RightPanelProps {
   speed: number;
   explored: number;
   pathLength: number;
+  pathCost: number;
   computeTime: number;
   simulationState: SimulationState;
   pathFound: boolean;
@@ -313,6 +314,7 @@ void loop() {
         <TelemetryPanel
           explored={props.explored}
           pathLength={props.pathLength}
+          pathCost={props.pathCost}
           computeTime={props.computeTime}
           simulationState={props.simulationState}
           pathFound={props.pathFound}

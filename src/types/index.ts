@@ -32,6 +32,7 @@ export interface AlgorithmResult {
   time: number;
   gScores?: Record<string, number>;
   hScores?: Record<string, number>;
+  pathCost?: number;
 }
 
 export interface ComparisonResult {
@@ -71,6 +72,7 @@ export interface Translations {
   telemetry: string;
   explored: string;
   pathLength: string;
+  pathCost: string;
   computeTime: string;
   status: string;
 
