@@ -7,12 +7,9 @@ import { MAP_PRESETS } from '@/lib/presets';
 import { generateDFSMaze } from '@/lib/maze';
 
 export function useGrid() {
-  const [grid, setGrid] = useState<Grid>(() => {
-    const g = createGrid();
-    return applyWalls(g, MAP_PRESETS.default.walls);
-  });
-  const [startPos, setStartPos] = useState<Position>(DEFAULT_START);
-  const [endPos, setEndPos] = useState<Position>(DEFAULT_END);
+  const [grid, setGrid] = useState<Grid>(() => applyWalls(createGrid(), MAP_PRESETS.default.walls));
+  const [startPos, setStartPos] = useState<Position>(MAP_PRESETS.default.start);
+  const [endPos, setEndPos] = useState<Position>(MAP_PRESETS.default.end);
   const [tool, setTool] = useState<Tool>('wall');
   const [currentPreset, setCurrentPreset] = useState('default');
   const isDragging = useRef(false);
@@ -23,31 +20,52 @@ export function useGrid() {
       if (!inBounds(row, col)) return;
 
       setGrid((prev) => {
-        const next = prev.map((r) => [...r]);
-        switch (tool) {
-          case 'wall':
-            if ((row === startPos.row && col === startPos.col) || (row === endPos.row && col === endPos.col)) return prev;
-            next[row][col] = CellType.WALL;
-            break;
-          case 'mud':
-            if ((row === startPos.row && col === startPos.col) || (row === endPos.row && col === endPos.col)) return prev;
-            next[row][col] = CellType.MUD;
-            break;
-          case 'erase':
-            next[row][col] = CellType.EMPTY;
-            break;
-          case 'start':
-            if (row === endPos.row && col === endPos.col) return prev;
-            next[row][col] = CellType.EMPTY;
-            setStartPos({ row, col });
-            break;
-          case 'end':
-            if (row === startPos.row && col === startPos.col) return prev;
-            next[row][col] = CellType.EMPTY;
-            setEndPos({ row, col });
-            break;
+        const isStart = row === startPos.row && col === startPos.col;
+        const isEnd = row === endPos.row && col === endPos.col;
+
+        if (tool === 'wall' || tool === 'mud') {
+          if (isStart || isEnd) return prev;
+          const targetVal = tool === 'wall' ? CellType.WALL : CellType.MUD;
+          if (prev[row][col] === targetVal) return prev;
+          const newRow = prev[row].slice();
+          newRow[col] = targetVal;
+          const next = prev.slice() as Grid;
+          next[row] = newRow;
+          return next;
         }
-        return next;
+
+        if (tool === 'erase') {
+          if (prev[row][col] === CellType.EMPTY) return prev;
+          const newRow = prev[row].slice();
+          newRow[col] = CellType.EMPTY;
+          const next = prev.slice() as Grid;
+          next[row] = newRow;
+          return next;
+        }
+
+        if (tool === 'start') {
+          if (isEnd) return prev;
+          setStartPos({ row, col });
+          if (prev[row][col] === CellType.EMPTY) return prev;
+          const newRow = prev[row].slice();
+          newRow[col] = CellType.EMPTY;
+          const next = prev.slice() as Grid;
+          next[row] = newRow;
+          return next;
+        }
+
+        if (tool === 'end') {
+          if (isStart) return prev;
+          setEndPos({ row, col });
+          if (prev[row][col] === CellType.EMPTY) return prev;
+          const newRow = prev[row].slice();
+          newRow[col] = CellType.EMPTY;
+          const next = prev.slice() as Grid;
+          next[row] = newRow;
+          return next;
+        }
+
+        return prev;
       });
     },
     [tool, startPos, endPos]
@@ -97,8 +115,7 @@ export function useGrid() {
   const loadPreset = useCallback((presetId: string) => {
     const preset = MAP_PRESETS[presetId];
     if (!preset) return;
-    const g = createGrid();
-    setGrid(applyWalls(g, preset.walls));
+    setGrid(applyWalls(createGrid(), preset.walls));
     setStartPos(preset.start);
     setEndPos(preset.end);
     setCurrentPreset(presetId);
@@ -106,8 +123,7 @@ export function useGrid() {
 
   const generateMaze = useCallback(() => {
     const walls = generateDFSMaze(startPos, endPos);
-    const g = createGrid();
-    setGrid(applyWalls(g, walls));
+    setGrid(applyWalls(createGrid(), walls));
     setCurrentPreset('maze');
   }, [startPos, endPos]);
 
