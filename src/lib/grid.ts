@@ -26,10 +26,3 @@ export function applyWalls(grid: Grid, walls: Position[]): Grid {
   }
   return newGrid;
 }
-
-export function pixelToCell(x: number, y: number, cellSize: number, canvasRect: DOMRect): Position {
-  return {
-    row: Math.floor((y - canvasRect.top) / cellSize),
-    col: Math.floor((x - canvasRect.left) / cellSize),
-  };
-}

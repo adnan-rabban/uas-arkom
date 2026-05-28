@@ -61,8 +61,11 @@ export default function App() {
     endPosRef.current = endPos;
     replanRef.current = replan;
     fogModeRef.current = fogMode;
-    replanPendingRef.current = false;
   }, [grid, state, robotT, path, endPos, replan, fogMode]);
+
+  useEffect(() => {
+    replanPendingRef.current = false;
+  }, [path]);
 
   const handleRun = useCallback(() => {
     reset();
@@ -140,12 +143,11 @@ export default function App() {
     }
   }, [knownGridRef]);
 
-  // Reset Fog of War memory when preset, startPos, endPos, grid, or fogMode changes
   useEffect(() => {
     if (stateRef.current === 'idle') {
-      resetFog(grid, startPos, endPos);
+      resetFog(gridRef.current, startPos, endPos);
     }
-  }, [currentPreset, startPos, endPos, grid, fogMode, resetFog]);
+  }, [currentPreset, startPos, endPos, fogMode, resetFog]);
 
   const keyboardActions = useMemo(
     () => ({

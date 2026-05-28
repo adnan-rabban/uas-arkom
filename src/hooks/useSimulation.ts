@@ -4,7 +4,7 @@ import { runAlgorithm } from '@/lib/algorithms';
 
 interface SerialWriter {
   write(chunk: Uint8Array): Promise<void>;
-  releaseLock(): Promise<void>;
+  releaseLock(): void;
 }
 
 interface SerialPort {
@@ -56,6 +56,8 @@ export function useSimulation() {
 
 
   const stateRef = useRef(state);
+  const visitOrderRef = useRef<Position[]>([]);
+  const pathRef = useRef<Position[]>([]);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -77,6 +79,8 @@ export function useSimulation() {
   const run = useCallback(
     (grid: Grid, start: Position, end: Position) => {
       const result = runAlgorithm(algorithm, grid, start, end, diagonal);
+      visitOrderRef.current = result.visitOrder;
+      pathRef.current = result.path;
       setVisitOrder(result.visitOrder);
       setPath(result.path);
       setPathCost(result.pathCost || 0);
@@ -95,6 +99,8 @@ export function useSimulation() {
     (grid: Grid, start: Position, end: Position) => {
       if (stateRef.current === 'idle') {
         const result = runAlgorithm(algorithm, grid, start, end, diagonal);
+        visitOrderRef.current = result.visitOrder;
+        pathRef.current = result.path;
         setVisitOrder(result.visitOrder);
         setPath(result.path);
         setPathCost(result.pathCost || 0);
@@ -110,15 +116,15 @@ export function useSimulation() {
       if (stateRef.current === 'exploring') {
         setVstep((prev) => {
           const next = prev + 1;
-          if (next >= visitOrder.length) {
-            setState(path.length > 0 ? 'pathing' : 'done');
+          if (next >= visitOrderRef.current.length) {
+            setState(pathRef.current.length > 0 ? 'pathing' : 'done');
           }
           return next;
         });
       } else if (stateRef.current === 'pathing') {
         setPstep((prev) => {
           const next = prev + 1;
-          if (next >= path.length) {
+          if (next >= pathRef.current.length) {
             setState('moving');
             setRobotT(0);
           }
@@ -127,14 +133,14 @@ export function useSimulation() {
       } else if (stateRef.current === 'moving') {
         setRobotT((prev) => {
           const next = prev + 1;
-          if (next >= path.length - 1) {
+          if (next >= pathRef.current.length - 1) {
             setState('done');
           }
           return next;
         });
       }
     },
-    [algorithm, visitOrder.length, path.length, diagonal]
+    [algorithm, diagonal]
   );
 
   const compareAll = useCallback(
@@ -150,6 +156,8 @@ export function useSimulation() {
 
       // Visualize A* result
       const best = results.find((r) => r.algorithm === 'astar')!;
+      visitOrderRef.current = best.result.visitOrder;
+      pathRef.current = best.result.path;
       setVisitOrder(best.result.visitOrder);
       setPath(best.result.path);
       setPathCost(best.result.pathCost || 0);
@@ -170,6 +178,8 @@ export function useSimulation() {
     if (!target) return;
     
     setAlgorithm(algo);
+    visitOrderRef.current = target.result.visitOrder;
+    pathRef.current = target.result.path;
     setVisitOrder(target.result.visitOrder);
     setPath(target.result.path);
     setPathCost(target.result.pathCost || 0);
@@ -199,7 +209,7 @@ export function useSimulation() {
               const text = new TextDecoder().decode(chunk);
               console.log('[VIRTUAL SERIAL] Sent:', text);
             },
-            releaseLock: async () => {}
+            releaseLock: () => {}
           })
         }
       } as SerialPort;
@@ -234,7 +244,7 @@ export function useSimulation() {
   const disconnectSerial = useCallback(async () => {
     try {
       if (serialWriterRef.current) {
-        await serialWriterRef.current.releaseLock();
+        serialWriterRef.current.releaseLock();
         serialWriterRef.current = null;
       }
       if (serialPortRef.current) {
@@ -305,6 +315,8 @@ export function useSimulation() {
   const replan = useCallback((grid: Grid, robotPos: Position, end: Position) => {
     const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
     lastSentIndexRef.current = -1;
+    visitOrderRef.current = result.visitOrder;
+    pathRef.current = result.path;
     setVisitOrder(result.visitOrder);
     setPath(result.path);
     setPathCost(result.pathCost || 0);

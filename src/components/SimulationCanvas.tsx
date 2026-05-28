@@ -711,7 +711,7 @@ export function SimulationCanvas({
       if (stateRef.current === 'exploring') {
         onSetVstep((prev) => {
           const maxVisitOrderLen = isSimul
-            ? Math.max(...comparisonRef.current!.map(r => r.result.visitOrder.length))
+            ? Math.max(0, ...comparisonRef.current!.map(r => r.result.visitOrder.length))
             : visitOrderRef.current.length;
 
           const next = Math.min(prev + spd * 0.55, maxVisitOrderLen);
@@ -743,7 +743,7 @@ export function SimulationCanvas({
       if (stateRef.current === 'pathing') {
         onSetPstep((prev) => {
           const maxPathLen = isSimul
-            ? Math.max(...comparisonRef.current!.map(r => r.result.path.length))
+            ? Math.max(0, ...comparisonRef.current!.map(r => r.result.path.length))
             : pathRef.current.length;
 
           const next = Math.min(prev + spd * 0.22, maxPathLen);
