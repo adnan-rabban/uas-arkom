@@ -3,7 +3,7 @@ import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
 import { SerialModal } from './SerialModal';
 import type { SimulationState, Language, Position } from '@/types';
@@ -210,6 +210,28 @@ void loop() {
     }
   }, [currentDirection, props.simulationState, currentRobotPos?.col, currentRobotPos?.row, props.isVirtualSerial]);
 
+  // Logging Effect: Path replanned during movement
+  const lastPathRef = useRef<Position[]>(props.path);
+  const prevStateRef = useRef<SimulationState>(props.simulationState);
+
+  useEffect(() => {
+    const stateChanged = prevStateRef.current !== props.simulationState;
+    prevStateRef.current = props.simulationState;
+
+    if (props.simulationState !== 'moving' || props.path.length === 0) {
+      lastPathRef.current = props.path;
+      return;
+    }
+
+    // If we were already in 'moving' state and the path changed, it's a replan!
+    if (!stateChanged && lastPathRef.current !== props.path) {
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      setLogs((prev) => [`[${timeStr}] SIM: Route updated. Recalculating path (Length: ${props.path.length}).`, ...prev].slice(0, 15));
+    }
+
+    lastPathRef.current = props.path;
+  }, [props.path, props.simulationState]);
 
   return (
     <div className="h-full flex flex-col justify-between min-h-0 overflow-hidden">
