@@ -14,6 +14,7 @@ import { useKeyboard } from '@/hooks/useKeyboard';
 import { CellType } from '@/types';
 import type { Language, Grid, Position } from '@/types';
 import { Toast } from '@/components/Toast';
+import { ROWS, COLS } from '@/lib/constants';
 import './App.css';
 
 export default function App() {
@@ -132,7 +133,7 @@ export default function App() {
     if (state === 'idle') {
       resetSlam(grid, startPos, endPos);
     }
-  }, [state, grid, startPos, endPos, resetSlam]);
+  }, [state, grid, startPos, endPos, slamMode, resetSlam]);
 
   const keyboardActions = useMemo(
     () => ({
@@ -153,11 +154,9 @@ export default function App() {
 
   useEffect(() => {
     if (slamModeRef.current) {
-      const numRows = grid.length;
-      const numCols = grid[0]?.length || 0;
-      for (let r = 0; r < numRows; r++) {
-        for (let c = 0; c < numCols; c++) {
-          const key = r * numCols + c;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const key = r * COLS + c;
           if (revealedCellsRef.current.has(key)) {
             knownGridRef.current[r][c] = grid[r][c];
           }
