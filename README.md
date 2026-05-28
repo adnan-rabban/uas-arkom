@@ -38,9 +38,12 @@ Tiga algoritma klasik diimplementasikan secara penuh dengan dukungan **gerakan 8
 | ------------ | -------------------------------------- | :-------: | :----------------------: | -------------- |
 | **A\***      | Octile (diagonal) / Manhattan (4-arah) |    ✅     |            ✅            | Min-Heap       |
 | **Dijkstra** | — (eksplorasi penuh berbasis bobot)    |    ✅     |            ✅            | Min-Heap       |
-| **BFS**      | — (jumlah langkah, bukan bobot)        |    ❌     | Hanya jika bobot seragam | Queue FIFO     |
+| **BFS**      | — (jumlah langkah, bukan bobot)        |    ❌     | Hanya jika semua edge & sel berbobot seragam | Queue FIFO     |
 
-> **Catatan Implementasi:** A\* dan Dijkstra menggunakan Min-Heap (priority queue) sehingga kompleksitas waktu O((V + E) log V). BFS menggunakan antrian FIFO standar dengan kompleksitas O(V + E). Heuristik yang ditampilkan pada panel debug (g/h/f scores) dihitung untuk seluruh algoritma demi konsistensi UI, meski BFS tidak menggunakannya dalam proses pencarian jalur.
+> **Catatan Implementasi:**
+> - A\* dan Dijkstra menggunakan Min-Heap (priority queue) sehingga kompleksitas waktu O((V + E) log V). BFS menggunakan antrian FIFO standar dengan kompleksitas O(V + E).
+> - Heuristik yang ditampilkan pada panel debug (g/h/f scores) dihitung untuk **seluruh** algoritma — termasuk Dijkstra dan BFS — demi konsistensi UI, meskipun kedua algoritma tersebut **tidak** menggunakan heuristik dalam proses pencarian jalur.
+> - **BFS dan Optimalitas:** BFS menjamin jalur terpendek **dalam jumlah langkah (hop count)**, bukan dalam jarak geometris. Saat mode diagonal aktif, biaya langkah diagonal (√2 ≈ 1.414) berbeda dari langkah ortogonal (1.0), sehingga jalur BFS yang optimal dalam hop count **belum tentu optimal secara jarak geometris**. BFS tetap menemukan rute dengan langkah paling sedikit, bukan rute terpendek secara Euclidean.
 
 ---
 
@@ -59,11 +62,15 @@ Saat robot berada dalam fase **`moving`**, pengguna dapat menggambar dinding bar
 
 > **Catatan Implementasi:** Re-routing hanya aktif selama fase `moving`. Menggambar dinding pada fase `exploring` atau `pathing` tidak memicu replanning; efeknya baru terlihat pada perhitungan berikutnya.
 
+> **Catatan Teknis:** Replanning pada sistem ini menggunakan pendekatan **full recomputation** — algoritma dijalankan ulang dari posisi robot saat ini, bukan pendekatan inkremental seperti D\* (Stentz, 1994) atau D\* Lite (Koenig & Likhachev, 2002) yang mereuse komputasi sebelumnya. Pada grid berukuran 40×24 (960 sel), perbedaan efisiensi tidak signifikan, namun pada peta yang jauh lebih besar, pendekatan inkremental akan lebih efisien.
+
 ---
 
-### 4. Mode SLAM (Sensor Fog of War)
+### 4. Mode Fog of War (Peta Tersembunyi)
 
-Robot menjelajahi grid dalam kondisi peta tersembunyi (_fog of war_). Area grid hanya terungkap secara bertahap melalui sapuan visual sensor LiDAR, mensimulasikan kondisi navigasi otonom di lingkungan yang belum dipetakan.
+Robot menjelajahi grid dalam kondisi peta tersembunyi (_fog of war_). Area grid hanya terungkap secara bertahap melalui jangkauan sensor LiDAR, mensimulasikan kondisi navigasi otonom di lingkungan yang belum dipetakan. Saat robot bergerak, setiap sel dalam radius LiDAR akan tersingkap secara deterministik. Jika dinding baru terdeteksi di jalur aktif, sistem akan melakukan replanning otomatis.
+
+> **Catatan Terminologi:** Fitur ini menggunakan mekanisme **Fog of War** (istilah dari game _real-time strategy_) dan **Incremental Map Revelation**, bukan SLAM (Simultaneous Localization and Mapping) dalam definisi akademis. Perbedaan utamanya: dalam SLAM sesungguhnya (Smith, Self & Cheeseman, 1986), robot tidak mengetahui posisinya sendiri dan harus memperkirakan lokasi secara probabilistik menggunakan teknik seperti Extended Kalman Filter atau Particle Filter. Pada sistem ini, posisi robot selalu diketahui secara pasti, dan peta dibuka secara binary (terungkap/tersembunyi) tanpa ketidakpastian sensor.
 
 ---
 
@@ -121,7 +128,7 @@ stepCost = directionCost × cellWeight
 
 - **Langkah Ortogonal:** `directionCost = 1.0`
 - **Langkah Diagonal:** `directionCost = √2 ≈ 1.414`
-- **Pencegahan _corner-cutting_:** Diagonal diblokir jika kedua sel ortogonal yang bersebelahan berupa dinding.
+- **Pencegahan _corner-cutting_ (strict):** Langkah diagonal dari sel (r, c) ke (r+dr, c+dc) diblokir jika **salah satu** sel ortogonal yang bersebelahan — yaitu (r, c+dc) atau (r+dr, c) — berupa dinding. Metode ini mengikuti konvensi _strict corner-cutting prevention_ yang umum dalam literatur robotics, mencegah robot melewati sudut dinding secara tidak realistis.
 
 **Implikasi per Algoritma:**
 
@@ -142,7 +149,7 @@ graph TD
   B --> C{Konfigurasi Pengguna}
   C --> C1["Pilih Algoritma<br/>A* / Dijkstra / BFS"]
   C --> C2["Gambar Rintangan & Lumpur<br/>atau Unggah Gambar Peta"]
-  C --> C3["Atur Mode Diagonal & Mode SLAM"]
+  C --> C3["Atur Mode Diagonal & Fog of War"]
   C1 & C2 & C3 --> D[/Klik RUN atau tekan Space/]
 
   D --> E["Jalankan Pathfinding Engine<br/>pada snapshot Grid saat ini"]
