@@ -461,7 +461,7 @@ void loop() {
               <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#1c69d4]/30 pointer-events-none" />
               {/* Header */}
               <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
-                <span className="w-[15px] shrink-0">ADR</span>
+                <span className="w-3.75 shrink-0">ADR</span>
                 <span className="flex-1 gap-px text-center" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                   {['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'].map(h => (
                     <span key={h}>{h}</span>
@@ -526,7 +526,7 @@ void loop() {
                     }
                     rows.push(
                       <div key={r} className="flex items-center">
-                        <span className="w-[15px] text-white/20 shrink-0 font-bold">{addrPrefix}</span>
+                        <span className="w-3.75 text-white/20 shrink-0 font-bold">{addrPrefix}</span>
                         <div className="flex-1 gap-px" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                           {cols}
                         </div>
@@ -552,7 +552,7 @@ void loop() {
             <span className="text-[9px] text-white/30 font-mono">{consoleOpen ? '[ HIDE ]' : '[ SHOW ]'}</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2">
-            <div className="bg-black border border-[#3c3c3c] p-2 rounded-none font-mono text-[9px] text-emerald-500 h-[100px] overflow-y-auto scrollbar-thin space-y-0.5 leading-normal select-none">
+            <div className="bg-black border border-[#3c3c3c] p-2 rounded-none font-mono text-[9px] text-emerald-500 h-25 overflow-y-auto scrollbar-thin space-y-0.5 leading-normal select-none">
               {logs.length === 0 ? (
                 <div className="text-white/20 italic">No activity logs yet.</div>
               ) : (
@@ -625,7 +625,7 @@ void loop() {
                 {copiedType === selectedModalTab ? t.copied : t.copyCode}
               </button>
             </div>
-            <pre className="text-[11px] font-mono text-white/70 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-[350px] scrollbar-thin">
+            <pre className="text-[11px] font-mono text-white/70 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-87.5 scrollbar-thin">
               {selectedModalTab === 'c' && getArduinoCode()}
               {selectedModalTab === 'asm' && getAssemblyCode()}
               {selectedModalTab === 'live' && getArduinoLiveCode()}
@@ -688,7 +688,7 @@ function Modal({ isOpen, onClose, title, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div 
-        className="bg-[#0d0d0d] border border-[#3c3c3c] w-full max-w-[500px] flex flex-col justify-between shadow-2xl relative"
+        className="bg-[#0d0d0d] border border-[#3c3c3c] w-full max-w-125 flex flex-col justify-between shadow-2xl relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
