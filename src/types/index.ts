@@ -112,7 +112,6 @@ export interface Translations {
   shortcuts: string;
 
   // Export path
-  exportPath: string;
   exportPathDesc: string;
   copyCode: string;
   copied: string;
