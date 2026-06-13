@@ -19,7 +19,7 @@ export const DIRECTIONS: [number, number][] = [
 export const DEFAULT_START = { row: 12, col: 2 };
 export const DEFAULT_END = { row: 12, col: 37 };
 
-// ── Colors ──
+// ── Colors (iOS 26 palette) ──
 export const COLORS = {
   gridBg: '#000000',
   gridLine: '#161616',
@@ -28,25 +28,25 @@ export const COLORS = {
   mudBg: '#2a1a10',
   mudLine: '#664028',
   startBg: '#0d2613',
-  startText: '#2ccb5d',
+  startText: '#32D74B',
   endBg: '#300d0d',
-  endText: '#e22718',
-  visited: 'rgba(28, 105, 212, 0.12)',
-  visitedFresh: 'rgba(28, 105, 212, 0.3)',
-  frontier: 'rgba(226, 39, 24, 0.15)',
-  pathCell: 'rgba(6, 83, 182, 0.25)',
-  pathLine: '#1c69d4',
+  endText: '#FF453A',
+  visited: 'rgba(10, 132, 255, 0.12)',
+  visitedFresh: 'rgba(10, 132, 255, 0.3)',
+  frontier: 'rgba(255, 59, 48, 0.15)',
+  pathCell: 'rgba(10, 132, 255, 0.25)',
+  pathLine: '#0A84FF',
   robotBody: '#0d0d0d',
-  robotActive: '#e22718',
+  robotActive: '#FF3B30',
   robotInactive: '#3c3c3c',
   robotCenter: '#ffffff',
   robotCenterInactive: '#7e7e7e',
-  lidarRay: 'rgba(28,105,212,{alpha})',
-  lidarSweep: 'rgba(28,105,212,0.12)',
-  lidarSweepInactive: 'rgba(28,105,212,0.04)',
-  pulseActive: 'rgba(226,39,24,0.1)',
-  pulseInactive: 'rgba(226,39,24,0.03)',
-  doneGlow: 'rgba(44,203,93,{alpha})',
+  lidarRay: 'rgba(10,132,255,{alpha})',
+  lidarSweep: 'rgba(10,132,255,0.12)',
+  lidarSweepInactive: 'rgba(10,132,255,0.04)',
+  pulseActive: 'rgba(255,59,48,0.1)',
+  pulseInactive: 'rgba(255,59,48,0.03)',
+  doneGlow: 'rgba(50,215,75,{alpha})',
 } as const;
 
 // ── Translations ──
@@ -114,7 +114,6 @@ export const translations: Record<Language, Translations> = {
 
     shortcuts: 'Pintasan Keyboard',
 
-    exportPath: 'Ekspor Kode Rute',
     exportPathDesc: 'Salin kode koordinat jalur untuk mikrokontroler Arduino atau data ROM Assembly.',
     copyCode: 'Salin Kode',
     copied: 'Disalin!',
@@ -202,7 +201,6 @@ export const translations: Record<Language, Translations> = {
 
     shortcuts: 'Keyboard Shortcuts',
 
-    exportPath: 'Export Route Code',
     exportPathDesc: 'Copy path coordinates for Arduino microcontrollers or Assembly ROM data.',
     copyCode: 'Copy Code',
     copied: 'Copied!',
