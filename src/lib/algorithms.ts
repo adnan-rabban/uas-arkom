@@ -4,49 +4,76 @@ import { ROWS, COLS } from '@/lib/constants';
 
 const SQRT2_MINUS_2 = Math.SQRT2 - 2;
 
+// ── Flat MinHeap — Contiguous Memory Layout ──
+// Uses parallel Float64Arrays instead of number[][] for cache-friendly access.
+// Mirrors how hardware priority encoders process data in contiguous registers.
+// Stride is 4 floats per entry: [priority, g-value, row, col].
 class MinHeap {
-  private data: number[][] = [];
+  private d: Float64Array;
+  private n = 0;
 
-  push(item: number[]) {
-    this.data.push(item);
-    this._bubbleUp(this.data.length - 1);
+  constructor(capacity = 1024) {
+    this.d = new Float64Array(capacity * 4);
   }
 
-  pop(): number[] | undefined {
-    const top = this.data[0];
-    const last = this.data.pop();
-    if (this.data.length && last) {
-      this.data[0] = last;
-      this._sinkDown(0);
+  push(pri: number, gv: number, r: number, c: number) {
+    if (this.n * 4 >= this.d.length) {
+      const next = new Float64Array(this.d.length * 2);
+      next.set(this.d);
+      this.d = next;
     }
-    return top;
+    const i = this.n++;
+    const o = i * 4;
+    this.d[o] = pri; this.d[o + 1] = gv; this.d[o + 2] = r; this.d[o + 3] = c;
+    this._up(i);
   }
 
-  get length() {
-    return this.data.length;
+  pop(): [number, number, number, number] | undefined {
+    if (this.n === 0) return undefined;
+    const d = this.d;
+    const pri = d[0], gv = d[1], r = d[2], c = d[3];
+    this.n--;
+    if (this.n > 0) {
+      const lo = this.n * 4;
+      d[0] = d[lo]; d[1] = d[lo + 1]; d[2] = d[lo + 2]; d[3] = d[lo + 3];
+      this._down(0);
+    }
+    return [pri, gv, r, c];
   }
 
-  private _bubbleUp(i: number) {
+  get length() { return this.n; }
+
+  private _up(i: number) {
+    const d = this.d;
     while (i > 0) {
-      const parent = (i - 1) >> 1;
-      if (this.data[parent][0] > this.data[i][0]) {
-        [this.data[parent], this.data[i]] = [this.data[i], this.data[parent]];
-        i = parent;
+      const p = (i - 1) >> 1;
+      const po = p * 4, io = i * 4;
+      if (d[po] > d[io]) {
+        // Swap 4 floats
+        let t = d[po]; d[po] = d[io]; d[io] = t;
+        t = d[po + 1]; d[po + 1] = d[io + 1]; d[io + 1] = t;
+        t = d[po + 2]; d[po + 2] = d[io + 2]; d[io + 2] = t;
+        t = d[po + 3]; d[po + 3] = d[io + 3]; d[io + 3] = t;
+        i = p;
       } else break;
     }
   }
 
-  private _sinkDown(i: number) {
-    const n = this.data.length;
+  private _down(i: number) {
+    const d = this.d, n = this.n;
     for (;;) {
-      let smallest = i;
-      const left = 2 * i + 1;
-      const right = 2 * i + 2;
-      if (left < n && this.data[left][0] < this.data[smallest][0]) smallest = left;
-      if (right < n && this.data[right][0] < this.data[smallest][0]) smallest = right;
-      if (smallest !== i) {
-        [this.data[smallest], this.data[i]] = [this.data[i], this.data[smallest]];
-        i = smallest;
+      let s = i;
+      const l = 2 * i + 1, r = 2 * i + 2;
+      const so = s * 4;
+      if (l < n && d[l * 4] < d[so]) s = l;
+      if (r < n && d[r * 4] < d[s * 4]) s = r;
+      if (s !== i) {
+        const io = i * 4, sO = s * 4;
+        let t = d[io]; d[io] = d[sO]; d[sO] = t;
+        t = d[io + 1]; d[io + 1] = d[sO + 1]; d[sO + 1] = t;
+        t = d[io + 2]; d[io + 2] = d[sO + 2]; d[sO + 2] = t;
+        t = d[io + 3]; d[io + 3] = d[sO + 3]; d[sO + 3] = t;
+        i = s;
       } else break;
     }
   }
@@ -83,36 +110,7 @@ function getWeight(grid: Grid, row: number, col: number): number {
   return grid[row][col] === CellType.MUD ? 5 : 1;
 }
 
-const ORTH_DIRS: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-const DIAG_DIRS: [number, number][] = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-
-function getNeighbors(
-  r: number,
-  c: number,
-  grid: Grid,
-  diagonal: boolean
-): { row: number; col: number; cost: number }[] {
-  const neighbors: { row: number; col: number; cost: number }[] = [];
-  for (const [dr, dc] of ORTH_DIRS) {
-    const nr = r + dr, nc = c + dc;
-    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc] !== CellType.WALL) {
-      neighbors.push({ row: nr, col: nc, cost: 1 });
-    }
-  }
-  if (diagonal) {
-    for (const [dr, dc] of DIAG_DIRS) {
-      const nr = r + dr, nc = c + dc;
-      if (
-        nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS &&
-        grid[nr][nc] !== CellType.WALL &&
-        !(grid[r][nc] === CellType.WALL || grid[nr][c] === CellType.WALL)
-      ) {
-        neighbors.push({ row: nr, col: nc, cost: Math.SQRT2 });
-      }
-    }
-  }
-  return neighbors;
-}
+const INF = 1e9;
 
 function octileH(r: number, c: number, er: number, ec: number): number {
   const dr = Math.abs(r - er), dc = Math.abs(c - ec);
@@ -137,35 +135,76 @@ function bfs(
   const dist = new Map<number, number>([[startKey, 0]]);
   const visitOrder: Position[] = [];
 
+  // ── Numeric-keyed score maps (address-encoded keys) ──
+  // Uses encodePos (row*COLS+col) as numeric key instead of string template.
+  // Mirrors how memory addresses index data in flat address spaces.
+  const gMap = new Map<number, number>();
+  const hMap = new Map<number, number>();
+
+  const endR = end.row, endC = end.col;
   const hFn = diagonal
-    ? (r: number, c: number) => octileH(r, c, end.row, end.col)
-    : (r: number, c: number) => manhattanH(r, c, end.row, end.col);
+    ? (r: number, c: number) => octileH(r, c, endR, endC)
+    : (r: number, c: number) => manhattanH(r, c, endR, endC);
 
   while (head < queue.length) {
     const curKey = queue[head++];
-    const cur = decodePos(curKey);
-    visitOrder.push(cur);
+    const cr = (curKey / COLS) | 0;
+    const cc = curKey % COLS;
+    visitOrder.push({ row: cr, col: cc });
     const currDist = dist.get(curKey)!;
+    gMap.set(curKey, currDist);
+    hMap.set(curKey, hFn(cr, cc));
 
-    if (cur.row === end.row && cur.col === end.col) {
+    if (cr === endR && cc === endC) {
+      // Convert numeric-keyed maps to string-keyed Records for UI consumption
       const gScores: Record<string, number> = {};
       const hScores: Record<string, number> = {};
       for (const node of visitOrder) {
-        const sk = `${node.row},${node.col}`;
         const nk = encodePos(node.row, node.col);
-        gScores[sk] = +(dist.get(nk) ?? 0).toFixed(1);
-        hScores[sk] = +hFn(node.row, node.col).toFixed(1);
+        const sk = `${node.row},${node.col}`;
+        gScores[sk] = +(gMap.get(nk) ?? 0).toFixed(1);
+        hScores[sk] = +(hMap.get(nk) ?? 0).toFixed(1);
       }
       return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    for (const nb of getNeighbors(cur.row, cur.col, grid, diagonal)) {
-      const nk = encodePos(nb.row, nb.col);
-      if (!visited.has(nk)) {
-        visited.add(nk);
-        parentMap.set(nk, curKey);
-        dist.set(nk, currDist + 1);
-        queue.push(nk);
+    // ── Inlined neighbor expansion (zero-allocation hot path) ──
+    // Eliminates getNeighbors() array/object allocation per cell visit.
+    const g = grid;
+    // Orthogonal neighbors
+    if (cr > 0 && g[cr - 1][cc] !== CellType.WALL) {
+      const nk = curKey - COLS;
+      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+    }
+    if (cr < ROWS - 1 && g[cr + 1][cc] !== CellType.WALL) {
+      const nk = curKey + COLS;
+      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+    }
+    if (cc > 0 && g[cr][cc - 1] !== CellType.WALL) {
+      const nk = curKey - 1;
+      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+    }
+    if (cc < COLS - 1 && g[cr][cc + 1] !== CellType.WALL) {
+      const nk = curKey + 1;
+      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+    }
+    // Diagonal neighbors
+    if (diagonal) {
+      if (cr > 0 && cc > 0 && g[cr - 1][cc - 1] !== CellType.WALL && g[cr][cc - 1] !== CellType.WALL && g[cr - 1][cc] !== CellType.WALL) {
+        const nk = curKey - COLS - 1;
+        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+      }
+      if (cr > 0 && cc < COLS - 1 && g[cr - 1][cc + 1] !== CellType.WALL && g[cr][cc + 1] !== CellType.WALL && g[cr - 1][cc] !== CellType.WALL) {
+        const nk = curKey - COLS + 1;
+        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+      }
+      if (cr < ROWS - 1 && cc > 0 && g[cr + 1][cc - 1] !== CellType.WALL && g[cr][cc - 1] !== CellType.WALL && g[cr + 1][cc] !== CellType.WALL) {
+        const nk = curKey + COLS - 1;
+        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
+      }
+      if (cr < ROWS - 1 && cc < COLS - 1 && g[cr + 1][cc + 1] !== CellType.WALL && g[cr][cc + 1] !== CellType.WALL && g[cr + 1][cc] !== CellType.WALL) {
+        const nk = curKey + COLS + 1;
+        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
       }
     }
   }
@@ -178,44 +217,104 @@ function dijkstra(
   end: Position,
   diagonal: boolean
 ): Omit<AlgorithmResult, 'time'> {
-  const dist: number[][] = Array.from({ length: ROWS }, () => new Array(COLS).fill(1e9));
-  dist[start.row][start.col] = 0;
+  // ── Flat Float64Array distance storage (contiguous memory / cache locality) ──
+  // Replaces 2D number[][] with a single typed array indexed by encodePos.
+  // Mirrors how SRAM stores data in contiguous physical addresses.
+  const N = ROWS * COLS;
+  const dist = new Float64Array(N);
+  dist.fill(INF);
+  const startKey = encodePos(start.row, start.col);
+  dist[startKey] = 0;
 
   const heap = new MinHeap();
-  heap.push([0, start.row, start.col]);
+  heap.push(0, 0, start.row, start.col);
 
   const parentMap = new Map<number, number>();
   const closed = new Set<number>();
   const visitOrder: Position[] = [];
-  const gScores: Record<string, number> = {};
-  const hScores: Record<string, number> = {};
+  const gMap = new Map<number, number>();
+  const hMap = new Map<number, number>();
 
+  const endR = end.row, endC = end.col;
   const hFn = diagonal
-    ? (r: number, c: number) => octileH(r, c, end.row, end.col)
-    : (r: number, c: number) => manhattanH(r, c, end.row, end.col);
+    ? (r: number, c: number) => octileH(r, c, endR, endC)
+    : (r: number, c: number) => manhattanH(r, c, endR, endC);
 
   while (heap.length > 0) {
-    const [d, r, c] = heap.pop()!;
-    const key = encodePos(r, c);
+    const entry = heap.pop()!;
+    const d = entry[1]; // g-value
+    const r = entry[2] | 0;
+    const c = entry[3] | 0;
+    const key = r * COLS + c;
 
     if (closed.has(key)) continue;
     closed.add(key);
     visitOrder.push({ row: r, col: c });
-    gScores[`${r},${c}`] = +d.toFixed(1);
-    hScores[`${r},${c}`] = +hFn(r, c).toFixed(1);
+    gMap.set(key, +d.toFixed(1));
+    hMap.set(key, +hFn(r, c).toFixed(1));
 
-    if (r === end.row && c === end.col) {
+    if (r === endR && c === endC) {
+      const gScores: Record<string, number> = {};
+      const hScores: Record<string, number> = {};
+      for (const [k, v] of gMap) { const p = decodePos(k); gScores[`${p.row},${p.col}`] = v; }
+      for (const [k, v] of hMap) { const p = decodePos(k); hScores[`${p.row},${p.col}`] = v; }
       return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    for (const nb of getNeighbors(r, c, grid, diagonal)) {
-      const nk = encodePos(nb.row, nb.col);
-      if (closed.has(nk)) continue;
-      const nextDist = d + nb.cost * getWeight(grid, nb.row, nb.col);
-      if (nextDist < dist[nb.row][nb.col]) {
-        dist[nb.row][nb.col] = nextDist;
-        parentMap.set(nk, key);
-        heap.push([nextDist, nb.row, nb.col]);
+    // ── Inlined neighbor expansion (zero-allocation hot path) ──
+    const g = grid;
+    // Up
+    if (r > 0) { const nr = r - 1, nk = key - COLS;
+      if (!closed.has(nk) && g[nr][c] !== CellType.WALL) {
+        const nd = d + getWeight(g, nr, c);
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, nr, c); }
+      }
+    }
+    // Down
+    if (r < ROWS - 1) { const nr = r + 1, nk = key + COLS;
+      if (!closed.has(nk) && g[nr][c] !== CellType.WALL) {
+        const nd = d + getWeight(g, nr, c);
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, nr, c); }
+      }
+    }
+    // Left
+    if (c > 0) { const nc = c - 1, nk = key - 1;
+      if (!closed.has(nk) && g[r][nc] !== CellType.WALL) {
+        const nd = d + getWeight(g, r, nc);
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r, nc); }
+      }
+    }
+    // Right
+    if (c < COLS - 1) { const nc = c + 1, nk = key + 1;
+      if (!closed.has(nk) && g[r][nc] !== CellType.WALL) {
+        const nd = d + getWeight(g, r, nc);
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r, nc); }
+      }
+    }
+    if (diagonal) {
+      // Up-Left
+      if (r > 0 && c > 0 && g[r - 1][c - 1] !== CellType.WALL && g[r][c - 1] !== CellType.WALL && g[r - 1][c] !== CellType.WALL) {
+        const nk = key - COLS - 1;
+        if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r - 1, c - 1);
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r - 1, c - 1); } }
+      }
+      // Up-Right
+      if (r > 0 && c < COLS - 1 && g[r - 1][c + 1] !== CellType.WALL && g[r][c + 1] !== CellType.WALL && g[r - 1][c] !== CellType.WALL) {
+        const nk = key - COLS + 1;
+        if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r - 1, c + 1);
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r - 1, c + 1); } }
+      }
+      // Down-Left
+      if (r < ROWS - 1 && c > 0 && g[r + 1][c - 1] !== CellType.WALL && g[r][c - 1] !== CellType.WALL && g[r + 1][c] !== CellType.WALL) {
+        const nk = key + COLS - 1;
+        if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r + 1, c - 1);
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r + 1, c - 1); } }
+      }
+      // Down-Right
+      if (r < ROWS - 1 && c < COLS - 1 && g[r + 1][c + 1] !== CellType.WALL && g[r][c + 1] !== CellType.WALL && g[r + 1][c] !== CellType.WALL) {
+        const nk = key + COLS + 1;
+        if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r + 1, c + 1);
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r + 1, c + 1); } }
       }
     }
   }
@@ -228,44 +327,102 @@ function astar(
   end: Position,
   diagonal: boolean
 ): Omit<AlgorithmResult, 'time'> {
+  const endR = end.row, endC = end.col;
   const hFn = diagonal
-    ? (r: number, c: number) => octileH(r, c, end.row, end.col)
-    : (r: number, c: number) => manhattanH(r, c, end.row, end.col);
+    ? (r: number, c: number) => octileH(r, c, endR, endC)
+    : (r: number, c: number) => manhattanH(r, c, endR, endC);
 
-  const gScore: number[][] = Array.from({ length: ROWS }, () => new Array(COLS).fill(1e9));
-  gScore[start.row][start.col] = 0;
+  // ── Flat Float64Array g-score storage (contiguous memory / cache locality) ──
+  const N = ROWS * COLS;
+  const gScore = new Float64Array(N);
+  gScore.fill(INF);
+  const startKey = encodePos(start.row, start.col);
+  gScore[startKey] = 0;
 
   const heap = new MinHeap();
-  heap.push([hFn(start.row, start.col), 0, start.row, start.col]);
+  heap.push(hFn(start.row, start.col), 0, start.row, start.col);
 
   const parentMap = new Map<number, number>();
   const closed = new Set<number>();
   const visitOrder: Position[] = [];
-  const gScores: Record<string, number> = {};
-  const hScores: Record<string, number> = {};
+  const gMap = new Map<number, number>();
+  const hMap = new Map<number, number>();
 
   while (heap.length > 0) {
-    const [, gv, r, c] = heap.pop()!;
-    const key = encodePos(r, c);
+    const entry = heap.pop()!;
+    const gv = entry[1];
+    const r = entry[2] | 0;
+    const c = entry[3] | 0;
+    const key = r * COLS + c;
 
     if (closed.has(key)) continue;
     closed.add(key);
     visitOrder.push({ row: r, col: c });
-    gScores[`${r},${c}`] = +gv.toFixed(1);
-    hScores[`${r},${c}`] = +hFn(r, c).toFixed(1);
+    gMap.set(key, +gv.toFixed(1));
+    hMap.set(key, +hFn(r, c).toFixed(1));
 
-    if (r === end.row && c === end.col) {
+    if (r === endR && c === endC) {
+      const gScores: Record<string, number> = {};
+      const hScores: Record<string, number> = {};
+      for (const [k, v] of gMap) { const p = decodePos(k); gScores[`${p.row},${p.col}`] = v; }
+      for (const [k, v] of hMap) { const p = decodePos(k); hScores[`${p.row},${p.col}`] = v; }
       return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    for (const nb of getNeighbors(r, c, grid, diagonal)) {
-      const nk = encodePos(nb.row, nb.col);
-      if (closed.has(nk)) continue;
-      const ng = gv + nb.cost * getWeight(grid, nb.row, nb.col);
-      if (ng < gScore[nb.row][nb.col]) {
-        gScore[nb.row][nb.col] = ng;
-        parentMap.set(nk, key);
-        heap.push([ng + hFn(nb.row, nb.col), ng, nb.row, nb.col]);
+    // ── Inlined neighbor expansion (zero-allocation hot path) ──
+    const g = grid;
+    // Up
+    if (r > 0) { const nr = r - 1, nk = key - COLS;
+      if (!closed.has(nk) && g[nr][c] !== CellType.WALL) {
+        const ng = gv + getWeight(g, nr, c);
+        if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(nr, c), ng, nr, c); }
+      }
+    }
+    // Down
+    if (r < ROWS - 1) { const nr = r + 1, nk = key + COLS;
+      if (!closed.has(nk) && g[nr][c] !== CellType.WALL) {
+        const ng = gv + getWeight(g, nr, c);
+        if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(nr, c), ng, nr, c); }
+      }
+    }
+    // Left
+    if (c > 0) { const nc = c - 1, nk = key - 1;
+      if (!closed.has(nk) && g[r][nc] !== CellType.WALL) {
+        const ng = gv + getWeight(g, r, nc);
+        if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(r, nc), ng, r, nc); }
+      }
+    }
+    // Right
+    if (c < COLS - 1) { const nc = c + 1, nk = key + 1;
+      if (!closed.has(nk) && g[r][nc] !== CellType.WALL) {
+        const ng = gv + getWeight(g, r, nc);
+        if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(r, nc), ng, r, nc); }
+      }
+    }
+    if (diagonal) {
+      // Up-Left
+      if (r > 0 && c > 0 && g[r - 1][c - 1] !== CellType.WALL && g[r][c - 1] !== CellType.WALL && g[r - 1][c] !== CellType.WALL) {
+        const nk = key - COLS - 1;
+        if (!closed.has(nk)) { const ng = gv + Math.SQRT2 * getWeight(g, r - 1, c - 1);
+          if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(r - 1, c - 1), ng, r - 1, c - 1); } }
+      }
+      // Up-Right
+      if (r > 0 && c < COLS - 1 && g[r - 1][c + 1] !== CellType.WALL && g[r][c + 1] !== CellType.WALL && g[r - 1][c] !== CellType.WALL) {
+        const nk = key - COLS + 1;
+        if (!closed.has(nk)) { const ng = gv + Math.SQRT2 * getWeight(g, r - 1, c + 1);
+          if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(r - 1, c + 1), ng, r - 1, c + 1); } }
+      }
+      // Down-Left
+      if (r < ROWS - 1 && c > 0 && g[r + 1][c - 1] !== CellType.WALL && g[r][c - 1] !== CellType.WALL && g[r + 1][c] !== CellType.WALL) {
+        const nk = key + COLS - 1;
+        if (!closed.has(nk)) { const ng = gv + Math.SQRT2 * getWeight(g, r + 1, c - 1);
+          if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(r + 1, c - 1), ng, r + 1, c - 1); } }
+      }
+      // Down-Right
+      if (r < ROWS - 1 && c < COLS - 1 && g[r + 1][c + 1] !== CellType.WALL && g[r][c + 1] !== CellType.WALL && g[r + 1][c] !== CellType.WALL) {
+        const nk = key + COLS + 1;
+        if (!closed.has(nk)) { const ng = gv + Math.SQRT2 * getWeight(g, r + 1, c + 1);
+          if (ng < gScore[nk]) { gScore[nk] = ng; parentMap.set(nk, key); heap.push(ng + hFn(r + 1, c + 1), ng, r + 1, c + 1); } }
       }
     }
   }
