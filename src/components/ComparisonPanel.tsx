@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Trophy } from 'lucide-react';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import type { ComparisonResult, Language, AlgorithmKey } from '@/types';
 import { translations } from '@/lib/constants';
 
@@ -15,7 +15,7 @@ interface ComparisonPanelProps {
   onToggleSimultaneous: (v: boolean) => void;
 }
 
-export function ComparisonPanel({
+export const ComparisonPanel = memo(function ComparisonPanel({
   results,
   lang,
   visualizedAlgo,
@@ -170,4 +170,4 @@ export function ComparisonPanel({
       </CollapsibleContent>
     </Collapsible>
   );
-}
+});

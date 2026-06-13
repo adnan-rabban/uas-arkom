@@ -3,7 +3,7 @@ import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
 import { SerialModal } from './SerialModal';
 import type { SimulationState, Language, Position } from '@/types';
@@ -33,7 +33,7 @@ interface RightPanelProps {
   onClear: () => void;
 }
 
-export function RightPanel(props: RightPanelProps) {
+export const RightPanel = memo(function RightPanel(props: RightPanelProps) {
   const t = translations[props.lang];
   const [copiedType, setCopiedType] = useState<'c' | 'asm' | 'live' | 'mem' | null>(null);
   const [memoryOpen, setMemoryOpen] = useState(true);
@@ -451,92 +451,96 @@ void loop() {
             <span className="text-[10px] text-white/20 font-mono">{memoryOpen ? '[ \u2212 ]' : '[ + ]'}</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 space-y-2">
-            <p className="text-[11px] text-white/35 font-normal leading-relaxed">
-              {t.memoryMapDesc}
-            </p>
+            {memoryOpen && (
+              <>
+                <p className="text-[11px] text-white/35 font-normal leading-relaxed">
+                  {t.memoryMapDesc}
+                </p>
 
-            <div className="glass-card p-2 font-mono text-[8.5px] leading-tight select-none pcb-grid relative overflow-hidden">
-              {/* Mini PCB corner details */}
-              <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#0A84FF]/30 pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#0A84FF]/30 pointer-events-none" />
-              {/* Header */}
-              <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
-                <span className="w-3.75 shrink-0">ADR</span>
-                <span className="flex-1 gap-px text-center" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
-                  {['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'].map(h => (
-                    <span key={h}>{h}</span>
-                  ))}
-                </span>
-              </div>
-              
-              {/* Rows */}
-              <div className="space-y-0.5 pr-0.5">
-                {(() => {
-                  const mem = Array(256).fill(0);
-                  if (props.path && props.path.length > 0) {
-                    // 16-bit little-endian length encoding at addresses 0x00-0x01
-                    const pathLen = Math.min(props.path.length, 255);
-                    mem[0] = pathLen & 0xFF;         // low byte
-                    mem[1] = (pathLen >> 8) & 0xFF;  // high byte
-                    // Coordinate data starts at address 0x02
-                    for (let i = 0; i < props.path.length; i++) {
-                      if (2 + i * 2 + 1 < 256) {
-                        mem[2 + i * 2] = props.path[i].row;
-                        mem[2 + i * 2 + 1] = props.path[i].col;
-                      }
-                    }
-                  }
-
-                  const currentRobotIndex = Math.floor(props.robotT);
-                  const activeAddr1 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 2 + currentRobotIndex * 2 : -1;
-                  const activeAddr2 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 2 + currentRobotIndex * 2 + 1 : -1;
-
-                  const rows = [];
-                  for (let r = 0; r < 16; r++) {
-                    const addrPrefix = (r * 16).toString(16).toUpperCase().padStart(2, '0');
-                    const cols = [];
-                    for (let c = 0; c < 16; c++) {
-                      const addr = r * 16 + c;
-                      const val = mem[addr];
-                      const hexVal = val.toString(16).toUpperCase().padStart(2, '0');
-                      const isActive = addr === activeAddr1 || addr === activeAddr2;
-                      const isLength = (addr === 0 || addr === 1) && props.path.length > 0;
-                      
-                      let textColor = 'text-white/40';
-                      let bgColor = 'bg-transparent';
-                      
-                      if (isActive) {
-                        textColor = 'text-white font-bold';
-                        bgColor = 'bg-[#0A84FF]';
-                      } else if (isLength) {
-                        textColor = 'text-[#32D74B] font-bold';
-                      } else if (val > 0) {
-                        textColor = 'text-white/70';
+                <div className="glass-card p-2 font-mono text-[8.5px] leading-tight select-none pcb-grid relative overflow-hidden">
+                  {/* Mini PCB corner details */}
+                  <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#0A84FF]/30 pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#0A84FF]/30 pointer-events-none" />
+                  {/* Header */}
+                  <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
+                    <span className="w-3.75 shrink-0">ADR</span>
+                    <span className="flex-1 gap-px text-center" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+                      {['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'].map(h => (
+                        <span key={h}>{h}</span>
+                      ))}
+                    </span>
+                  </div>
+                  
+                  {/* Rows */}
+                  <div className="space-y-0.5 pr-0.5">
+                    {(() => {
+                      const mem = Array(256).fill(0);
+                      if (props.path && props.path.length > 0) {
+                        // 16-bit little-endian length encoding at addresses 0x00-0x01
+                        const pathLen = Math.min(props.path.length, 255);
+                        mem[0] = pathLen & 0xFF;         // low byte
+                        mem[1] = (pathLen >> 8) & 0xFF;  // high byte
+                        // Coordinate data starts at address 0x02
+                        for (let i = 0; i < props.path.length; i++) {
+                          if (2 + i * 2 + 1 < 256) {
+                            mem[2 + i * 2] = props.path[i].row;
+                            mem[2 + i * 2 + 1] = props.path[i].col;
+                          }
+                        }
                       }
 
-                      cols.push(
-                        <span
-                          key={c}
-                          className={`text-center rounded-[1px] transition-colors ${textColor} ${bgColor}`}
-                          title={`Addr: 0x${addr.toString(16).toUpperCase().padStart(2, '0')} | Dec: ${val}`}
-                        >
-                          {hexVal}
-                        </span>
-                      );
-                    }
-                    rows.push(
-                      <div key={r} className="flex items-center">
-                        <span className="w-3.75 text-white/20 shrink-0 font-bold">{addrPrefix}</span>
-                        <div className="flex-1 gap-px" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
-                          {cols}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return rows;
-                })()}
-              </div>
-            </div>
+                      const currentRobotIndex = Math.floor(props.robotT);
+                      const activeAddr1 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 2 + currentRobotIndex * 2 : -1;
+                      const activeAddr2 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 2 + currentRobotIndex * 2 + 1 : -1;
+
+                      const rows = [];
+                      for (let r = 0; r < 16; r++) {
+                        const addrPrefix = (r * 16).toString(16).toUpperCase().padStart(2, '0');
+                        const cols = [];
+                        for (let c = 0; c < 16; c++) {
+                          const addr = r * 16 + c;
+                          const val = mem[addr];
+                          const hexVal = val.toString(16).toUpperCase().padStart(2, '0');
+                          const isActive = addr === activeAddr1 || addr === activeAddr2;
+                          const isLength = (addr === 0 || addr === 1) && props.path.length > 0;
+                          
+                          let textColor = 'text-white/40';
+                          let bgColor = 'bg-transparent';
+                          
+                          if (isActive) {
+                            textColor = 'text-white font-bold';
+                            bgColor = 'bg-[#0A84FF]';
+                          } else if (isLength) {
+                            textColor = 'text-[#32D74B] font-bold';
+                          } else if (val > 0) {
+                            textColor = 'text-white/70';
+                          }
+
+                          cols.push(
+                            <span
+                              key={c}
+                              className={`text-center rounded-[1px] transition-colors ${textColor} ${bgColor}`}
+                              title={`Addr: 0x${addr.toString(16).toUpperCase().padStart(2, '0')} | Dec: ${val}`}
+                            >
+                              {hexVal}
+                            </span>
+                          );
+                        }
+                        rows.push(
+                          <div key={r} className="flex items-center">
+                            <span className="w-3.75 text-white/20 shrink-0 font-bold">{addrPrefix}</span>
+                            <div className="flex-1 gap-px" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+                              {cols}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return rows;
+                    })()}
+                  </div>
+                </div>
+              </>
+            )}
           </CollapsibleContent>
         </Collapsible>
 
@@ -552,17 +556,19 @@ void loop() {
             <span className="text-[10px] text-white/20 font-mono">{consoleOpen ? '[ \u2212 ]' : '[ + ]'}</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3">
-            <div className="glass-card p-3 font-mono text-[10px] text-[#32D74B] h-27.5 overflow-y-auto scrollbar-thin space-y-1 leading-relaxed select-none">
-              {logs.length === 0 ? (
-                <div className="text-white/15 italic text-[11px]">No activity logs yet.</div>
-              ) : (
-                logs.map((log, idx) => (
-                  <div key={idx} className="whitespace-pre-wrap font-mono">
-                    {log}
-                  </div>
-                ))
-              )}
-            </div>
+            {consoleOpen && (
+              <div className="glass-card p-3 font-mono text-[10px] text-[#32D74B] h-27.5 overflow-y-auto scrollbar-thin space-y-1 leading-relaxed select-none">
+                {logs.length === 0 ? (
+                  <div className="text-white/15 italic text-[11px]">No activity logs yet.</div>
+                ) : (
+                  logs.map((log, idx) => (
+                    <div key={idx} className="whitespace-pre-wrap font-mono">
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </CollapsibleContent>
         </Collapsible>
 
@@ -671,7 +677,23 @@ void loop() {
       />
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.lang === nextProps.lang &&
+    prevProps.speed === nextProps.speed &&
+    prevProps.simulationState === nextProps.simulationState &&
+    prevProps.pathFound === nextProps.pathFound &&
+    prevProps.serialConnected === nextProps.serialConnected &&
+    prevProps.isVirtualSerial === nextProps.isVirtualSerial &&
+    prevProps.path === nextProps.path &&
+    prevProps.serialStats.framesSent === nextProps.serialStats.framesSent &&
+    prevProps.serialStats.bytesSent === nextProps.serialStats.bytesSent &&
+    prevProps.serialStats.ackReceived === nextProps.serialStats.ackReceived &&
+    prevProps.serialStats.checksumErrors === nextProps.serialStats.checksumErrors &&
+    Math.floor(prevProps.explored) === Math.floor(nextProps.explored) &&
+    Math.floor(prevProps.robotT) === Math.floor(nextProps.robotT)
+  );
+});
 
 interface ModalProps {
   isOpen: boolean;
