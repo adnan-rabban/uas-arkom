@@ -484,7 +484,7 @@ export function SimulationCanvas({
         if (bfsData && bfsData.result.path.length > 0) {
           const bfsP = bfsData.result.path;
           const limitP = Math.min(pc, bfsP.length);
-          ctx.strokeStyle = '#e22718';
+          ctx.strokeStyle = '#FF3B30';
           ctx.lineWidth = 1.8;
           ctx.setLineDash([2, 4]);
           ctx.beginPath();
@@ -536,11 +536,11 @@ export function SimulationCanvas({
             const { row: r, col: c } = astarP[i];
             if ((r === s.row && c === s.col) || (r === e.row && c === e.col)) continue;
             if (isSlam && !rc.has(r * COLS + c)) continue;
-            ctx.fillStyle = 'rgba(28, 105, 212, 0.15)';
+            ctx.fillStyle = 'rgba(10, 132, 255, 0.15)';
             ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
           }
 
-          ctx.strokeStyle = '#1c69d4';
+          ctx.strokeStyle = '#0A84FF';
           ctx.lineWidth = 2.5;
           ctx.lineJoin = 'round';
           ctx.lineCap = 'round';
@@ -824,7 +824,7 @@ export function SimulationCanvas({
         ref={canvasRef}
         width={CANVAS_W}
         height={CANVAS_H}
-        className="max-h-full max-w-full object-contain block cursor-crosshair bg-black border border-[#3c3c3c]"
+        className="max-h-full max-w-full object-contain block cursor-crosshair bg-black border border-white/8 rounded-xl"
         onMouseDown={onMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={onMouseUp}
@@ -842,10 +842,10 @@ export function SimulationCanvas({
         const hVal = hScores?.[key];
         const fVal = gVal !== undefined && hVal !== undefined ? +(gVal + hVal).toFixed(1) : undefined;
         return (
-          <div className="absolute top-4 left-4 z-20 bg-black/85 border border-[#3c3c3c] p-3 text-[10px] font-mono text-white/80 select-none backdrop-blur-md pointer-events-none w-45 space-y-1.5 shadow-2xl">
-            <div className="border-b border-[#3c3c3c] pb-1 font-bold text-white/50 flex justify-between">
+          <div className="absolute top-4 left-4 z-20 glass-card p-3 text-[10px] font-mono text-white/80 select-none pointer-events-none w-45 space-y-1.5 shadow-xl">
+            <div className="border-b border-white/6 pb-1 font-semibold text-white/50 flex justify-between">
               <span>{t.cellInfo}</span>
-              <span className="text-[#1c69d4] font-bold">[{hoveredCell.row}, {hoveredCell.col}]</span>
+              <span className="text-[#0A84FF] font-semibold">[{hoveredCell.row}, {hoveredCell.col}]</span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/40">Type:</span>
@@ -861,9 +861,9 @@ export function SimulationCanvas({
                   <span className="text-white/40">h(n) (Heur):</span>
                   <span className="text-white/90 font-semibold">{hVal}</span>
                 </div>
-                <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-bold">
-                  <span className="text-[#1c69d4]">f(n) (Total):</span>
-                  <span className="text-[#1c69d4]">{fVal}</span>
+                <div className="flex justify-between border-t border-white/6 pt-1 mt-1 font-semibold">
+                  <span className="text-[#0A84FF]">f(n) (Total):</span>
+                  <span className="text-[#0A84FF]">{fVal}</span>
                 </div>
               </>
             )}
