@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Globe } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import type { Language, SimulationState } from '@/types';
 import { translations } from '@/lib/constants';
 
@@ -11,7 +11,7 @@ interface TopBarProps {
   pathFound: boolean;
 }
 
-export function TopBar({ lang, onToggleLang, simulationState, pathFound }: TopBarProps) {
+export const TopBar = memo(function TopBar({ lang, onToggleLang, simulationState, pathFound }: TopBarProps) {
   const t = translations[lang];
   const [ticks, setTicks] = useState(104820);
 
@@ -68,5 +68,5 @@ export function TopBar({ lang, onToggleLang, simulationState, pathFound }: TopBa
       </div>
     </div>
   );
-}
+});
 

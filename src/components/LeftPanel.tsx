@@ -5,6 +5,7 @@ import { MapPresets } from './MapPresets';
 import { Compass, Sparkles, EyeOff, Upload } from 'lucide-react';
 import type { AlgorithmKey, Tool, Language, Grid, Position } from '@/types';
 import { translations } from '@/lib/constants';
+import { memo } from 'react';
 
 interface LeftPanelProps {
   lang: Language;
@@ -23,7 +24,7 @@ interface LeftPanelProps {
   onUploadPreset: (grid: Grid, start: Position, end: Position) => void;
 }
 
-export function LeftPanel(props: LeftPanelProps) {
+export const LeftPanel = memo(function LeftPanel(props: LeftPanelProps) {
   const t = translations[props.lang];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,4 +192,4 @@ export function LeftPanel(props: LeftPanelProps) {
       />
     </div>
   );
-}
+});
