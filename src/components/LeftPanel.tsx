@@ -112,44 +112,44 @@ export function LeftPanel(props: LeftPanelProps) {
         {/* Diagonal Switch */}
         <button
           onClick={props.onToggleDiagonal}
-          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-none text-[9px] font-mono tracking-widest uppercase border transition-all cursor-pointer ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border transition-all cursor-pointer ${
             props.diagonal
-              ? 'bg-[#1c69d4]/10 text-[#1c69d4] border-[#1c69d4]'
-              : 'border-[#3c3c3c] bg-transparent text-white/40 hover:border-white hover:text-white'
+              ? 'ios-toggle-on'
+              : 'ios-toggle-off'
           }`}
         >
-          <span className="flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5" />
+          <span className="flex items-center gap-2">
+            <Compass className="w-4 h-4" />
             {t.diagonal}
           </span>
           <span className="flex items-center gap-1.5">
-            {props.diagonal && <span className="led-dot led-blue led-pulse" />}
-            <span className="text-[8px] font-bold">{props.diagonal ? 'ON' : 'OFF'}</span>
+            <span className={`w-2 h-2 rounded-full ${props.diagonal ? 'bg-[#32D74B]' : 'bg-white/15'}`} />
+            <span className="text-[10px] font-semibold">{props.diagonal ? 'ON' : 'OFF'}</span>
           </span>
         </button>
 
         {/* Fog of War Mode Switch */}
         <button
           onClick={props.onToggleFogMode}
-          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-none text-[9px] font-mono tracking-widest uppercase border transition-all cursor-pointer mt-1.5 ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border transition-all cursor-pointer mt-2 ${
             props.fogMode
-              ? 'bg-[#1c69d4]/10 text-[#1c69d4] border-[#1c69d4]'
-              : 'border-[#3c3c3c] bg-transparent text-white/40 hover:border-white hover:text-white'
+              ? 'ios-toggle-on'
+              : 'ios-toggle-off'
           }`}
           title={t.fogModeDesc}
         >
-          <span className="flex items-center gap-1.5">
-            <EyeOff className="w-3.5 h-3.5" />
+          <span className="flex items-center gap-2">
+            <EyeOff className="w-4 h-4" />
             {t.fogModeTitle.split('(')[0].trim()}
           </span>
           <span className="flex items-center gap-1.5">
-            {props.fogMode && <span className="led-dot led-green led-pulse" />}
-            <span className="text-[8px] font-bold">{props.fogMode ? 'ON' : 'OFF'}</span>
+            <span className={`w-2 h-2 rounded-full ${props.fogMode ? 'bg-[#32D74B]' : 'bg-white/15'}`} />
+            <span className="text-[10px] font-semibold">{props.fogMode ? 'ON' : 'OFF'}</span>
           </span>
         </button>
       </div>
 
-      <Separator className="bg-white/5" />
+      <Separator className="bg-white/6" />
 
       {/* Map Presets */}
       <div className="space-y-2">
@@ -162,15 +162,15 @@ export function LeftPanel(props: LeftPanelProps) {
         {/* Generate Maze Button */}
         <button
           onClick={props.onGenerateMaze}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-none text-[9px] tracking-widest font-bold uppercase border border-[#3c3c3c] bg-transparent text-white/40 hover:border-white hover:text-white transition-all cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border border-white/8 bg-white/4 text-white/45 hover:border-white/15 hover:text-white hover:bg-white/8 transition-all cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-[#e22718]" />
+          <Sparkles className="w-4 h-4 text-[#FF3B30]" />
           {t.generateMaze}
         </button>
 
         {/* Upload Image Button */}
-        <label className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-none text-[9px] tracking-widest font-bold uppercase border border-[#3c3c3c] bg-transparent text-white/40 hover:border-white hover:text-white transition-all cursor-pointer mt-1" title={t.uploadImageDesc}>
-          <Upload className="w-3.5 h-3.5 text-[#1c69d4]" />
+        <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border border-white/8 bg-white/4 text-white/45 hover:border-white/15 hover:text-white hover:bg-white/8 transition-all cursor-pointer mt-1" title={t.uploadImageDesc}>
+          <Upload className="w-4 h-4 text-[#0A84FF]" />
           {t.uploadImage}
           <input
             type="file"
@@ -181,7 +181,7 @@ export function LeftPanel(props: LeftPanelProps) {
         </label>
       </div>
 
-      <Separator className="bg-white/5" />
+      <Separator className="bg-white/6" />
 
       {/* Drawing Tools */}
       <DrawingTools
