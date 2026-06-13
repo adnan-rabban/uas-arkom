@@ -287,13 +287,22 @@ flowchart TD
 
 Unggah sketch berikut ke Arduino (Uno/Nano/Mega) menggunakan **Arduino IDE** sebelum menghubungkan perangkat melalui tombol **Hubungkan Serial** di panel aplikasi.
 
+> **Protokol Framed Serial:** Setiap perintah dikirim dalam bingkai 4-byte: `[STX=0x02][CMD][CHECKSUM][ETX=0x03]`. Checksum = `CMD XOR 0xFF`. Arduino memvalidasi bingkai sebelum mengeksekusi perintah dan mengirim kembali frame ACK `[0x02][0x06][0xF9][0x03]` sebagai konfirmasi penerimaan.
+
 ```cpp
 // ─────────────────────────────────────────────────────────────
-//  Robot Navigation Receiver — Arduino Sketch
-//  Protokol: U(Up), D(Down), L(Left), R(Right),
+//  Robot Navigation Receiver — Framed Serial Protocol
+//  Frame Format: [STX=0x02][CMD][CHECKSUM][ETX=0x03]
+//  Checksum: CMD XOR 0xFF (bitwise NOT)
+//  ACK Response: [STX][0x06][0xF9][ETX]
+//  Commands: U(Up), D(Down), L(Left), R(Right),
 //            1–4 (Diagonal), E(End/Selesai)
 //  Baud Rate: 9600 bps
 // ─────────────────────────────────────────────────────────────
+
+const byte STX = 0x02;  // Start of Text — frame delimiter
+const byte ETX = 0x03;  // End of Text — frame delimiter
+const byte ACK = 0x06;  // Acknowledge — positive response
 
 const int LED_PIN = LED_BUILTIN; // Pin 13 pada sebagian besar board
 
@@ -301,24 +310,43 @@ void setup() {
   Serial.begin(9600);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  Serial.println("[SYSTEM] Arduino Ready. Awaiting commands...");
+  Serial.println("[SYSTEM] Arduino Ready. Framed protocol active.");
+}
+
+// Kirim frame ACK ke master (web app)
+void sendAck() {
+  byte frame[4] = { STX, ACK, (byte)(ACK ^ 0xFF), ETX };
+  Serial.write(frame, 4);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    char cmd = Serial.read();
+  if (Serial.available() >= 4) {
+    byte startByte = Serial.read();
+    if (startByte != STX) return; // bukan awal frame
+
+    byte cmd = Serial.read();
+    byte checksum = Serial.read();
+    byte endByte = Serial.read();
+
+    // Validasi struktur frame
+    if (endByte != ETX) return;
+    if (checksum != (cmd ^ 0xFF)) {
+      Serial.println("[ERR] Checksum mismatch. Frame discarded.");
+      return;
+    }
 
     if (cmd == 'U' || cmd == 'D' || cmd == 'L' || cmd == 'R' ||
         cmd == '1' || cmd == '2' || cmd == '3' || cmd == '4') {
-      // Indikator gerak: kedip singkat 50 ms
+      // Indikator gerak: kedip singkat 50 ms + ACK
       digitalWrite(LED_PIN, HIGH);
       delay(50);
       digitalWrite(LED_PIN, LOW);
       Serial.print("[CMD] Move: ");
-      Serial.println(cmd);
+      Serial.println((char)cmd);
+      sendAck();
 
     } else if (cmd == 'E') {
-      // Indikator sukses: kedip 5× cepat
+      // Indikator sukses: kedip 5× cepat + ACK
       Serial.println("[CMD] End — Target reached.");
       for (int i = 0; i < 5; i++) {
         digitalWrite(LED_PIN, HIGH);
@@ -326,6 +354,7 @@ void loop() {
         digitalWrite(LED_PIN, LOW);
         delay(100);
       }
+      sendAck();
     }
   }
 }
