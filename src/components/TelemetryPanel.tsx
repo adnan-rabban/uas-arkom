@@ -36,13 +36,13 @@ export function TelemetryPanel({
   const getStatusDisplay = () => {
     switch (simulationState) {
       case 'exploring': case 'pathing': case 'moving':
-        return { text: t.statusRunning, color: 'text-[#e22718]' };
+        return { text: t.statusRunning, color: 'text-[#FF9F0A]' };
       case 'done':
         return pathFound
-          ? { text: t.statusFound, color: 'text-[#2ccb5d]' }
-          : { text: t.statusNoPath, color: 'text-red-500' };
+          ? { text: t.statusFound, color: 'text-[#32D74B]' }
+          : { text: t.statusNoPath, color: 'text-[#FF453A]' };
       default:
-        return { text: t.statusReady, color: 'text-[#1c69d4]' };
+        return { text: t.statusReady, color: 'text-[#0A84FF]' };
     }
   };
 
@@ -52,30 +52,30 @@ export function TelemetryPanel({
     { label: t.status, value: status.text, color: status.color },
     { label: t.explored, value: explored > 0 ? Math.floor(explored) : '—', color: 'text-white' },
     { label: t.pathLength, value: pathLength > 0 ? pathLength : '—', color: 'text-white' },
-    { label: t.pathCost, value: pathCost > 0 ? pathCost : '—', color: 'text-[#38bdf8]' },
-    { label: t.computeTime, value: computeTime > 0 ? `${computeTime}ms` : '—', color: 'text-white' },
-    { label: lang === 'id' ? 'KOLOM ROBOT' : 'ROBOT COL', value: currentCol, color: 'text-[#1c69d4] font-bold' },
-    { label: lang === 'id' ? 'BARIS ROBOT' : 'ROBOT ROW', value: currentRow, color: 'text-[#1c69d4] font-bold' },
-    { label: lang === 'id' ? 'ARAH GERAKAN' : 'COMMAND TX', value: direction, color: 'text-[#e0a800] font-bold' },
+    { label: t.pathCost, value: pathCost > 0 ? pathCost : '—', color: 'text-[#64D2FF]' },
+    { label: t.computeTime, value: computeTime > 0 ? `${computeTime}ms` : '—', color: 'text-white/80' },
+    { label: lang === 'id' ? 'KOLOM ROBOT' : 'ROBOT COL', value: currentCol, color: 'text-[#0A84FF] font-semibold' },
+    { label: lang === 'id' ? 'BARIS ROBOT' : 'ROBOT ROW', value: currentRow, color: 'text-[#0A84FF] font-semibold' },
+    { label: lang === 'id' ? 'ARAH GERAKAN' : 'COMMAND TX', value: direction, color: 'text-[#FF9F0A] font-semibold' },
     // Serial Protocol Statistics (only when connected)
     ...(serialConnected ? [
-      { label: 'TX FRAMES', value: serialStats.framesSent, color: 'text-[#2ccb5d]' },
-      { label: 'TX BYTES', value: serialStats.bytesSent, color: 'text-white/70' },
-      { label: 'ACK RX', value: serialStats.ackReceived, color: 'text-[#38bdf8]' },
-      { label: 'CHK ERR', value: serialStats.checksumErrors, color: serialStats.checksumErrors > 0 ? 'text-red-500 font-bold' : 'text-white/40' },
+      { label: 'TX FRAMES', value: serialStats.framesSent, color: 'text-[#32D74B]' },
+      { label: 'TX BYTES', value: serialStats.bytesSent, color: 'text-white/60' },
+      { label: 'ACK RX', value: serialStats.ackReceived, color: 'text-[#64D2FF]' },
+      { label: 'CHK ERR', value: serialStats.checksumErrors, color: serialStats.checksumErrors > 0 ? 'text-[#FF453A] font-bold' : 'text-white/30' },
     ] : []),
   ];
 
   return (
-    <div className="space-y-1.5 select-none">
-      <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+    <div className="space-y-2.5 select-none">
+      <span className="ios-label">
         {t.telemetry}
       </span>
-      <div className="space-y-1 bg-black border border-[#3c3c3c] p-2 font-mono text-[10.5px] rounded-none">
+      <div className="space-y-1 glass-card p-3 font-mono text-[11px]">
         {stats.map((s) => (
-          <div key={s.label} className="flex justify-between items-center border-b border-white/5 pb-1 last:border-0 last:pb-0">
-            <span className="text-white/30 uppercase tracking-wider text-[9px]">{s.label}</span>
-            <span className={`${s.color} tracking-wider`}>{s.value}</span>
+          <div key={s.label} className="flex justify-between items-center border-b border-white/4 pb-1.5 last:border-0 last:pb-0">
+            <span className="text-white/30 text-[10px] font-medium tracking-wide">{s.label}</span>
+            <span className={`${s.color} tracking-wide`}>{s.value}</span>
           </div>
         ))}
       </div>
