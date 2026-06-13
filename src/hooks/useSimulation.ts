@@ -7,11 +7,19 @@ interface SerialWriter {
   releaseLock(): void;
 }
 
+interface SerialReader {
+  read(): Promise<{ done: boolean; value: Uint8Array | undefined }>;
+  releaseLock(): void;
+}
+
 interface SerialPort {
   open(options: { baudRate: number }): Promise<void>;
   close(): Promise<void>;
   writable: {
     getWriter(): SerialWriter;
+  };
+  readable?: {
+    getReader(): SerialReader;
   };
 }
 
@@ -20,6 +28,34 @@ interface NavigatorWithSerial {
     requestPort(): Promise<SerialPort>;
   };
 }
+
+// ── Framed Serial Protocol Constants ──
+// Frame format: [STX][CMD][CHECKSUM][ETX] — 4 bytes per frame
+// CHECKSUM = CMD XOR 0xFF (bitwise NOT for single-byte integrity check)
+// ACK response from Arduino: [STX][0x06][0xF9][ETX]
+const STX = 0x02; // Start of Text — frame delimiter
+const ETX = 0x03; // End of Text — frame delimiter
+const ACK_BYTE = 0x06; // Acknowledge — positive response from receiver
+
+export interface SerialStats {
+  framesSent: number;
+  bytesSent: number;
+  ackReceived: number;
+  checksumErrors: number;
+}
+
+const INITIAL_STATS: SerialStats = { framesSent: 0, bytesSent: 0, ackReceived: 0, checksumErrors: 0 };
+
+// ── Finite State Machine — Valid Transition Map ──
+// Mirrors processor control-unit state transition tables.
+// Invalid transitions are silently rejected to prevent FSM corruption.
+const VALID_TRANSITIONS: Record<SimulationState, Set<SimulationState>> = {
+  idle: new Set(['exploring']),
+  exploring: new Set(['pathing', 'done']),
+  pathing: new Set(['moving']),
+  moving: new Set(['done', 'moving']),   // moving→moving = replan (interrupt-driven)
+  done: new Set(['idle']),
+};
 
 export function useSimulation() {
   const [state, setState] = useState<SimulationState>('idle');
@@ -46,6 +82,12 @@ export function useSimulation() {
   const [fogMode, setFogMode] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
+  // ── Serial Protocol Statistics ──
+  const [serialStats, setSerialStats] = useState<SerialStats>({ ...INITIAL_STATS });
+  const serialStatsRef = useRef<SerialStats>({ ...INITIAL_STATS });
+  const serialReaderRef = useRef<SerialReader | null>(null);
+  const readLoopActiveRef = useRef(false);
+
   const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
     setToast({ type, message });
   }, []);
@@ -62,6 +104,37 @@ export function useSimulation() {
     stateRef.current = state;
   }, [state]);
 
+  // ── FSM Guard — Validated state transition ──
+  // Rejects illegal transitions (analogous to control-unit hazard detection).
+  const transitionState = useCallback((next: SimulationState) => {
+    if (VALID_TRANSITIONS[stateRef.current]?.has(next)) {
+      setState(next);
+    } else if (stateRef.current !== next) {
+      console.warn(`[FSM] Blocked invalid transition: ${stateRef.current} → ${next}`);
+    }
+  }, []);
+
+  // ── Apply algorithm result to all simulation state ──
+  // Centralizes the 12-setter pattern used by run/compare/select/replan,
+  // analogous to a microcode sequencer that applies a decoded instruction's effects.
+  const applyAlgorithmResult = useCallback(
+    (result: ReturnType<typeof runAlgorithm>, vstepInit: number, nextState: SimulationState) => {
+      visitOrderRef.current = result.visitOrder;
+      pathRef.current = result.path;
+      setVisitOrder(result.visitOrder);
+      setPath(result.path);
+      setPathCost(result.pathCost || 0);
+      setComputeTime(result.time);
+      setGScores(result.gScores || {});
+      setHScores(result.hScores || {});
+      setVstep(vstepInit);
+      setPstep(0);
+      setRobotT(0);
+      transitionState(nextState);
+    },
+    [transitionState]
+  );
+
   const reset = useCallback(() => {
     setState('idle');
     setVstep(0);
@@ -74,43 +147,23 @@ export function useSimulation() {
     setComparison(null);
     setGScores({});
     setHScores({});
+    serialStatsRef.current = { ...INITIAL_STATS };
+    setSerialStats({ ...INITIAL_STATS });
   }, []);
 
   const run = useCallback(
     (grid: Grid, start: Position, end: Position) => {
       const result = runAlgorithm(algorithm, grid, start, end, diagonal);
-      visitOrderRef.current = result.visitOrder;
-      pathRef.current = result.path;
-      setVisitOrder(result.visitOrder);
-      setPath(result.path);
-      setPathCost(result.pathCost || 0);
-      setComputeTime(result.time);
-      setGScores(result.gScores || {});
-      setHScores(result.hScores || {});
-      setVstep(0);
-      setPstep(0);
-      setRobotT(0);
-      setState('exploring');
+      applyAlgorithmResult(result, 0, 'exploring');
     },
-    [algorithm, diagonal]
+    [algorithm, diagonal, applyAlgorithmResult]
   );
 
   const stepOnce = useCallback(
     (grid: Grid, start: Position, end: Position) => {
       if (stateRef.current === 'idle') {
         const result = runAlgorithm(algorithm, grid, start, end, diagonal);
-        visitOrderRef.current = result.visitOrder;
-        pathRef.current = result.path;
-        setVisitOrder(result.visitOrder);
-        setPath(result.path);
-        setPathCost(result.pathCost || 0);
-        setComputeTime(result.time);
-        setGScores(result.gScores || {});
-        setHScores(result.hScores || {});
-        setVstep(1);
-        setPstep(0);
-        setRobotT(0);
-        setState('exploring');
+        applyAlgorithmResult(result, 1, 'exploring');
         return;
       }
       if (stateRef.current === 'exploring') {
@@ -140,7 +193,7 @@ export function useSimulation() {
         });
       }
     },
-    [algorithm, diagonal]
+    [algorithm, diagonal, applyAlgorithmResult]
   );
 
   const compareAll = useCallback(
@@ -156,20 +209,9 @@ export function useSimulation() {
 
       // Visualize A* result
       const best = results.find((r) => r.algorithm === 'astar')!;
-      visitOrderRef.current = best.result.visitOrder;
-      pathRef.current = best.result.path;
-      setVisitOrder(best.result.visitOrder);
-      setPath(best.result.path);
-      setPathCost(best.result.pathCost || 0);
-      setComputeTime(best.result.time);
-      setGScores(best.result.gScores || {});
-      setHScores(best.result.hScores || {});
-      setVstep(0);
-      setPstep(0);
-      setRobotT(0);
-      setState('exploring');
+      applyAlgorithmResult(best.result, 0, 'exploring');
     },
-    [diagonal]
+    [diagonal, applyAlgorithmResult]
   );
 
   const selectComparisonAlgorithm = useCallback((algo: AlgorithmKey) => {
@@ -178,19 +220,45 @@ export function useSimulation() {
     if (!target) return;
     
     setAlgorithm(algo);
-    visitOrderRef.current = target.result.visitOrder;
-    pathRef.current = target.result.path;
-    setVisitOrder(target.result.visitOrder);
-    setPath(target.result.path);
-    setPathCost(target.result.pathCost || 0);
-    setComputeTime(target.result.time);
-    setGScores(target.result.gScores || {});
-    setHScores(target.result.hScores || {});
-    setVstep(0);
-    setPstep(0);
-    setRobotT(0);
-    setState('exploring');
-  }, [comparison]);
+    applyAlgorithmResult(target.result, 0, 'exploring');
+  }, [comparison, applyAlgorithmResult]);
+
+  // ── Serial reader loop for ACK reception ──
+  // Reads incoming bytes from Arduino, validates frame structure and checksum
+  const startReadLoop = useCallback(() => {
+    const read = async () => {
+      while (readLoopActiveRef.current && serialReaderRef.current) {
+        try {
+          const { done, value } = await serialReaderRef.current.read();
+          if (done) break;
+          if (value && value.length >= 4) {
+            // Parse frame: expect [STX][ACK_BYTE][CHECKSUM][ETX]
+            if (value[0] === STX && value[value.length - 1] === ETX) {
+              const cmd = value[1];
+              const checksum = value[2];
+              const expected = (cmd ^ 0xFF) & 0xFF;
+              if (cmd === ACK_BYTE && checksum === expected) {
+                serialStatsRef.current = {
+                  ...serialStatsRef.current,
+                  ackReceived: serialStatsRef.current.ackReceived + 1
+                };
+                setSerialStats({ ...serialStatsRef.current });
+              } else {
+                serialStatsRef.current = {
+                  ...serialStatsRef.current,
+                  checksumErrors: serialStatsRef.current.checksumErrors + 1
+                };
+                setSerialStats({ ...serialStatsRef.current });
+              }
+            }
+          }
+        } catch {
+          break;
+        }
+      }
+    };
+    read();
+  }, []);
 
   // Web Serial Helper Functions
   const connectSerial = useCallback(async (isVirtual = false) => {
@@ -206,8 +274,14 @@ export function useSimulation() {
         writable: {
           getWriter: () => ({
             write: async (chunk: Uint8Array) => {
-              const text = new TextDecoder().decode(chunk);
-              console.log('[VIRTUAL SERIAL] Sent:', text);
+              // Virtual serial: decode frame and simulate ACK
+              console.log('[VIRTUAL SERIAL] Frame:', Array.from(chunk).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' '));
+              // Auto-ACK for virtual serial
+              serialStatsRef.current = {
+                ...serialStatsRef.current,
+                ackReceived: serialStatsRef.current.ackReceived + 1
+              };
+              setSerialStats({ ...serialStatsRef.current });
             },
             releaseLock: () => {}
           })
@@ -225,6 +299,12 @@ export function useSimulation() {
       await port.open({ baudRate: 9600 });
       serialPortRef.current = port;
       serialWriterRef.current = port.writable.getWriter();
+      // Start serial reader for ACK reception if readable is available
+      if (port.readable) {
+        serialReaderRef.current = port.readable.getReader();
+        readLoopActiveRef.current = true;
+        startReadLoop();
+      }
       setSerialConnected(true);
       setIsVirtualSerial(false);
       showToast('success', 'Berhasil terhubung ke Arduino pada Baud Rate 9600.');
@@ -239,10 +319,15 @@ export function useSimulation() {
       }
       showToast('error', userFriendlyMsg);
     }
-  }, [showToast]);
+  }, [showToast, startReadLoop]);
 
   const disconnectSerial = useCallback(async () => {
+    readLoopActiveRef.current = false;
     try {
+      if (serialReaderRef.current) {
+        serialReaderRef.current.releaseLock();
+        serialReaderRef.current = null;
+      }
       if (serialWriterRef.current) {
         serialWriterRef.current.releaseLock();
         serialWriterRef.current = null;
@@ -260,16 +345,33 @@ export function useSimulation() {
     showToast('info', wasVirtual ? 'Koneksi Serial Virtual diputuskan.' : 'Koneksi Serial diputuskan.');
   }, [showToast, isVirtualSerial]);
 
-  const sendSerialChar = useCallback(async (char: string) => {
+  // ── Build a framed serial packet ──
+  // Frame: [STX=0x02][CMD byte][CHECKSUM byte][ETX=0x03]
+  // Checksum = CMD XOR 0xFF ensures single-byte error detection
+  const buildFrame = useCallback((cmdByte: number): Uint8Array => {
+    const checksum = (cmdByte ^ 0xFF) & 0xFF;
+    return new Uint8Array([STX, cmdByte, checksum, ETX]);
+  }, []);
+
+  // ── Send a framed serial command ──
+  // Encodes command character into a 4-byte frame and transmits via serial
+  const sendSerialFrame = useCallback(async (char: string) => {
     if (!serialWriterRef.current) return;
     try {
-      const encoder = new TextEncoder();
-      await serialWriterRef.current.write(encoder.encode(char));
-      console.log('Serial Sent:', char);
+      const cmdByte = char.charCodeAt(0);
+      const frame = buildFrame(cmdByte);
+      await serialWriterRef.current.write(frame);
+      serialStatsRef.current = {
+        ...serialStatsRef.current,
+        framesSent: serialStatsRef.current.framesSent + 1,
+        bytesSent: serialStatsRef.current.bytesSent + frame.length
+      };
+      setSerialStats({ ...serialStatsRef.current });
+      console.log(`[TX Frame] 0x${cmdByte.toString(16).toUpperCase()} '${char}' | Frame: STX CMD CKS ETX`);
     } catch (err) {
-      console.error('Gagal mengirim karakter serial:', err);
+      console.error('Failed to send serial frame:', err);
     }
-  }, []);
+  }, [buildFrame]);
 
   // Monitor path navigation and send commands to Serial
   useEffect(() => {
@@ -299,47 +401,37 @@ export function useSimulation() {
           else if (dy > 0 && dx > 0) cmd = '4';   // Down-Right (Diagonal)
 
           if (cmd) {
-            sendSerialChar(cmd);
+            sendSerialFrame(cmd);
           }
         }
         lastSentIndexRef.current = currentIndex;
       }
     } else if (state === 'done' && lastSentIndexRef.current !== -1) {
-      sendSerialChar('E'); // Send End
+      sendSerialFrame('E'); // Send End frame
       lastSentIndexRef.current = -1;
     } else if (state === 'idle') {
       lastSentIndexRef.current = -1;
     }
-  }, [robotT, state, path, serialConnected, sendSerialChar]);
+  }, [robotT, state, path, serialConnected, sendSerialFrame]);
 
   const replan = useCallback((grid: Grid, robotPos: Position, end: Position) => {
     const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
     lastSentIndexRef.current = -1;
-    visitOrderRef.current = result.visitOrder;
-    pathRef.current = result.path;
-    setVisitOrder(result.visitOrder);
-    setPath(result.path);
-    setPathCost(result.pathCost || 0);
-    setComputeTime(result.time);
-    setGScores(result.gScores || {});
-    setHScores(result.hScores || {});
-    setVstep(result.visitOrder.length);
-    setPstep(result.path.length);
-    setRobotT(0);
-    if (result.path.length === 0) {
-      setState('done');
-    } else {
-      setState('moving');
-    }
-  }, [algorithm, diagonal]);
+    // Replanning skips exploring/pathing — go directly to moving (or done if no path)
+    applyAlgorithmResult(
+      result,
+      result.visitOrder.length,
+      result.path.length === 0 ? 'done' : 'moving'
+    );
+  }, [algorithm, diagonal, applyAlgorithmResult]);
 
   return {
     state, algorithm, visitOrder, path, pathCost,
     vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
     diagonal, gScores, hScores,
-    serialConnected, isVirtualSerial, fogMode, toast,
+    serialConnected, isVirtualSerial, fogMode, toast, serialStats,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
-    setFogMode, connectSerial, disconnectSerial, sendSerialChar,
+    setFogMode, connectSerial, disconnectSerial,
     replan, selectComparisonAlgorithm, setSimultaneous,
     reset, run, stepOnce, compareAll, showToast, setToast,
   };
