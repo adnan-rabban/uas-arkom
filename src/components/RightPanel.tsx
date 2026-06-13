@@ -268,12 +268,12 @@ void loop() {
     <div className="h-full flex flex-col justify-between min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto space-y-4 scrollbar-none pr-0.5">
         {/* Speed Control */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+            <span className="ios-label">
               {t.speed}
             </span>
-            <span className="text-[10.5px] font-mono text-white/25">{props.speed}x</span>
+            <span className="text-[11px] font-mono text-white/30 bg-white/6 px-2 py-0.5 rounded-full">{props.speed}x</span>
           </div>
           <Slider
             value={[props.speed]}
@@ -288,21 +288,21 @@ void loop() {
           />
         </div>
 
-        <Separator className="bg-white/5" />
+        <Separator className="bg-white/6" />
 
         {/* Action Buttons */}
-        <div className="space-y-1.5">
-          <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
+        <div className="space-y-2.5">
+          <span className="ios-label">
             {t.actions}
           </span>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={props.onRun}
               disabled={isRunning}
               size="sm"
-              className="bg-white text-black font-bold uppercase rounded-none border border-white hover:bg-transparent hover:text-white transition-all text-[9.5px] tracking-widest h-7 cursor-pointer disabled:opacity-40"
+              className="ios-btn ios-btn-primary rounded-xl h-9 text-[12px] cursor-pointer disabled:opacity-30"
             >
-              <Play className="w-2.5 h-2.5 mr-1" />
+              <Play className="w-3.5 h-3.5 mr-1.5" />
               {t.run}
             </Button>
 
@@ -310,9 +310,9 @@ void loop() {
               onClick={props.onStep}
               size="sm"
               variant="ghost"
-              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
+              className="ios-btn ios-btn-secondary rounded-xl h-9 text-[12px] cursor-pointer"
             >
-              <SkipForward className="w-2.5 h-2.5 mr-1" />
+              <SkipForward className="w-3.5 h-3.5 mr-1.5" />
               {t.step}
             </Button>
 
@@ -320,9 +320,9 @@ void loop() {
               onClick={props.onReset}
               size="sm"
               variant="ghost"
-              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
+              className="ios-btn ios-btn-secondary rounded-xl h-9 text-[12px] cursor-pointer"
             >
-              <RotateCcw className="w-2.5 h-2.5 mr-1" />
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
               {t.reset}
             </Button>
 
@@ -330,15 +330,15 @@ void loop() {
               onClick={props.onClear}
               size="sm"
               variant="ghost"
-              className="text-white/40 border border-[#3c3c3c] hover:border-white hover:text-white hover:bg-transparent rounded-none text-[9.5px] tracking-widest font-bold h-7 cursor-pointer"
+              className="ios-btn ios-btn-danger rounded-xl h-9 text-[12px] cursor-pointer"
             >
-              <Trash2 className="w-2.5 h-2.5 mr-1" />
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
               {t.clear}
             </Button>
           </div>
         </div>
 
-        <Separator className="bg-white/5" />
+        <Separator className="bg-white/6" />
 
         {/* Telemetry */}
         <TelemetryPanel
@@ -356,19 +356,19 @@ void loop() {
           serialStats={props.serialStats}
         />
 
-        <Separator className="bg-white/5" />
+        <Separator className="bg-white/6" />
 
         {/* Serial & Code Exporters Block */}
-        <div className="space-y-1.5">
-          <span className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4]">
-            {t.serialTitle} & {t.exportPath}
+        <div className="space-y-2.5">
+          <span className="ios-label">
+            {t.serialTitle}
           </span>
-          <div className="bg-black border border-[#3c3c3c] p-2 space-y-2 rounded-none">
+          <div className="glass-card p-3 space-y-3">
             {/* Web Serial status & connect button */}
             <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-[8px] uppercase tracking-wider text-white/30">Serial Status</span>
-                <span className={`text-[9.5px] font-mono font-bold ${props.serialConnected ? "text-[#2ccb5d]" : "text-white/20"}`}>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] text-white/30 font-medium">Serial Status</span>
+                <span className={`text-[12px] font-semibold ${props.serialConnected ? "text-[#32D74B]" : "text-white/25"}`}>
                   {props.serialConnected 
                     ? (props.isVirtualSerial 
                         ? (props.lang === 'id' ? 'Terhubung (Virtual)' : 'Connected (Virtual)') 
@@ -380,10 +380,10 @@ void loop() {
                 onClick={() => setSerialModalOpen(true)}
                 size="sm"
                 variant="ghost"
-                className={`text-[9px] font-mono tracking-widest uppercase border rounded-none h-6 px-2 cursor-pointer ${
+                className={`ios-btn h-7 px-3 text-[11px] cursor-pointer rounded-full ${
                   props.serialConnected
-                    ? 'bg-red-950/30 text-red-500 border-red-900/50 hover:bg-red-900/40 hover:text-red-400'
-                    : 'border-[#3c3c3c] text-white/60 hover:border-white hover:text-white'
+                    ? 'ios-btn-danger'
+                    : 'ios-btn-secondary'
                 }`}
               >
                 {props.serialConnected ? t.serialDisconnect : t.serialConnect}
@@ -391,7 +391,7 @@ void loop() {
             </div>
 
             {/* Code exporters buttons */}
-            <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-white/5">
+            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/6">
               <Button
                 onClick={() => {
                   setSelectedModalTab('live');
@@ -399,7 +399,7 @@ void loop() {
                 }}
                 size="sm"
                 variant="ghost"
-                className="text-[9px] font-mono tracking-wider uppercase border border-[#3c3c3c] hover:border-white hover:text-white rounded-none h-6 px-1 cursor-pointer"
+                className="ios-btn ios-btn-secondary rounded-lg h-7 text-[10px] cursor-pointer"
                 title={t.arduinoCodeTitle}
               >
                 live.ino
@@ -412,7 +412,7 @@ void loop() {
                 }}
                 size="sm"
                 variant="ghost"
-                className="text-[9px] font-mono tracking-wider uppercase border border-[#3c3c3c] hover:border-white hover:text-white rounded-none h-6 px-1 cursor-pointer disabled:opacity-30 disabled:hover:border-[#3c3c3c] disabled:hover:text-white/30"
+                className="ios-btn ios-btn-secondary rounded-lg h-7 text-[10px] cursor-pointer disabled:opacity-25"
                 title="arduino_route.c"
               >
                 route.c
@@ -425,7 +425,7 @@ void loop() {
                 }}
                 size="sm"
                 variant="ghost"
-                className="text-[9px] font-mono tracking-wider uppercase border border-[#3c3c3c] hover:border-white hover:text-white rounded-none h-6 px-1 cursor-pointer disabled:opacity-30 disabled:hover:border-[#3c3c3c] disabled:hover:text-white/30"
+                className="ios-btn ios-btn-secondary rounded-lg h-7 text-[10px] cursor-pointer disabled:opacity-25"
                 title="route.asm"
               >
                 route.asm
@@ -434,31 +434,31 @@ void loop() {
           </div>
         </div>
 
-        <Separator className="bg-white/5" />
+        <Separator className="bg-white/6" />
 
         {/* Memory Map Collapsible (Open by default) */}
         <Collapsible open={memoryOpen} onOpenChange={setMemoryOpen}>
-          <CollapsibleTrigger className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
-            <span className="flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5" />
+          <CollapsibleTrigger className="ios-label flex items-center gap-2 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
+            <span className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-[#0A84FF]" />
               {t.memoryMapTitle}
               {props.path.length > 127 && (
-                <span className="text-red-500 font-bold text-[9px] animate-pulse ml-2 normal-case tracking-normal">
+                <span className="text-[#FF453A] font-semibold text-[10px] animate-pulse ml-1 normal-case bg-[#FF453A]/10 px-2 py-0.5 rounded-full">
                   {props.lang === 'id' ? 'TERPOTONG (16-BIT ADDR)' : 'TRUNCATED (16-BIT ADDR)'}
                 </span>
               )}
             </span>
-            <span className="text-[9px] text-white/30 font-mono">{memoryOpen ? '[ HIDE ]' : '[ SHOW ]'}</span>
+            <span className="text-[10px] text-white/20 font-mono">{memoryOpen ? '[ \u2212 ]' : '[ + ]'}</span>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-1.5">
-            <p className="text-[10px] text-white/30 font-light leading-normal">
+          <CollapsibleContent className="mt-3 space-y-2">
+            <p className="text-[11px] text-white/35 font-normal leading-relaxed">
               {t.memoryMapDesc}
             </p>
 
-            <div className="bg-black border border-[#3c3c3c] p-1.5 rounded-none font-mono text-[8.5px] leading-tight select-none pcb-grid relative overflow-hidden">
+            <div className="glass-card p-2 font-mono text-[8.5px] leading-tight select-none pcb-grid relative overflow-hidden">
               {/* Mini PCB corner details */}
-              <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#1c69d4]/30 pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#1c69d4]/30 pointer-events-none" />
+              <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#0A84FF]/30 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#0A84FF]/30 pointer-events-none" />
               {/* Header */}
               <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
                 <span className="w-3.75 shrink-0">ADR</span>
@@ -507,9 +507,9 @@ void loop() {
                       
                       if (isActive) {
                         textColor = 'text-white font-bold';
-                        bgColor = 'bg-[#1c69d4]';
+                        bgColor = 'bg-[#0A84FF]';
                       } else if (isLength) {
-                        textColor = 'text-[#2ccb5d] font-bold';
+                        textColor = 'text-[#32D74B] font-bold';
                       } else if (val > 0) {
                         textColor = 'text-white/70';
                       }
@@ -541,20 +541,20 @@ void loop() {
         </Collapsible>
 
         {/* Live Console Logs */}
-        <Separator className="bg-white/5" />
+        <Separator className="bg-white/6" />
         
         <Collapsible open={consoleOpen} onOpenChange={setConsoleOpen}>
-          <CollapsibleTrigger className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
-            <span className="flex items-center gap-1.5">
-              <span className="led-dot led-blue led-pulse" />
-              {props.lang === 'id' ? 'KONSOL SERIAL' : 'SERIAL CONSOLE'}
+          <CollapsibleTrigger className="ios-label flex items-center gap-2 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
+            <span className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${consoleOpen ? 'bg-[#0A84FF]' : 'bg-white/15'}`} />
+              {props.lang === 'id' ? 'Konsol Serial' : 'Serial Console'}
             </span>
-            <span className="text-[9px] text-white/30 font-mono">{consoleOpen ? '[ HIDE ]' : '[ SHOW ]'}</span>
+            <span className="text-[10px] text-white/20 font-mono">{consoleOpen ? '[ \u2212 ]' : '[ + ]'}</span>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2">
-            <div className="bg-black border border-[#3c3c3c] p-2 rounded-none font-mono text-[9px] text-emerald-500 h-25 overflow-y-auto scrollbar-thin space-y-0.5 leading-normal select-none">
+          <CollapsibleContent className="mt-3">
+            <div className="glass-card p-3 font-mono text-[10px] text-[#32D74B] h-27.5 overflow-y-auto scrollbar-thin space-y-1 leading-relaxed select-none">
               {logs.length === 0 ? (
-                <div className="text-white/20 italic">No activity logs yet.</div>
+                <div className="text-white/15 italic text-[11px]">No activity logs yet.</div>
               ) : (
                 logs.map((log, idx) => (
                   <div key={idx} className="whitespace-pre-wrap font-mono">
@@ -566,16 +566,16 @@ void loop() {
           </CollapsibleContent>
         </Collapsible>
 
-        <Separator className="bg-white/5" />
+        <Separator className="bg-white/6" />
 
         {/* Keyboard Shortcuts */}
         <Button
           onClick={() => setShortcutsModalOpen(true)}
           variant="ghost"
           size="sm"
-          className="w-full flex items-center justify-center gap-1.5 text-[10.5px] tracking-wider font-mono text-white/15 hover:text-white/35 hover:bg-white/5 border border-dashed border-white/10 rounded-none h-7 cursor-pointer"
+          className="w-full ios-btn ios-btn-secondary rounded-xl h-9 text-[12px] text-white/25 hover:text-white/50 cursor-pointer"
         >
-          <Keyboard className="w-3.5 h-3.5" />
+          <Keyboard className="w-4 h-4 mr-2" />
           {t.shortcuts}
         </Button>
       </div>
@@ -584,10 +584,10 @@ void loop() {
       <Modal 
         isOpen={codeModalOpen} 
         onClose={() => setCodeModalOpen(false)} 
-        title={t.exportPath || 'Code Export'}
+        title="Code Export"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-3 border border-[#3c3c3c] bg-black p-0.5 rounded-none mb-2">
+          <div className="ios-segmented flex mb-2">
             {([
               { id: 'c', label: 'arduino_route.c' },
               { id: 'asm', label: 'route.asm' },
@@ -597,20 +597,17 @@ void loop() {
                 key={tab.id}
                 type="button"
                 onClick={() => setSelectedModalTab(tab.id)}
-                className={`py-1 text-[9px] font-mono tracking-wider font-bold transition-all cursor-pointer rounded-none text-center ${
-                  selectedModalTab === tab.id
-                    ? 'bg-[#1c69d4] text-white'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                }`}
+                data-active={selectedModalTab === tab.id}
+                className="ios-segmented-item flex-1 py-1.5 text-center cursor-pointer"
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="bg-black border border-[#3c3c3c] p-3 rounded-none relative">
-            <div className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1.5 mb-2 font-mono text-white/40">
-              <span>
+          <div className="glass-card p-4 relative">
+            <div className="flex justify-between items-center text-[11px] border-b border-white/6 pb-2 mb-3 font-mono text-white/35">
+              <span className="font-medium">
                 {selectedModalTab === 'c' && 'arduino_route.c'}
                 {selectedModalTab === 'asm' && 'route.asm'}
                 {selectedModalTab === 'live' && 'live_receiver.ino'}
@@ -620,12 +617,12 @@ void loop() {
                   const code = selectedModalTab === 'c' ? getArduinoCode() : selectedModalTab === 'asm' ? getAssemblyCode() : getArduinoLiveCode();
                   handleCopy(code, selectedModalTab);
                 }}
-                className="hover:text-white transition-colors cursor-pointer text-[10px] text-[#1c69d4] font-bold"
+                className="hover:text-[#409CFF] transition-colors cursor-pointer text-[11px] text-[#0A84FF] font-semibold"
               >
                 {copiedType === selectedModalTab ? t.copied : t.copyCode}
               </button>
             </div>
-            <pre className="text-[11px] font-mono text-white/70 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-87.5 scrollbar-thin">
+            <pre className="text-[11px] font-mono text-white/65 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-87.5 scrollbar-thin">
               {selectedModalTab === 'c' && getArduinoCode()}
               {selectedModalTab === 'asm' && getAssemblyCode()}
               {selectedModalTab === 'live' && getArduinoLiveCode()}
@@ -640,7 +637,7 @@ void loop() {
         onClose={() => setShortcutsModalOpen(false)} 
         title={t.shortcuts || 'Keyboard Shortcuts'}
       >
-        <div className="space-y-1.5 py-1">
+        <div className="space-y-2 py-1">
           {[
             ['Space', t.run],
             ['S', t.step],
@@ -652,11 +649,11 @@ void loop() {
             ['5', t.mud.split(' ')[0]],
             ['4', t.erase],
           ].map(([key, label]) => (
-            <div key={key} className="flex items-center justify-between py-1 border-b border-white/5 last:border-0">
-              <kbd className="text-[10px] font-mono bg-[#1a1a1a] border border-[#3c3c3c] rounded-none px-1.5 py-0.5 text-white/60">
+            <div key={key} className="flex items-center justify-between py-2 border-b border-white/4 last:border-0">
+              <kbd className="text-[11px] font-mono bg-white/6 border border-white/8 rounded-lg px-2.5 py-1 text-white/60 font-medium min-w-9 text-center">
                 {key}
               </kbd>
-              <span className="text-[11px] text-white/50">{label}</span>
+              <span className="text-[12px] text-white/45 font-medium">{label}</span>
             </div>
           ))}
         </div>
@@ -686,25 +683,25 @@ interface ModalProps {
 function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
       <div 
-        className="bg-[#0d0d0d] border border-[#3c3c3c] w-full max-w-125 flex flex-col justify-between shadow-2xl relative"
+        className="glass-modal w-full max-w-125 flex flex-col justify-between shadow-2xl relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#3c3c3c] px-4 py-3 bg-black">
-          <span className="text-[11px] font-mono tracking-widest uppercase font-bold text-[#1c69d4]">
+        <div className="flex items-center justify-between border-b border-white/6 px-5 py-4">
+          <span className="text-[14px] font-semibold text-white/90">
             {title}
           </span>
           <button 
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors cursor-pointer font-mono text-xs uppercase tracking-wider font-bold"
+            className="text-[#0A84FF] hover:text-[#409CFF] transition-colors cursor-pointer font-medium text-[14px]"
           >
-            [ Close ]
+            Done
           </button>
         </div>
         {/* Content */}
-        <div className="p-4 overflow-y-auto max-h-[70vh] scrollbar-thin">
+        <div className="p-5 overflow-y-auto max-h-[70vh] scrollbar-thin">
           {children}
         </div>
       </div>
