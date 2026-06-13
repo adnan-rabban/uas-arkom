@@ -231,8 +231,8 @@ export default function App() {
 
   return (
     <TooltipProvider delay={300}>
-      <div className="h-screen w-screen bg-black flex items-center justify-center p-2 lg:p-4 overflow-hidden">
-        <div className={`w-full max-w-360 h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col transition-all duration-500 ${getGlowClass()}`}>
+      <div className="h-screen w-screen flex items-center justify-center p-2 lg:p-4 overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c0c10 0%, #08080c 50%, #0a0a10 100%)' }}>
+        <div className={`w-full max-w-360 h-full max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col transition-all duration-500 rounded-2xl glass-panel ${getGlowClass()}`}>
           <TopBar
             lang={lang}
             onToggleLang={toggleLang}
@@ -243,7 +243,7 @@ export default function App() {
 
           <div className="flex-1 min-h-0 flex gap-0 relative">
             <div
-              className={`transition-all duration-300 ease-in-out border-r border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none ${
+              className={`transition-all duration-300 ease-in-out border-r border-white/6 bg-transparent shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none ${
                 leftOpen ? 'w-65 p-4' : 'w-0 p-0 border-r-0'
               }`}
             >
@@ -269,7 +269,7 @@ export default function App() {
 
             <button
               onClick={() => setLeftOpen(!leftOpen)}
-              className="absolute top-1/2 -translate-y-1/2 z-10 bg-[#0d0d0d] border border-[#3c3c3c] border-l-0 hover:bg-white hover:text-black text-white/50 w-5 h-16 flex items-center justify-center transition-all cursor-pointer rounded-none"
+              className="absolute top-1/2 -translate-y-1/2 z-10 bg-white/4 backdrop-blur-sm border border-white/8 border-l-0 hover:bg-white/10 hover:text-white text-white/40 w-5 h-16 flex items-center justify-center transition-all cursor-pointer rounded-r-xl"
               style={{ left: leftOpen ? '259px' : '0px', transition: 'left 300ms ease-in-out' }}
               title={leftOpen ? 'Hide Left Sidebar' : 'Show Left Sidebar'}
             >
@@ -309,7 +309,7 @@ export default function App() {
 
             <button
               onClick={() => setRightOpen(!rightOpen)}
-              className="absolute top-1/2 -translate-y-1/2 z-10 bg-[#0d0d0d] border border-[#3c3c3c] border-r-0 hover:bg-white hover:text-black text-white/50 w-5 h-16 flex items-center justify-center transition-all cursor-pointer rounded-none"
+              className="absolute top-1/2 -translate-y-1/2 z-10 bg-white/4 backdrop-blur-sm border border-white/8 border-r-0 hover:bg-white/10 hover:text-white text-white/40 w-5 h-16 flex items-center justify-center transition-all cursor-pointer rounded-l-xl"
               style={{ right: rightOpen ? '259px' : '0px', transition: 'right 300ms ease-in-out' }}
               title={rightOpen ? 'Hide Right Sidebar' : 'Show Right Sidebar'}
             >
@@ -317,7 +317,7 @@ export default function App() {
             </button>
 
             <div
-              className={`transition-all duration-300 ease-in-out border-l border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-hidden ${
+              className={`transition-all duration-300 ease-in-out border-l border-white/6 bg-transparent shrink-0 overflow-hidden ${
                 rightOpen ? 'w-65 p-4' : 'w-0 p-0 border-l-0'
               }`}
             >
