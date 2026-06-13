@@ -1,4 +1,5 @@
 import type { SimulationState, Language } from '@/types';
+import type { SerialStats } from '@/hooks/useSimulation';
 import { translations } from '@/lib/constants';
 
 interface TelemetryPanelProps {
@@ -12,6 +13,8 @@ interface TelemetryPanelProps {
   currentCol: number | string;
   currentRow: number | string;
   direction: string;
+  serialConnected: boolean;
+  serialStats: SerialStats;
 }
 
 export function TelemetryPanel({
@@ -25,6 +28,8 @@ export function TelemetryPanel({
   currentCol,
   currentRow,
   direction,
+  serialConnected,
+  serialStats,
 }: TelemetryPanelProps) {
   const t = translations[lang];
 
@@ -52,6 +57,13 @@ export function TelemetryPanel({
     { label: lang === 'id' ? 'KOLOM ROBOT' : 'ROBOT COL', value: currentCol, color: 'text-[#1c69d4] font-bold' },
     { label: lang === 'id' ? 'BARIS ROBOT' : 'ROBOT ROW', value: currentRow, color: 'text-[#1c69d4] font-bold' },
     { label: lang === 'id' ? 'ARAH GERAKAN' : 'COMMAND TX', value: direction, color: 'text-[#e0a800] font-bold' },
+    // Serial Protocol Statistics (only when connected)
+    ...(serialConnected ? [
+      { label: 'TX FRAMES', value: serialStats.framesSent, color: 'text-[#2ccb5d]' },
+      { label: 'TX BYTES', value: serialStats.bytesSent, color: 'text-white/70' },
+      { label: 'ACK RX', value: serialStats.ackReceived, color: 'text-[#38bdf8]' },
+      { label: 'CHK ERR', value: serialStats.checksumErrors, color: serialStats.checksumErrors > 0 ? 'text-red-500 font-bold' : 'text-white/40' },
+    ] : []),
   ];
 
   return (
