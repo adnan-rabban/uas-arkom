@@ -17,43 +17,43 @@ export function Toast({ type, message, onClose }: ToastProps) {
 
   const config = {
     success: {
-      icon: <CheckCircle2 className="w-4 h-4 text-[#2ccb5d] shrink-0" />,
-      borderLeft: 'border-l-4 border-l-[#2ccb5d]',
+      icon: <CheckCircle2 className="w-4 h-4 text-[#32D74B] shrink-0" />,
+      borderLeft: 'border-l-4 border-l-[#32D74B]',
       title: 'Success',
-      titleColor: 'text-[#2ccb5d]'
+      titleColor: 'text-[#32D74B]'
     },
     error: {
-      icon: <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />,
-      borderLeft: 'border-l-4 border-l-red-500',
+      icon: <AlertCircle className="w-4 h-4 text-[#FF453A] shrink-0" />,
+      borderLeft: 'border-l-4 border-l-[#FF453A]',
       title: 'Error',
-      titleColor: 'text-red-500'
+      titleColor: 'text-[#FF453A]'
     },
     warning: {
-      icon: <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />,
-      borderLeft: 'border-l-4 border-l-amber-500',
+      icon: <AlertTriangle className="w-4 h-4 text-[#FF9F0A] shrink-0" />,
+      borderLeft: 'border-l-4 border-l-[#FF9F0A]',
       title: 'Warning',
-      titleColor: 'text-amber-500'
+      titleColor: 'text-[#FF9F0A]'
     },
     info: {
-      icon: <Info className="w-4 h-4 text-[#1c69d4] shrink-0" />,
-      borderLeft: 'border-l-4 border-l-[#1c69d4]',
+      icon: <Info className="w-4 h-4 text-[#0A84FF] shrink-0" />,
+      borderLeft: 'border-l-4 border-l-[#0A84FF]',
       title: 'Info',
-      titleColor: 'text-[#1c69d4]'
+      titleColor: 'text-[#0A84FF]'
     }
   }[type];
 
   return (
     <div 
-      className={`fixed bottom-4 right-4 z-50 flex items-start gap-3 bg-black/90 border border-[#3c3c3c] ${config.borderLeft} p-3.5 shadow-2xl max-w-[340px] animate-in slide-in-from-bottom-4 fade-in duration-300 font-mono select-none backdrop-blur-md`}
+      className={`fixed bottom-4 right-4 z-50 flex items-start gap-3 glass-modal ${config.borderLeft} p-4 shadow-2xl max-w-85 animate-in slide-in-from-bottom-4 fade-in duration-300 select-none rounded-2xl`}
       role="alert"
     >
       {config.icon}
       
-      <div className="flex-1 space-y-0.5 min-w-0">
-        <div className={`text-[10px] font-bold uppercase tracking-wider ${config.titleColor}`}>
+      <div className="flex-1 space-y-1 min-w-0">
+        <div className={`text-[11px] font-semibold ${config.titleColor}`}>
           {config.title}
         </div>
-        <p className="text-[10.5px] text-white/80 leading-normal font-light wrap-break-word">
+        <p className="text-[11px] text-white/75 leading-relaxed font-normal wrap-break-word">
           {message}
         </p>
       </div>
