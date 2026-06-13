@@ -37,37 +37,37 @@ export function ComparisonPanel({
     : 0;
 
   const algoColors: Record<string, string> = {
-    astar: 'border-[#1c69d4]',
-    dijkstra: 'border-[#0653b6]',
-    bfs: 'border-[#e22718]',
+    astar: 'border-[#0A84FF]/40',
+    dijkstra: 'border-[#5E5CE6]/40',
+    bfs: 'border-[#FF3B30]/40',
   };
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="shrink-0">
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-5 py-2.5 border-t border-[#3c3c3c] bg-[#0d0d0d] hover:bg-white/2 transition-colors cursor-pointer rounded-none">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-5 py-3 border-t border-white/6 bg-white/2 hover:bg-white/4 transition-colors cursor-pointer rounded-none">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4]">
+          <span className="ios-label">
             {t.comparison}
           </span>
-          <span className="text-[9px] text-white/15">— {t.comparisonSubtitle}</span>
+          <span className="text-[10px] text-white/20 font-medium">— {t.comparisonSubtitle}</span>
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-white/20 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-white/25 transition-transform ${open ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="px-5 py-4 bg-black border-t border-[#3c3c3c] select-none">
+        <div className="px-5 py-4 bg-white/2 border-t border-white/6 select-none">
           <div className="flex items-center justify-end mb-3">
-            <label className="flex items-center gap-1.5 cursor-pointer text-white/50 hover:text-white/80 transition-colors select-none text-[9px] uppercase font-mono tracking-wider">
+            <label className="flex items-center gap-2 cursor-pointer text-white/50 hover:text-white/80 transition-colors select-none text-[11px] font-medium">
               <input
                 type="checkbox"
                 checked={simultaneous}
                 onChange={(e) => onToggleSimultaneous(e.target.checked)}
-                className="w-3.5 h-3.5 rounded-none border-[#3c3c3c] bg-black text-[#1c69d4] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-4 h-4 rounded-md border-white/15 bg-white/6 text-[#0A84FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
               <span>{lang === 'id' ? 'Animasikan Bersamaan' : 'Animate Simultaneously'}</span>
             </label>
           </div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-3">
             {(() => {
               const maxExplored = Math.max(...results.map((r) => r.result.visitOrder.length));
               const maxPath = Math.max(...results.map((r) => r.result.path.length));
@@ -79,25 +79,25 @@ export function ComparisonPanel({
                   <Card
                     key={r.algorithm}
                     onClick={() => onSelectVisualization(r.algorithm as AlgorithmKey)}
-                    className={`bg-[#0d0d0d] rounded-none cursor-pointer transition-all duration-300 hover:scale-[1.01] select-none ${
+                    className={`glass-card cursor-pointer transition-all duration-300 hover:scale-[1.01] select-none ${
                       isVisualizing
-                        ? `border-2 ${algoColors[r.algorithm]} shadow-[0_0_12px_rgba(28,105,212,0.2)]`
-                        : 'border-[#3c3c3c] hover:border-white/20'
+                        ? `border-2 ${algoColors[r.algorithm]} shadow-[0_0_20px_rgba(0,122,255,0.12)]`
+                        : 'hover:border-white/15'
                     }`}
                   >
-                    <CardContent className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1 mb-2">
-                        <span className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
+                    <CardContent className="p-3.5 text-center">
+                      <div className="flex items-center justify-center gap-1.5 mb-2">
+                        <span className="text-[11px] font-semibold text-white/45">
                           {r.label}
                         </span>
                         {isBest && (
-                          <Badge variant="secondary" className="bg-[#e22718] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider">
-                            <Trophy className="w-2.5 h-2.5 mr-0.5" />
+                          <Badge variant="secondary" className="bg-[#FF3B30]/15 text-[#FF453A] border-none text-[9px] px-2 py-0.5 rounded-full font-semibold">
+                            <Trophy className="w-3 h-3 mr-0.5" />
                             {t.bestLabel}
                           </Badge>
                         )}
                         {isVisualizing && (
-                          <Badge variant="secondary" className="bg-[#1c69d4] text-white border-none text-[8px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-wider animate-pulse">
+                          <Badge variant="secondary" className="bg-[#0A84FF]/15 text-[#0A84FF] border-none text-[9px] px-2 py-0.5 rounded-full font-semibold animate-pulse">
                             {lang === 'id' ? 'AKTIF' : 'ACTIVE'}
                           </Badge>
                         )}
@@ -107,60 +107,60 @@ export function ComparisonPanel({
                       <div className={`text-xl font-mono font-bold ${isBest ? 'text-white' : 'text-white/30'}`}>
                         {r.result.visitOrder.length}
                       </div>
-                      <div className="text-[8px] tracking-wider uppercase text-white/15 mt-0.5">{t.nodesExplored}</div>
-                      <div className="w-full bg-white/5 h-1 mt-1 rounded-none overflow-hidden">
+                      <div className="text-[9px] font-medium text-white/20 mt-0.5">{t.nodesExplored}</div>
+                      <div className="w-full bg-white/6 h-1 mt-1.5 rounded-full overflow-hidden">
                         <div 
-                          className={`h-full transition-all duration-500 ${
-                            r.algorithm === 'astar' ? 'bg-[#1c69d4]' : r.algorithm === 'bfs' ? 'bg-[#e22718]' : 'bg-white/40'
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            r.algorithm === 'astar' ? 'bg-[#0A84FF]' : r.algorithm === 'bfs' ? 'bg-[#FF3B30]' : 'bg-[#5E5CE6]'
                           }`} 
                           style={{ width: `${maxExplored > 0 ? (r.result.visitOrder.length / maxExplored) * 100 : 0}%` }}
                         />
                       </div>
 
                       {/* Path Steps & Cost */}
-                      <div className="grid grid-cols-2 gap-1 mt-3 border-t border-white/5 pt-2">
+                      <div className="grid grid-cols-2 gap-1 mt-3 border-t border-white/6 pt-2.5">
                         <div>
-                          <div className={`text-sm font-mono font-bold ${r.result.path.length > 0 ? 'text-emerald-400' : 'text-red-400/50'}`}>
+                          <div className={`text-sm font-mono font-bold ${r.result.path.length > 0 ? 'text-[#32D74B]' : 'text-[#FF453A]/50'}`}>
                             {r.result.path.length || 'N/A'}
                           </div>
-                          <div className="text-[7px] tracking-wider uppercase text-white/30">{t.pathLength}</div>
+                          <div className="text-[8px] font-medium text-white/25">{t.pathLength}</div>
                         </div>
                         <div>
-                          <div className={`text-sm font-mono font-bold ${r.result.path.length > 0 ? 'text-[#38bdf8]' : 'text-red-400/50'}`}>
+                          <div className={`text-sm font-mono font-bold ${r.result.path.length > 0 ? 'text-[#64D2FF]' : 'text-[#FF453A]/50'}`}>
                             {r.result.pathCost !== undefined ? r.result.pathCost : 'N/A'}
                           </div>
-                          <div className="text-[7px] tracking-wider uppercase text-white/30">{t.pathCost}</div>
+                          <div className="text-[8px] font-medium text-white/25">{t.pathCost}</div>
                         </div>
                       </div>
                       {r.result.path.length > 0 && (
-                        <div className="w-full bg-white/5 h-1 mt-1 rounded-none overflow-hidden">
+                        <div className="w-full bg-white/6 h-1 mt-1.5 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-emerald-500/60 transition-all duration-500" 
+                            className="h-full bg-[#32D74B]/60 transition-all duration-500 rounded-full" 
                             style={{ width: `${maxPath > 0 ? (r.result.path.length / maxPath) * 100 : 0}%` }}
                           />
                         </div>
                       )}
 
-                      <div className="text-[10px] font-mono text-white/20 mt-3">{r.result.time}ms</div>
-                      <div className="text-[8px] tracking-wider uppercase text-white/15">{t.computeTime}</div>
+                      <div className="text-[11px] font-mono text-white/25 mt-3">{r.result.time}ms</div>
+                      <div className="text-[9px] font-medium text-white/18">{t.computeTime}</div>
                     </CardContent>
                   </Card>
                 );
               });
             })()}
 
-            <Card className="bg-[#0d0d0d] border-[#3c3c3c] rounded-none border-l-2 border-l-[#e22718]">
-              <CardContent className="p-3 text-center flex flex-col justify-center h-full">
-                <div className="text-[10px] font-semibold tracking-wider text-white/40 uppercase mb-2">
+            <Card className="glass-card border-l-2 border-l-[#FF3B30]/60">
+              <CardContent className="p-3.5 text-center flex flex-col justify-center h-full">
+                <div className="text-[11px] font-semibold text-white/45 mb-2">
                   A* vs BFS
                 </div>
-                <div className="text-2xl font-mono font-bold text-[#e22718]">
+                <div className="text-2xl font-mono font-bold text-[#FF9F0A]">
                   {efficiency}%
                 </div>
-                <div className="text-[8px] tracking-wider uppercase text-white/15 mt-0.5">
+                <div className="text-[9px] font-medium text-white/20 mt-0.5">
                   {t.fewerNodes}
                 </div>
-                <p className="text-[9px] leading-relaxed text-white/20 mt-2">
+                <p className="text-[10px] leading-relaxed text-white/25 mt-2">
                   {t.astarDesc.split('.')[0]}.
                 </p>
               </CardContent>
