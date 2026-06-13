@@ -14,7 +14,7 @@ import { useKeyboard } from '@/hooks/useKeyboard';
 import { CellType } from '@/types';
 import type { Language, Grid, Position } from '@/types';
 import { Toast } from '@/components/Toast';
-import { ROWS, COLS } from '@/lib/constants';
+import { CELL } from '@/lib/constants';
 import './App.css';
 
 export default function App() {
@@ -35,14 +35,14 @@ export default function App() {
     state, algorithm, visitOrder, path, pathCost,
     vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
     diagonal, gScores, hScores,
-    serialConnected, isVirtualSerial, fogMode, toast,
+    serialConnected, isVirtualSerial, fogMode, toast, serialStats,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setFogMode, connectSerial, disconnectSerial,
     replan, selectComparisonAlgorithm, setSimultaneous,
     reset, run, stepOnce, compareAll, setToast,
   } = useSimulation();
 
-  const { knownGridRef, revealedCellsRef, resetFog, revealCell } = useFogOfWar();
+  const { knownGridRef, revealedCellsRef, resetFog, revealCell, markCellDirty, syncDirtyCells } = useFogOfWar();
 
   const gridRef = useRef(grid);
   const stateRef = useRef(state);
@@ -166,17 +166,40 @@ export default function App() {
 
   useKeyboard(keyboardActions);
 
-  useEffect(() => {
+  // ── Fog-of-War: Grid change observer with dirty-cell writeback ──
+  // Instead of scanning all ROWS×COLS cells on every grid mutation,
+  // we intercept canvas draw events to mark individual cells as dirty,
+  // then writeback only dirty+revealed cells — O(|dirty|) vs O(960).
+  const fogCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (fogModeRef.current) {
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const key = r * COLS + c;
-          if (revealedCellsRef.current.has(key)) {
-            knownGridRef.current[r][c] = grid[r][c];
-          }
-        }
-      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      const scaleX = e.currentTarget.width / rect.width;
+      const scaleY = e.currentTarget.height / rect.height;
+      markCellDirty(
+        Math.floor(((e.clientY - rect.top) * scaleY) / CELL),
+        Math.floor(((e.clientX - rect.left) * scaleX) / CELL)
+      );
     }
+    handleCanvasMouseDown(e);
+  }, [handleCanvasMouseDown, markCellDirty]);
+
+  const fogCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (fogModeRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const scaleX = e.currentTarget.width / rect.width;
+      const scaleY = e.currentTarget.height / rect.height;
+      markCellDirty(
+        Math.floor(((e.clientY - rect.top) * scaleY) / CELL),
+        Math.floor(((e.clientX - rect.left) * scaleX) / CELL)
+      );
+    }
+    handleCanvasMouseMove(e);
+  }, [handleCanvasMouseMove, markCellDirty]);
+
+  useEffect(() => {
+    if (!fogModeRef.current) return;
+    // Writeback: sync only dirty cells to knownGrid
+    syncDirtyCells(gridRef.current);
 
     if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
     if (replanPendingRef.current) return;
@@ -188,7 +211,7 @@ export default function App() {
       replanPendingRef.current = true;
       replanRef.current(effectiveGrid, pathRef.current[currIndex], endPosRef.current);
     }
-  }, [grid, knownGridRef, revealedCellsRef]);
+  }, [grid, knownGridRef, revealedCellsRef, syncDirtyCells]);
 
   useEffect(() => {
     if (stateRef.current !== 'moving' || pathRef.current.length === 0) return;
@@ -209,7 +232,7 @@ export default function App() {
   return (
     <TooltipProvider delay={300}>
       <div className="h-screen w-screen bg-black flex items-center justify-center p-2 lg:p-4 overflow-hidden">
-        <div className={`w-full max-w-[1440px] h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col transition-all duration-500 ${getGlowClass()}`}>
+        <div className={`w-full max-w-360 h-full max-h-[calc(100vh-2rem)] bg-[#0d0d0d] border border-[#3c3c3c] rounded-none overflow-hidden flex flex-col transition-all duration-500 ${getGlowClass()}`}>
           <TopBar
             lang={lang}
             onToggleLang={toggleLang}
@@ -221,10 +244,10 @@ export default function App() {
           <div className="flex-1 min-h-0 flex gap-0 relative">
             <div
               className={`transition-all duration-300 ease-in-out border-r border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none ${
-                leftOpen ? 'w-[260px] p-4' : 'w-0 p-0 border-r-0'
+                leftOpen ? 'w-65 p-4' : 'w-0 p-0 border-r-0'
               }`}
             >
-              <div className="w-[228px] h-full flex flex-col justify-between">
+              <div className="w-57 h-full flex flex-col justify-between">
                 <LeftPanel
                   lang={lang}
                   algorithm={algorithm}
@@ -276,8 +299,8 @@ export default function App() {
                 onSetPstep={setPstep}
                 onSetRobotT={setRobotT}
                 onSetState={setState}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseMove={handleCanvasMouseMove}
+                onMouseDown={fogCanvasMouseDown}
+                onMouseMove={fogCanvasMouseMove}
                 onMouseUp={handleCanvasMouseUp}
                 comparison={comparison}
                 simultaneous={simultaneous}
@@ -295,10 +318,10 @@ export default function App() {
 
             <div
               className={`transition-all duration-300 ease-in-out border-l border-[#3c3c3c] bg-[#0d0d0d] shrink-0 overflow-hidden ${
-                rightOpen ? 'w-[260px] p-4' : 'w-0 p-0 border-l-0'
+                rightOpen ? 'w-65 p-4' : 'w-0 p-0 border-l-0'
               }`}
             >
-              <div className="w-[228px] h-full flex flex-col justify-between">
+              <div className="w-57 h-full flex flex-col justify-between">
                 <RightPanel
                   lang={lang}
                   speed={speed}
@@ -312,6 +335,7 @@ export default function App() {
                   robotT={robotT}
                   serialConnected={serialConnected}
                   isVirtualSerial={isVirtualSerial}
+                  serialStats={serialStats}
                   onConnectSerial={connectSerial}
                   onDisconnectSerial={disconnectSerial}
                   onSetSpeed={setSpeed}
