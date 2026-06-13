@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
 import { SerialModal } from './SerialModal';
 import type { SimulationState, Language, Position } from '@/types';
+import type { SerialStats } from '@/hooks/useSimulation';
 import { translations } from '@/lib/constants';
 
 interface RightPanelProps {
@@ -22,6 +23,7 @@ interface RightPanelProps {
   robotT: number;
   serialConnected: boolean;
   isVirtualSerial: boolean;
+  serialStats: SerialStats;
   onConnectSerial: (isVirtual?: boolean) => void;
   onDisconnectSerial: () => void;
   onSetSpeed: (s: number) => void;
@@ -66,22 +68,50 @@ export function RightPanel(props: RightPanelProps) {
   }, [props.path]);
 
   const getArduinoLiveCode = useCallback(() => {
-    return `// Arduino Live Receiver Sketch
-// Receives: U(Up), D(Down), L(Left), R(Right), E(End)
+    return `// Arduino Live Receiver Sketch (Framed Protocol)
+// Protocol: [STX=0x02][CMD][CHECKSUM][ETX=0x03]
+// Commands: U(Up), D(Down), L(Left), R(Right),
+//           1-4 (Diagonal), E(End)
+// Checksum: CMD XOR 0xFF
+// ACK: sends [0x02][0x06][0xF9][0x03] on success
+
+const byte STX = 0x02;
+const byte ETX = 0x03;
+const byte ACK = 0x06;
+
 void setup() {
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
+  Serial.println("[SYSTEM] Arduino Ready. Framed protocol.");
 }
+
+void sendAck() {
+  byte frame[4] = { STX, ACK, (byte)(ACK ^ 0xFF), ETX };
+  Serial.write(frame, 4);
+}
+
 void loop() {
-  if (Serial.available() > 0) {
-    char cmd = Serial.read();
-    if (cmd == 'U' || cmd == 'D' || cmd == 'L' || cmd == 'R') {
+  if (Serial.available() >= 4) {
+    byte s = Serial.read();
+    if (s != STX) return;
+    byte cmd = Serial.read();
+    byte chk = Serial.read();
+    byte e = Serial.read();
+    if (e != ETX) return;
+    if (chk != (cmd ^ 0xFF)) return; // checksum fail
+
+    if (cmd=='U'||cmd=='D'||cmd=='L'||cmd=='R'||
+        cmd=='1'||cmd=='2'||cmd=='3'||cmd=='4') {
       digitalWrite(LED_BUILTIN, HIGH);
+      delay(50);
+      digitalWrite(LED_BUILTIN, LOW);
+      sendAck();
     } else if (cmd == 'E') {
       for (int i=0; i<5; i++) {
         digitalWrite(LED_BUILTIN, HIGH); delay(100);
         digitalWrite(LED_BUILTIN, LOW); delay(100);
       }
+      sendAck();
     }
   }
 }`;
@@ -322,6 +352,8 @@ void loop() {
           currentCol={currentRobotPos ? currentRobotPos.col : '—'}
           currentRow={currentRobotPos ? currentRobotPos.row : '—'}
           direction={currentDirection}
+          serialConnected={props.serialConnected}
+          serialStats={props.serialStats}
         />
 
         <Separator className="bg-white/5" />
@@ -412,7 +444,7 @@ void loop() {
               {t.memoryMapTitle}
               {props.path.length > 127 && (
                 <span className="text-red-500 font-bold text-[9px] animate-pulse ml-2 normal-case tracking-normal">
-                  {props.lang === 'id' ? 'TERPOTONG (MAX 127)' : 'TRUNCATED (MAX 127)'}
+                  {props.lang === 'id' ? 'TERPOTONG (16-BIT ADDR)' : 'TRUNCATED (16-BIT ADDR)'}
                 </span>
               )}
             </span>
@@ -442,18 +474,22 @@ void loop() {
                 {(() => {
                   const mem = Array(256).fill(0);
                   if (props.path && props.path.length > 0) {
-                    mem[0] = Math.min(props.path.length, 127);
+                    // 16-bit little-endian length encoding at addresses 0x00-0x01
+                    const pathLen = Math.min(props.path.length, 255);
+                    mem[0] = pathLen & 0xFF;         // low byte
+                    mem[1] = (pathLen >> 8) & 0xFF;  // high byte
+                    // Coordinate data starts at address 0x02
                     for (let i = 0; i < props.path.length; i++) {
-                      if (1 + i * 2 + 1 < 256) {
-                        mem[1 + i * 2] = props.path[i].row;
-                        mem[1 + i * 2 + 1] = props.path[i].col;
+                      if (2 + i * 2 + 1 < 256) {
+                        mem[2 + i * 2] = props.path[i].row;
+                        mem[2 + i * 2 + 1] = props.path[i].col;
                       }
                     }
                   }
 
                   const currentRobotIndex = Math.floor(props.robotT);
-                  const activeAddr1 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 1 + currentRobotIndex * 2 : -1;
-                  const activeAddr2 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 1 + currentRobotIndex * 2 + 1 : -1;
+                  const activeAddr1 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 2 + currentRobotIndex * 2 : -1;
+                  const activeAddr2 = (props.simulationState === 'moving' || props.simulationState === 'done') && props.path.length > 0 ? 2 + currentRobotIndex * 2 + 1 : -1;
 
                   const rows = [];
                   for (let r = 0; r < 16; r++) {
@@ -464,7 +500,7 @@ void loop() {
                       const val = mem[addr];
                       const hexVal = val.toString(16).toUpperCase().padStart(2, '0');
                       const isActive = addr === activeAddr1 || addr === activeAddr2;
-                      const isLength = addr === 0 && props.path.length > 0;
+                      const isLength = (addr === 0 || addr === 1) && props.path.length > 0;
                       
                       let textColor = 'text-white/40';
                       let bgColor = 'bg-transparent';
