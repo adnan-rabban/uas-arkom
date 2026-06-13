@@ -21,9 +21,9 @@ export function MapPresets({ currentPreset, onSelectPreset, lang }: MapPresetsPr
   ];
 
   return (
-    <div className="space-y-2">
-      <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#1c69d4] flex items-center gap-1.5">
-        <Map className="w-3 h-3" />
+    <div className="space-y-2.5">
+      <span className="ios-label flex items-center gap-2">
+        <Map className="w-4 h-4 text-[#0A84FF]" />
         {t.mapPreset}
       </span>
       <Select
@@ -32,12 +32,12 @@ export function MapPresets({ currentPreset, onSelectPreset, lang }: MapPresetsPr
           if (val) onSelectPreset(val);
         }}
       >
-        <SelectTrigger className="h-8 w-full text-[10px] font-mono tracking-wider bg-[#0d0d0d] border-[#3c3c3c] text-white/60 hover:text-white hover:border-white/50 rounded-none">
+        <SelectTrigger className="h-9 w-full text-[12px] font-medium tracking-wide glass-input text-white/70 hover:text-white rounded-xl">
           <SelectValue placeholder={t.mapPreset} />
         </SelectTrigger>
-        <SelectContent className="bg-[#1a1a1a] border-[#3c3c3c] rounded-none">
+        <SelectContent className="bg-[#1c1c1e]/95 backdrop-blur-xl border border-white/8ded-xl">
           {presets.map((p) => (
-            <SelectItem key={p.id} value={p.id} className="text-[10px] font-mono tracking-wider text-white/60 focus:bg-white/10 focus:text-white rounded-none">
+            <SelectItem key={p.id} value={p.id} className="text-[12px] font-medium tracking-wide text-white/60 focus:bg-white/8 focus:text-white rounded-lg">
               {p.label}
             </SelectItem>
           ))}
