@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu } from 'lucide-react';
+import { Play, SkipForward, RotateCcw, Trash2, Keyboard, Cpu, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { TelemetryPanel } from './TelemetryPanel';
@@ -50,7 +50,7 @@ export const RightPanel = memo(function RightPanel(props: RightPanelProps) {
   const getArduinoCode = useCallback(() => {
     if (props.path.length === 0) return '';
     const coords = props.path.map((p) => `{${p.row}, ${p.col}}`).join(', ');
-    return `// Arduino Navigation Route\nconst int PATH_LEN = ${props.path.length};\nconst int path[${props.path.length}][2] = {\n  ${coords}\n};`;
+    return `// Arduino Navigation Route (Optimized with PROGMEM to save SRAM)\n#include <avr/pgmspace.h>\nconst int PATH_LEN = ${props.path.length};\nconst byte path[${props.path.length}][2] PROGMEM = {\n  ${coords}\n};`;
   }, [props.path]);
 
   const getAssemblyCode = useCallback(() => {
@@ -63,8 +63,8 @@ export const RightPanel = memo(function RightPanel(props: RightPanelProps) {
       })
       .join(', ');
 
-    const lenStr = props.path.length.toString(16).toUpperCase().padStart(2, '0') + 'h';
-    return `; Assembly ROM Navigation Route\nPATH_LEN  DB ${lenStr}\nPATH_DATA DB ${bytes}`;
+    const lenStr = props.path.length.toString(16).toUpperCase().padStart(4, '0') + 'h';
+    return `; Assembly ROM Navigation Route\nPATH_LEN  DW ${lenStr}\nPATH_DATA DB ${bytes}`;
   }, [props.path]);
 
   const getArduinoLiveCode = useCallback(() => {
@@ -268,12 +268,12 @@ void loop() {
     <div className="h-full flex flex-col justify-between min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto space-y-4 scrollbar-none pr-0.5">
         {/* Speed Control */}
-        <div className="space-y-2">
+        <div className="glass-card p-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="ios-label">
               {t.speed}
             </span>
-            <span className="text-[11px] font-mono text-white/30 bg-white/6 px-2 py-0.5 rounded-full">{props.speed}x</span>
+            <span className="text-[11px] font-mono text-slate-500 bg-black/4 px-2.5 py-0.5 rounded-full font-semibold">{props.speed}x</span>
           </div>
           <Slider
             value={[props.speed]}
@@ -288,7 +288,7 @@ void loop() {
           />
         </div>
 
-        <Separator className="bg-white/6" />
+        <Separator className="bg-black/8" />
 
         {/* Action Buttons */}
         <div className="space-y-2.5">
@@ -300,7 +300,8 @@ void loop() {
               onClick={props.onRun}
               disabled={isRunning}
               size="sm"
-              className="ios-btn ios-btn-primary rounded-xl h-9 text-[12px] cursor-pointer disabled:opacity-30"
+              variant="ghost"
+              className="ios-btn ios-btn-success rounded-2xl h-10 text-[12px] cursor-pointer disabled:opacity-25"
             >
               <Play className="w-3.5 h-3.5 mr-1.5" />
               {t.run}
@@ -310,7 +311,7 @@ void loop() {
               onClick={props.onStep}
               size="sm"
               variant="ghost"
-              className="ios-btn ios-btn-secondary rounded-xl h-9 text-[12px] cursor-pointer"
+              className="ios-btn ios-btn-secondary rounded-2xl h-10 text-[12px] cursor-pointer"
             >
               <SkipForward className="w-3.5 h-3.5 mr-1.5" />
               {t.step}
@@ -320,7 +321,7 @@ void loop() {
               onClick={props.onReset}
               size="sm"
               variant="ghost"
-              className="ios-btn ios-btn-secondary rounded-xl h-9 text-[12px] cursor-pointer"
+              className="ios-btn ios-btn-secondary rounded-2xl h-10 text-[12px] cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
               {t.reset}
@@ -330,7 +331,7 @@ void loop() {
               onClick={props.onClear}
               size="sm"
               variant="ghost"
-              className="ios-btn ios-btn-danger rounded-xl h-9 text-[12px] cursor-pointer"
+              className="ios-btn ios-btn-danger rounded-2xl h-10 text-[12px] cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5 mr-1.5" />
               {t.clear}
@@ -338,7 +339,7 @@ void loop() {
           </div>
         </div>
 
-        <Separator className="bg-white/6" />
+        <Separator className="bg-black/8" />
 
         {/* Telemetry */}
         <TelemetryPanel
@@ -356,19 +357,19 @@ void loop() {
           serialStats={props.serialStats}
         />
 
-        <Separator className="bg-white/6" />
+        <Separator className="bg-black/8" />
 
         {/* Serial & Code Exporters Block */}
         <div className="space-y-2.5">
           <span className="ios-label">
             {t.serialTitle}
           </span>
-          <div className="glass-card p-3 space-y-3">
+          <div className="glass-card p-3.5 space-y-3">
             {/* Web Serial status & connect button */}
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-white/30 font-medium">Serial Status</span>
-                <span className={`text-[12px] font-semibold ${props.serialConnected ? "text-[#32D74B]" : "text-white/25"}`}>
+                <span className="text-[10px] text-slate-400 font-medium">Serial Status</span>
+                <span className={`text-[12px] font-semibold ${props.serialConnected ? "text-[#D97706]" : "text-slate-300"}`}>
                   {props.serialConnected 
                     ? (props.isVirtualSerial 
                         ? (props.lang === 'id' ? 'Terhubung (Virtual)' : 'Connected (Virtual)') 
@@ -380,7 +381,7 @@ void loop() {
                 onClick={() => setSerialModalOpen(true)}
                 size="sm"
                 variant="ghost"
-                className={`ios-btn h-7 px-3 text-[11px] cursor-pointer rounded-full ${
+                className={`ios-btn h-7 px-3.5 text-[11px] cursor-pointer rounded-full ${
                   props.serialConnected
                     ? 'ios-btn-danger'
                     : 'ios-btn-secondary'
@@ -391,7 +392,7 @@ void loop() {
             </div>
 
             {/* Code exporters buttons */}
-            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/6">
+            <div className="grid grid-cols-3 gap-1.5 pt-2.5 border-t border-black/8">
               <Button
                 onClick={() => {
                   setSelectedModalTab('live');
@@ -434,35 +435,35 @@ void loop() {
           </div>
         </div>
 
-        <Separator className="bg-white/6" />
+        <Separator className="bg-black/8" />
 
         {/* Memory Map Collapsible (Open by default) */}
         <Collapsible open={memoryOpen} onOpenChange={setMemoryOpen}>
-          <CollapsibleTrigger className="ios-label flex items-center gap-2 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
+          <CollapsibleTrigger className="ios-label flex items-center gap-2 hover:text-slate-600 transition-colors cursor-pointer w-full text-left justify-between select-none">
             <span className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-[#0A84FF]" />
+              <Cpu className="w-4 h-4 text-[#D97706]" />
               {t.memoryMapTitle}
               {props.path.length > 127 && (
-                <span className="text-[#FF453A] font-semibold text-[10px] animate-pulse ml-1 normal-case bg-[#FF453A]/10 px-2 py-0.5 rounded-full">
-                  {props.lang === 'id' ? 'TERPOTONG (16-BIT ADDR)' : 'TRUNCATED (16-BIT ADDR)'}
+                <span className="text-[#BE123C] font-semibold text-[10px] animate-pulse ml-1 normal-case bg-[#BE123C]/10 px-2 py-0.5 rounded-full">
+                  {props.lang === 'id' ? 'TERPOTONG (BATAS ALAMAT 8-BIT)' : 'TRUNCATED (8-BIT ADDR SPACE LIMIT)'}
                 </span>
               )}
             </span>
-            <span className="text-[10px] text-white/20 font-mono">{memoryOpen ? '[ \u2212 ]' : '[ + ]'}</span>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${memoryOpen ? 'rotate-0' : '-rotate-90'}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 space-y-2">
             {memoryOpen && (
               <>
-                <p className="text-[11px] text-white/35 font-normal leading-relaxed">
+                <p className="text-[11px] text-slate-400 font-normal leading-relaxed">
                   {t.memoryMapDesc}
                 </p>
 
                 <div className="glass-card p-2 font-mono text-[8.5px] leading-tight select-none pcb-grid relative overflow-hidden">
                   {/* Mini PCB corner details */}
-                  <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#0A84FF]/30 pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#0A84FF]/30 pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-[#D97706]/30 pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-[#D97706]/30 pointer-events-none" />
                   {/* Header */}
-                  <div className="flex text-white/20 border-b border-white/5 pb-1 mb-1 font-bold">
+                  <div className="flex text-slate-400 border-b border-black/8 pb-1 mb-1 font-bold">
                     <span className="w-3.75 shrink-0">ADR</span>
                     <span className="flex-1 gap-px text-center" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                       {['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'].map(h => (
@@ -477,7 +478,8 @@ void loop() {
                       const mem = Array(256).fill(0);
                       if (props.path && props.path.length > 0) {
                         // 16-bit little-endian length encoding at addresses 0x00-0x01
-                        const pathLen = Math.min(props.path.length, 255);
+                        // Coordinates cap at 127 since 2 + 127 * 2 = 256 bytes
+                        const pathLen = Math.min(props.path.length, 127);
                         mem[0] = pathLen & 0xFF;         // low byte
                         mem[1] = (pathLen >> 8) & 0xFF;  // high byte
                         // Coordinate data starts at address 0x02
@@ -504,16 +506,16 @@ void loop() {
                           const isActive = addr === activeAddr1 || addr === activeAddr2;
                           const isLength = (addr === 0 || addr === 1) && props.path.length > 0;
                           
-                          let textColor = 'text-white/40';
+                          let textColor = 'text-slate-400';
                           let bgColor = 'bg-transparent';
                           
                           if (isActive) {
                             textColor = 'text-white font-bold';
-                            bgColor = 'bg-[#0A84FF]';
+                            bgColor = 'bg-[#D97706]';
                           } else if (isLength) {
-                            textColor = 'text-[#32D74B] font-bold';
+                            textColor = 'text-[#BE123C] font-bold';
                           } else if (val > 0) {
-                            textColor = 'text-white/70';
+                            textColor = 'text-slate-600';
                           }
 
                           cols.push(
@@ -528,7 +530,7 @@ void loop() {
                         }
                         rows.push(
                           <div key={r} className="flex items-center">
-                            <span className="w-3.75 text-white/20 shrink-0 font-bold">{addrPrefix}</span>
+                            <span className="w-3.75 text-slate-400 shrink-0 font-bold">{addrPrefix}</span>
                             <div className="flex-1 gap-px" style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                               {cols}
                             </div>
@@ -545,21 +547,21 @@ void loop() {
         </Collapsible>
 
         {/* Live Console Logs */}
-        <Separator className="bg-white/6" />
+        <Separator className="bg-black/8" />
         
         <Collapsible open={consoleOpen} onOpenChange={setConsoleOpen}>
-          <CollapsibleTrigger className="ios-label flex items-center gap-2 hover:text-white/60 transition-colors cursor-pointer w-full text-left justify-between select-none">
+          <CollapsibleTrigger className="ios-label flex items-center gap-2 hover:text-slate-600 transition-colors cursor-pointer w-full text-left justify-between select-none">
             <span className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${consoleOpen ? 'bg-[#0A84FF]' : 'bg-white/15'}`} />
+              <span className={`w-2 h-2 rounded-full ${consoleOpen ? 'bg-[#D97706]' : 'bg-black/12'}`} />
               {props.lang === 'id' ? 'Konsol Serial' : 'Serial Console'}
             </span>
-            <span className="text-[10px] text-white/20 font-mono">{consoleOpen ? '[ \u2212 ]' : '[ + ]'}</span>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${consoleOpen ? 'rotate-0' : '-rotate-90'}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3">
             {consoleOpen && (
-              <div className="glass-card p-3 font-mono text-[10px] text-[#32D74B] h-27.5 overflow-y-auto scrollbar-thin space-y-1 leading-relaxed select-none">
+              <div className="glass-card p-3 font-mono text-[10px] text-[#D97706] h-27.5 overflow-y-auto scrollbar-thin space-y-1 leading-relaxed select-none bg-black/2">
                 {logs.length === 0 ? (
-                  <div className="text-white/15 italic text-[11px]">No activity logs yet.</div>
+                  <div className="text-slate-300 italic text-[11px]">No activity logs yet.</div>
                 ) : (
                   logs.map((log, idx) => (
                     <div key={idx} className="whitespace-pre-wrap font-mono">
@@ -572,14 +574,14 @@ void loop() {
           </CollapsibleContent>
         </Collapsible>
 
-        <Separator className="bg-white/6" />
+        <Separator className="bg-black/8" />
 
         {/* Keyboard Shortcuts */}
         <Button
           onClick={() => setShortcutsModalOpen(true)}
           variant="ghost"
           size="sm"
-          className="w-full ios-btn ios-btn-secondary rounded-xl h-9 text-[12px] text-white/25 hover:text-white/50 cursor-pointer"
+          className="w-full ios-btn ios-btn-secondary rounded-2xl h-10 text-[12px] text-slate-400 hover:text-slate-600 cursor-pointer"
         >
           <Keyboard className="w-4 h-4 mr-2" />
           {t.shortcuts}
@@ -612,7 +614,7 @@ void loop() {
           </div>
 
           <div className="glass-card p-4 relative">
-            <div className="flex justify-between items-center text-[11px] border-b border-white/6 pb-2 mb-3 font-mono text-white/35">
+            <div className="flex justify-between items-center text-[11px] border-b border-black/8 pb-2 mb-3 font-mono text-slate-500">
               <span className="font-medium">
                 {selectedModalTab === 'c' && 'arduino_route.c'}
                 {selectedModalTab === 'asm' && 'route.asm'}
@@ -623,12 +625,12 @@ void loop() {
                   const code = selectedModalTab === 'c' ? getArduinoCode() : selectedModalTab === 'asm' ? getAssemblyCode() : getArduinoLiveCode();
                   handleCopy(code, selectedModalTab);
                 }}
-                className="hover:text-[#409CFF] transition-colors cursor-pointer text-[11px] text-[#0A84FF] font-semibold"
+                className="hover:text-[#B88020] transition-colors cursor-pointer text-[11px] text-[#D97706] font-semibold"
               >
                 {copiedType === selectedModalTab ? t.copied : t.copyCode}
               </button>
             </div>
-            <pre className="text-[11px] font-mono text-white/65 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-87.5 scrollbar-thin">
+            <pre className="text-[11px] font-mono text-slate-600 overflow-x-auto whitespace-pre leading-relaxed select-all max-h-87.5 scrollbar-thin">
               {selectedModalTab === 'c' && getArduinoCode()}
               {selectedModalTab === 'asm' && getAssemblyCode()}
               {selectedModalTab === 'live' && getArduinoLiveCode()}
@@ -655,11 +657,11 @@ void loop() {
             ['5', t.mud.split(' ')[0]],
             ['4', t.erase],
           ].map(([key, label]) => (
-            <div key={key} className="flex items-center justify-between py-2 border-b border-white/4 last:border-0">
-              <kbd className="text-[11px] font-mono bg-white/6 border border-white/8 rounded-lg px-2.5 py-1 text-white/60 font-medium min-w-9 text-center">
+            <div key={key} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+              <kbd className="text-[11px] font-mono bg-black/4 border border-black/8 rounded-lg px-2.5 py-1 text-slate-600 font-medium min-w-9 text-center">
                 {key}
               </kbd>
-              <span className="text-[12px] text-white/45 font-medium">{label}</span>
+              <span className="text-[12px] text-slate-500 font-medium">{label}</span>
             </div>
           ))}
         </div>
@@ -705,19 +707,19 @@ interface ModalProps {
 function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-lg p-4 animate-in fade-in duration-200">
       <div 
-        className="glass-modal w-full max-w-125 flex flex-col justify-between shadow-2xl relative"
+        className="glass-modal w-full max-w-125 flex flex-col justify-between shadow-2xl relative animate-in slide-in-from-bottom-4 fade-in duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/6 px-5 py-4">
-          <span className="text-[14px] font-semibold text-white/90">
+        <div className="flex items-center justify-between border-b border-black/8 px-5 py-4">
+          <span className="text-[15px] font-semibold text-slate-800 tracking-[-0.01em]">
             {title}
           </span>
           <button 
             onClick={onClose}
-            className="text-[#0A84FF] hover:text-[#409CFF] transition-colors cursor-pointer font-medium text-[14px]"
+            className="text-[#D97706] hover:text-[#B88020] transition-colors cursor-pointer font-semibold text-[14px]"
           >
             Done
           </button>
