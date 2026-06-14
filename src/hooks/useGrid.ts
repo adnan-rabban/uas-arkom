@@ -4,7 +4,7 @@ import { CellType } from '@/types';
 import { createGrid, inBounds, applyWalls } from '@/lib/grid';
 import { DEFAULT_START, DEFAULT_END, CELL } from '@/lib/constants';
 import { MAP_PRESETS } from '@/lib/presets';
-import { generateDFSMaze } from '@/lib/maze';
+import { generateDFSMaze, generateRecursiveDivisionMaze, generateCellularAutomataCave } from '@/lib/maze';
 
 export function useGrid() {
   const [grid, setGrid] = useState<Grid>(() => applyWalls(createGrid(), MAP_PRESETS.default.walls));
@@ -12,19 +12,21 @@ export function useGrid() {
   const [endPos, setEndPos] = useState<Position>(MAP_PRESETS.default.end);
   const [tool, setTool] = useState<Tool>('wall');
   const [currentPreset, setCurrentPreset] = useState('default');
+  const [mazeType, setMazeType] = useState<'dfs' | 'division' | 'cave'>('dfs');
   const isDragging = useRef(false);
   const lastCell = useRef<Position | null>(null);
 
   const applyToolAt = useCallback(
-    (row: number, col: number) => {
+    (row: number, col: number, robotPos: Position | null = null) => {
       if (!inBounds(row, col)) return;
 
       setGrid((prev) => {
         const isStart = row === startPos.row && col === startPos.col;
         const isEnd = row === endPos.row && col === endPos.col;
+        const isRobot = robotPos && row === robotPos.row && col === robotPos.col;
 
         if (tool === 'wall' || tool === 'mud') {
-          if (isStart || isEnd) return prev;
+          if (isStart || isEnd || isRobot) return prev;
           const targetVal = tool === 'wall' ? CellType.WALL : CellType.MUD;
           if (prev[row][col] === targetVal) return prev;
           const newRow = prev[row].slice();
@@ -72,7 +74,7 @@ export function useGrid() {
   );
 
   const handleCanvasMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+    (e: React.MouseEvent<HTMLCanvasElement>, robotPos: Position | null = null) => {
       isDragging.current = true;
       const rect = e.currentTarget.getBoundingClientRect();
       const scaleX = e.currentTarget.width / rect.width;
@@ -80,13 +82,13 @@ export function useGrid() {
       const row = Math.floor(((e.clientY - rect.top) * scaleY) / CELL);
       const col = Math.floor(((e.clientX - rect.left) * scaleX) / CELL);
       lastCell.current = { row, col };
-      applyToolAt(row, col);
+      applyToolAt(row, col, robotPos);
     },
     [applyToolAt]
   );
 
   const handleCanvasMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+    (e: React.MouseEvent<HTMLCanvasElement>, robotPos: Position | null = null) => {
       if (!isDragging.current) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const scaleX = e.currentTarget.width / rect.width;
@@ -95,7 +97,7 @@ export function useGrid() {
       const col = Math.floor(((e.clientX - rect.left) * scaleX) / CELL);
       if (lastCell.current && lastCell.current.row === row && lastCell.current.col === col) return;
       lastCell.current = { row, col };
-      applyToolAt(row, col);
+      applyToolAt(row, col, robotPos);
     },
     [applyToolAt]
   );
@@ -122,14 +124,21 @@ export function useGrid() {
   }, []);
 
   const generateMaze = useCallback(() => {
-    const walls = generateDFSMaze(startPos, endPos);
+    let walls: Position[] = [];
+    if (mazeType === 'dfs') {
+      walls = generateDFSMaze(startPos, endPos);
+    } else if (mazeType === 'division') {
+      walls = generateRecursiveDivisionMaze(startPos, endPos);
+    } else if (mazeType === 'cave') {
+      walls = generateCellularAutomataCave(startPos, endPos);
+    }
     setGrid(applyWalls(createGrid(), walls));
     setCurrentPreset('maze');
-  }, [startPos, endPos]);
+  }, [startPos, endPos, mazeType]);
 
   return {
-    grid, startPos, endPos, tool, currentPreset,
-    setGrid, setStartPos, setEndPos, setCurrentPreset,
+    grid, startPos, endPos, tool, currentPreset, mazeType,
+    setGrid, setStartPos, setEndPos, setCurrentPreset, setMazeType,
     setTool, clearGrid, loadPreset, generateMaze,
     handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
   };
