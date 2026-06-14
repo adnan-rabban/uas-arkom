@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { Grid, Position, Tool } from '@/types';
 import { CellType } from '@/types';
-import { createGrid, inBounds, applyWalls } from '@/lib/grid';
+import { createGrid, inBounds, applyWalls, applyFeatures } from '@/lib/grid';
 import { DEFAULT_START, DEFAULT_END, CELL } from '@/lib/constants';
 import { MAP_PRESETS } from '@/lib/presets';
 import { generateDFSMaze, generateRecursiveDivisionMaze, generateCellularAutomataCave } from '@/lib/maze';
@@ -125,14 +125,15 @@ export function useGrid() {
 
   const generateMaze = useCallback(() => {
     let walls: Position[] = [];
+    let muds: Position[] = [];
     if (mazeType === 'dfs') {
-      walls = generateDFSMaze(startPos, endPos);
+      ({ walls, muds } = generateDFSMaze(startPos, endPos));
     } else if (mazeType === 'division') {
-      walls = generateRecursiveDivisionMaze(startPos, endPos);
+      ({ walls, muds } = generateRecursiveDivisionMaze(startPos, endPos));
     } else if (mazeType === 'cave') {
-      walls = generateCellularAutomataCave(startPos, endPos);
+      ({ walls, muds } = generateCellularAutomataCave(startPos, endPos));
     }
-    setGrid(applyWalls(createGrid(), walls));
+    setGrid(applyFeatures(createGrid(), walls, muds));
     setCurrentPreset('maze');
   }, [startPos, endPos, mazeType]);
 
