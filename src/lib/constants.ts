@@ -7,6 +7,12 @@ export const CELL = 22;
 export const CANVAS_W = COLS * CELL;
 export const CANVAS_H = ROWS * CELL;
 
+// ── LiDAR sensor range (in grid cells) ──
+// Shared between the canvas (visual reveal) and the fog hook (info-gain estimate).
+// Kept deliberately short so the robot must genuinely explore rather than
+// "see" most of the map from a distance.
+export const LIDAR_CELL_RANGE = 2.8;
+
 // ── Direction vectors (4-directional movement) ──
 export const DIRECTIONS: [number, number][] = [
   [-1, 0], // up
