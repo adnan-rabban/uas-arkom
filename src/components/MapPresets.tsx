@@ -1,5 +1,4 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Map } from 'lucide-react';
 import type { Language } from '@/types';
 import { translations } from '@/lib/constants';
 
@@ -21,9 +20,8 @@ export function MapPresets({ currentPreset, onSelectPreset, lang }: MapPresetsPr
   ];
 
   return (
-    <div className="space-y-2.5">
-      <span className="ios-label flex items-center gap-2">
-        <Map className="w-4 h-4 text-[#0A84FF]" />
+    <div className="space-y-2">
+      <span className="ios-label">
         {t.mapPreset}
       </span>
       <Select
@@ -32,12 +30,12 @@ export function MapPresets({ currentPreset, onSelectPreset, lang }: MapPresetsPr
           if (val) onSelectPreset(val);
         }}
       >
-        <SelectTrigger className="h-9 w-full text-[12px] font-medium tracking-wide glass-input text-white/70 hover:text-white rounded-xl">
+        <SelectTrigger className="h-9 w-full text-[12px] font-medium tracking-[-0.01em] glass-input text-slate-600 hover:text-slate-800 rounded-xl cursor-pointer">
           <SelectValue placeholder={t.mapPreset} />
         </SelectTrigger>
-        <SelectContent className="bg-[#1c1c1e]/95 backdrop-blur-xl border border-white/8ded-xl">
+        <SelectContent className="bg-white/92 backdrop-blur-[50px] saturate-180 border border-black/8 rounded-xl">
           {presets.map((p) => (
-            <SelectItem key={p.id} value={p.id} className="text-[12px] font-medium tracking-wide text-white/60 focus:bg-white/8 focus:text-white rounded-lg">
+            <SelectItem key={p.id} value={p.id} className="text-[12px] font-medium tracking-[-0.01em] text-slate-600 focus:bg-black/5 focus:text-slate-800 rounded-lg cursor-pointer">
               {p.label}
             </SelectItem>
           ))}
