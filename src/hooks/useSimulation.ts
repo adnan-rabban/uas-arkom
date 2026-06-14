@@ -471,15 +471,18 @@ export function useSimulation() {
     }
   }, [robotT, state, path, serialConnected, sendSerialFrame]);
 
-  const replan = useCallback((grid: Grid, robotPos: Position, end: Position) => {
-    const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
-    lastSentIndexRef.current = -1;
-    applyAlgorithmResult(
-      result,
-      result.visitOrder.length,
-      result.path.length === 0 ? 'done' : 'moving'
-    );
-  }, [algorithm, diagonal, applyAlgorithmResult]);
+  const replan = useCallback(
+    (grid: Grid, robotPos: Position, end: Position) => {
+      const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
+      lastSentIndexRef.current = -1;
+      applyAlgorithmResult(
+        result,
+        result.visitOrder.length,
+        result.path.length === 0 ? 'done' : 'moving'
+      );
+    },
+    [algorithm, diagonal, applyAlgorithmResult]
+  );
 
   return {
     state, algorithm, visitOrder, path, pathCost,
