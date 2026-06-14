@@ -35,11 +35,6 @@ export interface AlgorithmResult {
   pathCost?: number;
 }
 
-export interface ComparisonResult {
-  algorithm: AlgorithmKey;
-  label: string;
-  result: AlgorithmResult;
-}
 
 export type Language = 'id' | 'en';
 
@@ -85,12 +80,6 @@ export interface Translations {
   bfsName: string;
   bfsDesc: string;
 
-  // Comparison
-  comparison: string;
-  comparisonSubtitle: string;
-  nodesExplored: string;
-  fewerNodes: string;
-  bestLabel: string;
 
   // Legend
   legend: string;
