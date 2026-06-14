@@ -7,7 +7,7 @@
 
 ## 🛠️ Tech Stack
 
-<p align="left">
+<p align="center">
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
   <a href="https://vite.dev/"><img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" /></a>
@@ -34,13 +34,14 @@
 
 Tiga algoritma klasik diimplementasikan secara penuh dengan dukungan **gerakan 8-arah (diagonal)** dan state machine animasi empat fase: `idle → exploring → pathing → moving → done`.
 
-| Algoritma    | Heuristik                              | Weighted? |         Optimal?         | Data Structure |
-| ------------ | -------------------------------------- | :-------: | :----------------------: | -------------- |
-| **A\***      | Octile (diagonal) / Manhattan (4-arah) |    ✅     |            ✅            | Min-Heap       |
-| **Dijkstra** | — (eksplorasi penuh berbasis bobot)    |    ✅     |            ✅            | Min-Heap       |
+| Algoritma    | Heuristik                              | Weighted? |                   Optimal?                   | Data Structure |
+| ------------ | -------------------------------------- | :-------: | :------------------------------------------: | -------------- |
+| **A\***      | Octile (diagonal) / Manhattan (4-arah) |    ✅     |                      ✅                      | Min-Heap       |
+| **Dijkstra** | — (eksplorasi penuh berbasis bobot)    |    ✅     |                      ✅                      | Min-Heap       |
 | **BFS**      | — (jumlah langkah, bukan bobot)        |    ❌     | Hanya jika semua edge & sel berbobot seragam | Queue FIFO     |
 
 > **Catatan Implementasi:**
+>
 > - A\* dan Dijkstra menggunakan Min-Heap (priority queue) sehingga kompleksitas waktu O((V + E) log V). BFS menggunakan antrian FIFO standar dengan kompleksitas O(V + E).
 > - Heuristik yang ditampilkan pada panel debug (g/h/f scores) dihitung untuk **seluruh** algoritma — termasuk Dijkstra dan BFS — demi konsistensi UI, meskipun kedua algoritma tersebut **tidak** menggunakan heuristik dalam proses pencarian jalur.
 > - **BFS dan Optimalitas:** BFS menjamin jalur terpendek **dalam jumlah langkah (hop count)**, bukan dalam jarak geometris. Saat mode diagonal aktif, biaya langkah diagonal (√2 ≈ 1.414) berbeda dari langkah ortogonal (1.0), sehingga jalur BFS yang optimal dalam hop count **belum tentu optimal secara jarak geometris**. BFS tetap menemukan rute dengan langkah paling sedikit, bukan rute terpendek secara Euclidean.
@@ -60,23 +61,43 @@ Tiga algoritma klasik diimplementasikan secara penuh dengan dukungan **gerakan 8
 
 Saat robot berada dalam fase **`moving`**, pengguna dapat menggambar dinding baru di atas sel yang tersisa pada jalur aktif. Sistem mendeteksi hambatan melalui `useEffect` yang mengamati perubahan `grid`, kemudian menjalankan ulang algoritma dari **posisi robot saat ini** (`path[Math.floor(robotT)]`) menuju titik akhir — tanpa mereset simulasi.
 
-> **Catatan Implementasi:** Re-routing hanya aktif selama fase `moving`. Menggambar dinding pada fase `exploring` atau `pathing` tidak memicu replanning; efeknya baru terlihat pada perhitungan berikutnya.
+> **Catatan Implementasi & Perbaikan Visual (Replan):**
+>
+> - Re-routing hanya aktif selama fase `moving`. Menggambar dinding pada fase `exploring` atau `pathing` tidak memicu replanning; efeknya baru terlihat pada perhitungan berikutnya.
+> - **Optimal Path Rendering Fix:** Saat melakukan replan, sistem secara dinamis menginisialisasi parameter `pstep` langsung ke panjang rute aktif yang baru. Hal ini mencegah visualisasi garis rute menghilang (_ghost path_) saat terjadi kalkulasi ulang di tengah pergerakan robot.
+> - **Dynamic Goal Redirection Fix:** Apabila titik tujuan (Goal/End) dipindahkan secara dinamis oleh pengguna saat robot dalam fase `moving`, sistem mendeteksi perubahan `endPos` dan langsung melakukan replan rute ke tujuan baru dari posisi robot saat itu tanpa perlu menunggu rintangan menghalangi.
 
 > **Catatan Teknis:** Replanning pada sistem ini menggunakan pendekatan **full recomputation** — algoritma dijalankan ulang dari posisi robot saat ini, bukan pendekatan inkremental seperti D\* (Stentz, 1994) atau D\* Lite (Koenig & Likhachev, 2002) yang mereuse komputasi sebelumnya. Pada grid berukuran 40×24 (960 sel), perbedaan efisiensi tidak signifikan, namun pada peta yang jauh lebih besar, pendekatan inkremental akan lebih efisien.
 
 ---
 
-### 4. Mode Fog of War (Peta Tersembunyi)
+### 4. Mode Fog of War (Eksplorasi Peta Tersembunyi)
 
-Robot menjelajahi grid dalam kondisi peta tersembunyi (_fog of war_). Area grid hanya terungkap secara bertahap melalui jangkauan sensor LiDAR, mensimulasikan kondisi navigasi otonom di lingkungan yang belum dipetakan. Saat robot bergerak, setiap sel dalam radius LiDAR akan tersingkap secara deterministik. Jika dinding baru terdeteksi di jalur aktif, sistem akan melakukan replanning otomatis.
+Robot menjelajahi grid dalam kondisi peta tersembunyi (_fog of war_) **tanpa mengetahui lokasi tujuan**. Robot mengandalkan sensor LiDAR (radius ±4 sel) untuk menyingkap area secara bertahap, dan harus benar-benar **mencari** tujuan dengan menjelajahi wilayah yang belum dipetakan — bukan bergerak lurus ke titik akhir. Karena itu robot bisa salah arah, menemui jalan buntu, dan melakukan _backtracking_, persis seperti navigasi otonom di lingkungan asing.
 
-> **Catatan Terminologi:** Fitur ini menggunakan mekanisme **Fog of War** (istilah dari game _real-time strategy_) dan **Incremental Map Revelation**, bukan SLAM (Simultaneous Localization and Mapping) dalam definisi akademis. Perbedaan utamanya: dalam SLAM sesungguhnya (Smith, Self & Cheeseman, 1986), robot tidak mengetahui posisinya sendiri dan harus memperkirakan lokasi secara probabilistik menggunakan teknik seperti Extended Kalman Filter atau Particle Filter. Pada sistem ini, posisi robot selalu diketahui secara pasti, dan peta dibuka secara binary (terungkap/tersembunyi) tanpa ketidakpastian sensor.
+> **Arsitektur Eksplorasi (Frontier-Based Exploration):**
+>
+> - **Conservative World Model:** Seluruh sel yang belum disingkap LiDAR dianggap **dinding (`WALL`)**, bukan jalan kosong. Robot hanya boleh merencanakan rute melalui sel yang sudah benar-benar ia indera. Ini menggantikan _freespace assumption_ lama yang membuat robot bisa "menembak" rute lurus ke tujuan melalui area gelap.
+> - **Goal Tidak Diketahui:** Koordinat tujuan (`endPos`) **tidak pernah** diberikan ke pemecah rute sampai sel tujuan tersingkap oleh LiDAR. Sebelum itu, robot memilih **frontier** — sel belum dikenal yang berbatasan dengan area dikenal — sebagai target sementara menggunakan _BFS frontier nearest_ (Yamauchi, 1997). Marker tujuan `E` pada kanvas juga baru muncul setelah disingkap.
+> - **Penemuan Tujuan:** Begitu LiDAR menyingkap sel tujuan, robot otomatis beralih dari mode eksplorasi frontier ke mode menuju tujuan dan menghitung rute nyata melalui wilayah yang sudah aman/terungkap.
+> - **Kemungkinan Gagal:** Jika seluruh frontier yang terjangkau habis dipetakan tanpa menemukan tujuan (mis. tujuan terkurung dinding), simulasi berakhir dengan status **tidak ditemukan** — robot tidak selalu berhasil dalam sekali percobaan.
+
+> **Catatan Stabilitas & Implementasi:**
+>
+> - **Reveal Tidak Tembus Pandang:** Sinar LiDAR (`castLidar`) berhenti pada dinding nyata, sehingga sel di balik dinding tetap tersembunyi. Robot tidak dapat "mengintip" area yang terhalang.
+> - **Replan Saat Rintangan Disingkap:** Selama fase `moving`, jika LiDAR menyingkap dinding baru pada sisa rute, atau pengguna menggambar dinding pada sel terungkap, sistem menghitung ulang target (frontier atau tujuan) dari posisi robot saat itu. Pengecekan blokir hanya menganggap sel **yang sudah terungkap dan berupa dinding** sebagai penghalang.
+> - **Transmisi Serial:** Karakter `E` (End) hanya dikirim ke Arduino ketika robot benar-benar tiba di tujuan, bukan pada setiap akhir leg eksplorasi frontier.
+> - **React Ref Safety:** Kontroler eksplorasi dikelola lewat pola `useRef` + `useEffect` untuk menghindari _stale closure_ pada loop animasi.
+
+> **Catatan Terminologi:** Fitur ini menggunakan mekanisme **Fog of War** (istilah dari game _real-time strategy_) dengan **frontier-based exploration**, bukan SLAM (Simultaneous Localization and Mapping) dalam definisi akademis. Dalam SLAM sesungguhnya (Smith, Self & Cheeseman, 1986), robot tidak mengetahui posisinya sendiri dan memperkirakan lokasi secara probabilistik (mis. Extended Kalman Filter / Particle Filter). Pada sistem ini, posisi robot selalu diketahui pasti dan peta dibuka secara biner (terungkap/tersembunyi) tanpa ketidakpastian sensor; yang tidak diketahui robot adalah **lokasi tujuan dan tata letak rintangan**.
 
 ---
 
 ### 5. Koneksi Serial Arduino (Web Serial API)
 
 Karakter instruksi dikirim ke port USB mikrokontroler **hanya selama fase `moving`** pada kecepatan 9600 bps. Transmisi menggunakan `TextEncoder` untuk konversi string ke `Uint8Array` sebelum ditulis ke serial writer.
+
+> **Catatan Transmisi Sekuensial (Race Condition Fix):** Penulisan karakter arah diimplementasikan secara sekuensial menggunakan fungsi `sendCommandsSequentially` dengan `await` pada penulisan stream. Hal ini mencegah terjadinya tabrakan byte (_interleaving_) saat robot bergerak cepat dan mendatangkan multiple write request secara bersamaan pada stream writer.
 
 | Karakter | Arah                 |
 | :------: | -------------------- |
@@ -100,7 +121,16 @@ Menjalankan ketiga algoritma (A\*, Dijkstra, BFS) secara bersamaan pada grid yan
 
 ### 7. Visualisasi Peta Memori (SRAM/ROM Map)
 
-Menampilkan pemetaan koordinat jalur robot pada rentang alamat memori `0x00`–`0xFF`, memperlihatkan representasi data rute dalam konteks arsitektur memori perangkat keras.
+Menampilkan pemetaan koordinat jalur robot pada rentang alamat memori `0x00`–`0xFF` (ruang alamat 8-bit, 256 byte) untuk melihat alokasi memori fisik pada arsitektur perangkat keras:
+
+- **Alamat `0x00`–`0x01` (2 byte):** Panjang rute (`pathLen`) disimpan dalam format 16-bit little-endian. Nilai ini dibatasi maksimum 127 koordinat.
+- **Alamat `0x02`–`0xFF` (254 byte):** Koordinat jalur (2 byte per titik: `row` dan `col`).
+- **Batas Fisik:** Karena kapasitas maksimum memori adalah 256 byte, rute yang lebih dari 127 langkah akan mengalami pemotongan (_truncated_). Sistem menyelaraskan nilai panjang jalur agar tidak melebihi 127 koordinat demi menghindari kegagalan _out-of-bounds read_ pada mikrokontroler.
+
+> **Catatan Optimasi Ekspor Kode (SRAM & Hardware Efficiency):**
+>
+> - **Assembly (`route.asm`):** Menggunakan direktif `DW` (Define Word) alih-alih `DB` (Define Byte) untuk variabel `PATH_LEN` guna mendukung panjang rute $\ge 256$ langkah secara aman tanpa memicu kompiler overflow.
+> - **C/Arduino (`route.c`):** Mengintegrasikan header `<avr/pgmspace.h>` dan kata kunci `PROGMEM` pada konstanta rute agar data disimpan dalam memori Flash (ROM) mikrokontroler AVR. Langkah ini mencegah kehabisan kapasitas SRAM dinamis (2 KB pada Arduino Uno) saat memuat rute navigasi yang panjang.
 
 ---
 
