@@ -50,83 +50,82 @@
 }
 
 :root {
-    --background: oklch(0.13 0.012 260);
-    --foreground: oklch(0.95 0.005 260);
-    --card: oklch(0.17 0.012 260 / 0.55);
-    --card-foreground: oklch(0.95 0.005 260);
-    --popover: oklch(0.15 0.012 260 / 0.75);
-    --popover-foreground: oklch(0.95 0.005 260);
-    --primary: oklch(0.676 0.195 248);
-    --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.2 0.01 260 / 0.45);
-    --secondary-foreground: oklch(0.9 0.005 260);
-    --muted: oklch(0.2 0.01 260 / 0.35);
-    --muted-foreground: oklch(0.5 0.01 260);
-    --accent: oklch(0.22 0.02 260 / 0.45);
-    --accent-foreground: oklch(0.95 0.005 260);
-    --destructive: oklch(0.6 0.22 25);
-    --border: oklch(1 0 0 / 0.07);
-    --input: oklch(1 0 0 / 0.07);
-    --ring: oklch(0.676 0.195 248);
-    --chart-1: oklch(0.676 0.195 248);
-    --chart-2: oklch(0.72 0.17 155);
-    --chart-3: oklch(0.7 0.15 50);
-    --chart-4: oklch(0.62 0.18 280);
-    --chart-5: oklch(0.55 0.15 30);
+    --background: #FCFCFD;
+    --foreground: #1F2937;
+    --card: rgba(255, 255, 255, 0.6);
+    --card-foreground: #1F2937;
+    --popover: rgba(255, 255, 255, 0.92);
+    --popover-foreground: #1F2937;
+    --primary: #D97706;
+    --primary-foreground: #FCFCFD;
+    --secondary: rgba(31, 41, 55, 0.05);
+    --secondary-foreground: #1F2937;
+    --muted: rgba(31, 41, 55, 0.03);
+    --muted-foreground: #6B7280;
+    --accent: rgba(217, 119, 6, 0.06);
+    --accent-foreground: #D97706;
+    --destructive: #BE123C;
+    --border: rgba(31, 41, 55, 0.08);
+    --input: rgba(31, 41, 55, 0.08);
+    --ring: #D97706;
+    --chart-1: #D97706;
+    --chart-2: #6B7280;
+    --chart-3: #BE123C;
+    --chart-4: #D97706;
+    --chart-5: #BE123C;
     --radius: 16px;
-    --sidebar: oklch(0.14 0.012 260 / 0.5);
-    --sidebar-foreground: oklch(0.95 0.005 260);
-    --sidebar-primary: oklch(0.676 0.195 248);
-    --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: oklch(0.2 0.02 260 / 0.45);
-    --sidebar-accent-foreground: oklch(0.95 0.005 260);
-    --sidebar-border: oklch(1 0 0 / 0.07);
-    --sidebar-ring: oklch(0.676 0.195 248);
+    --sidebar: rgba(255, 255, 255, 0.65);
+    --sidebar-foreground: #1F2937;
+    --sidebar-primary: #D97706;
+    --sidebar-primary-foreground: #FCFCFD;
+    --sidebar-accent: rgba(31, 41, 55, 0.06);
+    --sidebar-accent-foreground: #1F2937;
+    --sidebar-border: rgba(31, 41, 55, 0.08);
+    --sidebar-ring: #D97706;
 }
 
 .dark {
-    --background: oklch(0.13 0.012 260);
-    --foreground: oklch(0.95 0.005 260);
-    --card: oklch(0.17 0.012 260 / 0.55);
-    --card-foreground: oklch(0.95 0.005 260);
-    --popover: oklch(0.15 0.012 260 / 0.75);
-    --popover-foreground: oklch(0.95 0.005 260);
-    --primary: oklch(0.676 0.195 248);
-    --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.2 0.01 260 / 0.45);
-    --secondary-foreground: oklch(0.9 0.005 260);
-    --muted: oklch(0.2 0.01 260 / 0.35);
-    --muted-foreground: oklch(0.5 0.01 260);
-    --accent: oklch(0.22 0.02 260 / 0.45);
-    --accent-foreground: oklch(0.95 0.005 260);
-    --destructive: oklch(0.6 0.22 25);
-    --border: oklch(1 0 0 / 0.07);
-    --input: oklch(1 0 0 / 0.07);
-    --ring: oklch(0.676 0.195 248);
-    --radius: 16px;
-    --sidebar: oklch(0.14 0.012 260 / 0.5);
-    --sidebar-foreground: oklch(0.95 0.005 260);
-    --sidebar-primary: oklch(0.676 0.195 248);
-    --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: oklch(0.2 0.02 260 / 0.45);
-    --sidebar-accent-foreground: oklch(0.95 0.005 260);
-    --sidebar-border: oklch(1 0 0 / 0.07);
-    --sidebar-ring: oklch(0.676 0.195 248);
+    --background: #FCFCFD;
+    --foreground: #1F2937;
+    --card: rgba(255, 255, 255, 0.6);
+    --card-foreground: #1F2937;
+    --popover: rgba(255, 255, 255, 0.92);
+    --popover-foreground: #1F2937;
+    --primary: #D97706;
+    --primary-foreground: #FCFCFD;
+    --secondary: rgba(31, 41, 55, 0.05);
+    --secondary-foreground: #1F2937;
+    --muted: rgba(31, 41, 55, 0.03);
+    --muted-foreground: #6B7280;
+    --accent: rgba(217, 119, 6, 0.06);
+    --accent-foreground: #D97706;
+    --destructive: #BE123C;
+    --border: rgba(31, 41, 55, 0.08);
+    --input: rgba(31, 41, 55, 0.08);
+    --ring: #D97706;
+    --sidebar: rgba(255, 255, 255, 0.65);
+    --sidebar-foreground: #1F2937;
+    --sidebar-primary: #D97706;
+    --sidebar-primary-foreground: #FCFCFD;
+    --sidebar-accent: rgba(31, 41, 55, 0.06);
+    --sidebar-accent-foreground: #1F2937;
+    --sidebar-border: rgba(31, 41, 55, 0.08);
+    --sidebar-ring: #D97706;
 }
 
 /* ── Custom scrollbar ── */
 .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 4px;
+    background: rgba(31, 41, 55, 0.1);
+    border-radius: 3px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(31, 41, 55, 0.2);
 }
 
 .scrollbar-none::-webkit-scrollbar {
@@ -138,22 +137,22 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 3px;
+    height: 3px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 4px;
+    background: rgba(31, 41, 55, 0.08);
+    border-radius: 3px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(31, 41, 55, 0.16);
 }
 .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+    scrollbar-color: rgba(31, 41, 55, 0.1) transparent;
 }
 
 /* ── Pulse animation for status badge ── */
@@ -163,81 +162,86 @@
 }
 
 canvas:hover {
-    box-shadow: 0 0 30px rgba(10, 132, 255, 0.04);
+    box-shadow: 0 0 40px rgba(10, 132, 255, 0.025);
 }
 
 button, [role="tab"], [data-state] {
-    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .m-stripe {
     background: linear-gradient(90deg, 
-      #0A84FF 0%, #0A84FF 33.3%, 
-      #5E5CE6 33.3%, #5E5CE6 66.6%, 
-      #FF3B30 66.6%, #FF3B30 100%);
-    box-shadow: 0 1px 8px rgba(10, 132, 255, 0.2);
+      #D97706 0%, #D97706 50%, 
+      #BE123C 50%, #BE123C 100%);
+    box-shadow: 0 1px 12px rgba(217, 119, 6, 0.15), 0 0 20px rgba(217, 119, 6, 0.05);
     opacity: 0.85;
 }
 
 /* ── iOS 26 Liquid Glass System ── */
 .glass-panel {
-    background: rgba(22, 22, 26, 0.68);
-    backdrop-filter: blur(50px) saturate(180%);
-    -webkit-backdrop-filter: blur(50px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(252, 252, 253, 0.72);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(31, 41, 55, 0.08);
     box-shadow: 
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
-      0 8px 32px rgba(0, 0, 0, 0.3);
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.6),
+      inset 0 0 40px rgba(255, 255, 255, 0.2),
+      0 8px 32px rgba(31, 41, 55, 0.08),
+      0 0 0 0.5px rgba(31, 41, 55, 0.04);
 }
 
 .glass-card {
-    background: rgba(38, 38, 42, 0.5);
-    backdrop-filter: blur(30px) saturate(150%);
-    -webkit-backdrop-filter: blur(30px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(31, 41, 55, 0.06);
+    border-radius: 16px;
     box-shadow: 
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.06),
-      0 2px 8px rgba(0, 0, 0, 0.15);
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -0.5px 0 rgba(31, 41, 55, 0.02),
+      0 2px 8px rgba(31, 41, 55, 0.04);
 }
 
 .glass-modal {
-    background: rgba(24, 24, 28, 0.88);
-    backdrop-filter: blur(80px) saturate(200%);
-    -webkit-backdrop-filter: blur(80px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid rgba(31, 41, 55, 0.12);
+    border-radius: 24px;
     box-shadow: 
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.08),
-      0 24px 80px rgba(0, 0, 0, 0.55),
-      0 0 0 0.5px rgba(255, 255, 255, 0.04);
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -0.5px 0 rgba(31, 41, 55, 0.05),
+      0 20px 48px rgba(31, 41, 55, 0.15),
+      0 0 0 0.5px rgba(31, 41, 55, 0.08);
 }
 
 .glass-input {
-    background: rgba(118, 118, 128, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    background: rgba(31, 41, 55, 0.04);
+    border: 1px solid rgba(31, 41, 55, 0.08);
+    border-radius: 12px;
+    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .glass-input:focus {
-    background: rgba(118, 118, 128, 0.18);
-    border-color: rgba(10, 132, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+    background: rgba(31, 41, 55, 0.06);
+    border-color: rgba(217, 119, 6, 0.5);
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15), inset 0 0 8px rgba(217, 119, 6, 0.04);
 }
 
 /* iOS Section Label */
 .ios-label {
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: -0.01em;
-    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: -0.02em;
+    color: rgba(31, 41, 55, 0.88);
     text-transform: none;
 }
 
 .ios-sublabel {
     font-size: 11px;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(31, 41, 55, 0.45);
+    letter-spacing: -0.01em;
 }
 
 /* iOS Pill Buttons */
@@ -245,87 +249,177 @@ button, [role="tab"], [data-state] {
     border-radius: 9999px;
     font-weight: 500;
     font-size: 13px;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     text-transform: none;
-    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ios-btn:active {
+    transform: scale(0.96);
 }
 
 .ios-btn-primary {
-    background: linear-gradient(180deg, #0A84FF 0%, #0071E3 100%);
-    color: white;
-    box-shadow: 0 2px 10px rgba(10, 132, 255, 0.3), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+    background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+    color: #FCFCFD;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(217, 119, 6, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.25), inset 0 -0.5px 0 rgba(0, 0, 0, 0.1);
 }
 
 .ios-btn-primary:hover {
-    background: linear-gradient(180deg, #409CFF 0%, #0071E3 100%);
-    box-shadow: 0 4px 18px rgba(10, 132, 255, 0.4);
-    transform: scale(1.03);
+    background: linear-gradient(180deg, #FBBF24 0%, #D97706 100%);
+    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3), inset 0 0.5px 0 rgba(255, 255, 255, 0.3);
 }
 
 .ios-btn-secondary {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(31, 41, 55, 0.05);
+    color: rgba(31, 41, 55, 0.8);
+    border: 1px solid rgba(31, 41, 55, 0.08);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
 }
 
 .ios-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(31, 41, 55, 0.1);
+    color: #1F2937;
+    border-color: rgba(31, 41, 55, 0.12);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
 }
 
 .ios-btn-danger {
-    background: rgba(255, 59, 48, 0.12);
-    color: #FF453A;
-    border: 1px solid rgba(255, 59, 48, 0.15);
+    background: rgba(190, 18, 60, 0.08);
+    color: #BE123C;
+    border: 1px solid rgba(190, 18, 60, 0.12);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
 }
 
 .ios-btn-danger:hover {
-    background: rgba(255, 59, 48, 0.22);
+    background: rgba(190, 18, 60, 0.15);
+    box-shadow: 0 2px 10px rgba(190, 18, 60, 0.12);
 }
 
 .ios-btn-success {
-    background: rgba(50, 215, 75, 0.12);
-    color: #32D74B;
-    border: 1px solid rgba(50, 215, 75, 0.15);
+    background: rgba(217, 119, 6, 0.08);
+    color: #D97706;
+    border: 1px solid rgba(217, 119, 6, 0.12);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
 }
 
 .ios-btn-success:hover {
-    background: rgba(50, 215, 75, 0.22);
+    background: rgba(217, 119, 6, 0.15);
+    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.12);
 }
 
 /* iOS Segmented Control */
 .ios-segmented {
-    background: rgba(118, 118, 128, 0.16);
+    background: rgba(31, 41, 55, 0.06);
     border-radius: 10px;
     padding: 2px;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05), inset 0 0 0 0.5px rgba(0, 0, 0, 0.02);
 }
 
 .ios-segmented-item {
     border-radius: 8px;
     font-size: 12px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.45);
-    transition: all 0.25s ease;
+    color: rgba(31, 41, 55, 0.5);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .ios-segmented-item[data-active="true"] {
-    background: rgba(99, 99, 102, 0.48);
-    color: white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+    background: #ffffff;
+    color: #1F2937;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), inset 0 0.5px 0 rgba(255, 255, 255, 0.9), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
 }
 
 /* iOS Toggle Switch style for ON/OFF */
 .ios-toggle-on {
-    background: rgba(50, 215, 75, 0.12);
-    color: #32D74B;
-    border-color: rgba(50, 215, 75, 0.25);
+    background: rgba(217, 119, 6, 0.08);
+    color: #D97706;
+    border-color: rgba(217, 119, 6, 0.18);
 }
 
 .ios-toggle-off {
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.35);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(31, 41, 55, 0.03);
+    color: rgba(31, 41, 55, 0.4);
+    border-color: rgba(31, 41, 55, 0.06);
+}
+
+/* iOS Toggle Track */
+.ios-toggle-track {
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    flex-shrink: 0;
+}
+
+.ios-toggle-track.ios-toggle-track-on {
+    background: #D97706;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(217, 119, 6, 0.25);
+}
+
+.ios-toggle-track.ios-toggle-track-off {
+    background: rgba(120, 120, 128, 0.2);
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.ios-toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 2px;
+    transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+
+.ios-toggle-thumb-on {
+    left: 18px;
+}
+
+.ios-toggle-thumb-off {
+    left: 2px;
+}
+
+/* iOS Spring Animation Utility */
+.ios-spring {
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* iOS Hairline Divider */
+.ios-divider {
+    height: 0.5px;
+    background: rgba(31, 41, 55, 0.08);
+    border: none;
+}
+
+/* iOS Glass Hover Effect */
+.ios-glass-hover {
+    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ios-glass-hover:hover {
+    background: rgba(31, 41, 55, 0.04);
+    border-color: rgba(31, 41, 55, 0.08);
+    transform: translateY(-0.5px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.ios-glass-hover:active {
+    transform: scale(0.98) translateY(0);
+}
+
+/* iOS Badge */
+.ios-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    line-height: 1.4;
 }
 
 /* ── HUD Upgraded Aesthetics ── */
@@ -341,18 +435,18 @@ button, [role="tab"], [data-state] {
 }
 
 .shadow-glow-astar {
-    box-shadow: 0 0 40px rgba(10, 132, 255, 0.1), 0 0 80px rgba(10, 132, 255, 0.04);
-    border-color: rgba(10, 132, 255, 0.2) !important;
+    box-shadow: 0 0 40px rgba(217, 119, 6, 0.06), 0 0 80px rgba(217, 119, 6, 0.02);
+    border-color: rgba(217, 119, 6, 0.12) !important;
 }
 
 .shadow-glow-dijkstra {
-    box-shadow: 0 0 40px rgba(94, 92, 230, 0.08), 0 0 80px rgba(94, 92, 230, 0.03);
-    border-color: rgba(94, 92, 230, 0.15) !important;
+    box-shadow: 0 0 40px rgba(31, 41, 55, 0.04), 0 0 80px rgba(31, 41, 55, 0.01);
+    border-color: rgba(31, 41, 55, 0.08) !important;
 }
 
 .shadow-glow-bfs {
-    box-shadow: 0 0 40px rgba(255, 59, 48, 0.1), 0 0 80px rgba(255, 59, 48, 0.04);
-    border-color: rgba(255, 59, 48, 0.2) !important;
+    box-shadow: 0 0 40px rgba(190, 18, 60, 0.06), 0 0 80px rgba(190, 18, 60, 0.02);
+    border-color: rgba(190, 18, 60, 0.12) !important;
 }
 
 .shadow-glow-pulse-astar {
@@ -364,13 +458,13 @@ button, [role="tab"], [data-state] {
 }
 
 @keyframes shadow-breath-astar {
-    0%, 100% { box-shadow: 0 0 20px rgba(10, 132, 255, 0.06); border-color: rgba(10, 132, 255, 0.15) !important; }
-    50% { box-shadow: 0 0 50px rgba(10, 132, 255, 0.18); border-color: rgba(10, 132, 255, 0.35) !important; }
+    0%, 100% { box-shadow: 0 0 20px rgba(217, 119, 6, 0.04); border-color: rgba(217, 119, 6, 0.10) !important; }
+    50% { box-shadow: 0 0 40px rgba(217, 119, 6, 0.10); border-color: rgba(217, 119, 6, 0.22) !important; }
 }
 
 @keyframes shadow-breath-bfs {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 59, 48, 0.06); border-color: rgba(255, 59, 48, 0.15) !important; }
-    50% { box-shadow: 0 0 50px rgba(255, 59, 48, 0.18); border-color: rgba(255, 59, 48, 0.35) !important; }
+    0%, 100% { box-shadow: 0 0 20px rgba(190, 18, 60, 0.04); border-color: rgba(190, 18, 60, 0.10) !important; }
+    50% { box-shadow: 0 0 40px rgba(190, 18, 60, 0.10); border-color: rgba(190, 18, 60, 0.22) !important; }
 }
 
 /* Subtle CRT Scanline overlay */
@@ -393,9 +487,9 @@ button, [role="tab"], [data-state] {
 
 /* PCB styling components */
 .pcb-grid {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(31, 41, 55, 0.04) 1px, transparent 1px);
     background-size: 8px 8px;
-    border-radius: 12px;
+    border-radius: 14px;
 }
 
 
@@ -405,6 +499,8 @@ button, [role="tab"], [data-state] {
     }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     }
   html {
     @apply font-sans;
