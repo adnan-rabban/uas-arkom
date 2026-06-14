@@ -87,13 +87,12 @@ export default function App() {
     serialConnected, isVirtualSerial, fogMode, toast, serialStats,
     setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
     setFogMode, connectSerial, disconnectSerial,
-    replan, setFogTerminal,
+    replan,
     reset, run, stepOnce, showToast, setToast,
   } = useSimulation();
 
   const {
     knownGridRef, revealedCellsRef, resetFog, revealCell, markCellDirty, syncDirtyCells,
-    findNearestFrontier, buildPlanningGrid,
   } = useFogOfWar();
 
   const gridRef = useRef(grid);
@@ -110,7 +109,11 @@ export default function App() {
   // Fog frontier-exploration controller (kept in a ref to avoid stale closures
   // inside the animation-driven effects below).
   const fogStepRef = useRef<(from: Position) => void>(() => {});
+  const fogEvaluateRef = useRef<() => void>(() => {});
   const fogSuccessShownRef = useRef(false);
+  // Robot's last known grid cell while moving. Used as the recovery position when
+  // a replan yields an empty path, so the robot never "teleports" back to startPos.
+  const lastRobotCellRef = useRef<Position | null>(null);
 
   useEffect(() => {
     gridRef.current = grid;
@@ -121,6 +124,10 @@ export default function App() {
     replanRef.current = replan;
     fogModeRef.current = fogMode;
     diagonalRef.current = diagonal;
+    // Remember where the robot actually is while it's moving (recovery anchor).
+    if ((state === 'moving' || state === 'done') && path.length > 0) {
+      lastRobotCellRef.current = path[Math.min(Math.floor(robotT), path.length - 1)];
+    }
   }, [grid, state, robotT, path, endPos, replan, fogMode, diagonal]);
 
   const handleRun = useCallback(() => {
@@ -128,8 +135,7 @@ export default function App() {
     if (fogMode) {
       fogSuccessShownRef.current = false;
       resetFog(grid, startPos);
-      // Begin frontier-based exploration from the start. The goal coordinate is
-      // NOT handed to the planner — the robot must discover it.
+      // Optimistic start: plan A* straight toward the known goal through the fog.
       fogStepRef.current(startPos);
     } else {
       run(grid, startPos, endPos);
@@ -138,8 +144,8 @@ export default function App() {
 
   const handleStep = useCallback(() => {
     if (fogMode) {
-      // In fog mode a manual "step" simply (re)starts/continues autonomous
-      // frontier exploration, since a blind robot cannot meaningfully single-step.
+      // In fog mode a manual "step" (re)starts/continues the optimistic dynamic
+      // navigation toward the goal.
       if (stateRef.current === 'idle') {
         fogSuccessShownRef.current = false;
         resetFog(grid, startPos);
@@ -218,64 +224,59 @@ export default function App() {
   //   • Otherwise → head for the nearest frontier (boundary of the known map).
   // The real goal coordinate is only ever used AFTER it has been physically
   // revealed, so the robot genuinely searches instead of beelining to the target.
+  // ── Dynamic Replanning controller (Optimistic A* toward a known goal) ──
+  // The robot always plans toward the real goal across its current known map
+  // (unknown = assumed EMPTY). It charges straight through the fog; when LiDAR
+  // reveals an unexpected wall on the route, this recomputes the A*/Dijkstra/BFS
+  // path to detour around it — still aiming at the goal.
   useEffect(() => {
     fogStepRef.current = (from: Position) => {
+      replanRef.current(knownGridRef.current, from, endPosRef.current);
+    };
+  });
+
+  // ── Consolidated fog replan evaluator ──
+  // Single source of truth for "should the robot re-plan right now?", driven by
+  // refs (never lagging React state) so the new leg always starts at the robot's
+  // exact current cell. Triggers:
+  //   • blocked      → a revealed wall now sits on the remaining route (urgent).
+  //   • goal appeared → LiDAR just uncovered the goal; switch to targeting it.
+  //   • targetConsumed → the frontier we were heading to is now fully seen
+  //                      (e.g. a dead end). Re-pick — but at most once per cell.
+  useEffect(() => {
+    fogEvaluateRef.current = () => {
+      if (!fogModeRef.current || stateRef.current !== 'moving') return;
+      const p = pathRef.current;
+      if (p.length === 0) return;
+      const t = robotTRef.current;
+      const i = Math.min(Math.floor(t), p.length - 1);
+      const frac = t - i;
+      const robotCell = p[i];
       const rc = revealedCellsRef.current;
-      const end = endPosRef.current;
-      const goalRevealed = rc.has(end.row * COLS + end.col);
+      const kg = knownGridRef.current;
+      const remaining = p.slice(i);
 
-      if (goalRevealed) {
-        // Goal is known: plan a real route to it through revealed-safe territory.
-        setFogTerminal(true);
-        const planGrid = buildPlanningGrid();
-        replanRef.current(planGrid, from, end);
-        return;
-      }
+      // The only reason to replan now is that LiDAR revealed an unexpected wall
+      // sitting on the optimistic route. If nothing blocks the path, keep going.
+      if (!isFogPathBlocked(remaining, kg, rc, diagonalRef.current)) return;
 
-      // Goal still hidden: pick the nearest unexplored frontier to drive toward.
-      const frontier = findNearestFrontier(from);
-      if (!frontier) {
-        // No reachable frontier left and the goal was never found.
-        setFogTerminal(false);
-        if (!fogSuccessShownRef.current) {
-          showToast('error', 'Area terjangkau telah dipetakan penuh — tujuan tidak ditemukan.');
-          fogSuccessShownRef.current = true;
-        }
-        setState('done');
-        return;
+      // Is the obstacle the cell we're about to step into? Then the robot is
+      // frozen and must reroute immediately. Otherwise the wall is further ahead:
+      // defer the recompute to the next cell boundary (frac≈0) so resetting
+      // robotT→0 doesn't yank the robot backward mid-step (no rubber-band).
+      const next = i + 1 < p.length ? p[i + 1] : null;
+      const immediate =
+        !!next && rc.has(next.row * COLS + next.col) && kg[next.row]?.[next.col] === CellType.WALL;
+
+      if (immediate || frac < 0.15) {
+        fogStepRef.current(robotCell);
       }
-      setFogTerminal(false);
-      const planGrid = buildPlanningGrid(frontier);
-      replanRef.current(planGrid, from, frontier);
     };
   });
 
   useEffect(() => {
     handleWallDiscoveredRef.current = () => {
-      if (!fogModeRef.current || stateRef.current !== 'moving') return;
-      const now = performance.now();
-      const timeSinceLastReplan = now - lastReplanTimeRef.current;
-      if (timeSinceLastReplan < 300) {
-        if (wallDiscoveredTimeoutRef.current) return;
-        const delay = 300 - timeSinceLastReplan;
-        wallDiscoveredTimeoutRef.current = setTimeout(() => {
-          wallDiscoveredTimeoutRef.current = null;
-          handleWallDiscoveredRef.current();
-        }, delay);
-        return;
-      }
-      const currIdx = Math.min(Math.floor(robotTRef.current), pathRef.current.length - 1);
-      const remaining = pathRef.current.slice(currIdx);
-      const blocked = isFogPathBlocked(remaining, knownGridRef.current, revealedCellsRef.current, diagonalRef.current);
-      const end = endPosRef.current;
-      const goalRevealed = revealedCellsRef.current.has(end.row * COLS + end.col);
-      const last = pathRef.current[pathRef.current.length - 1];
-      const headingToGoal = !!last && last.row === end.row && last.col === end.col;
-      // Replan if a newly revealed wall blocks us, or the goal just appeared.
-      if (blocked || (goalRevealed && !headingToGoal)) {
-        lastReplanTimeRef.current = now;
-        fogStepRef.current(pathRef.current[currIdx]);
-      }
+      fogEvaluateRef.current();
     };
   });
 
@@ -296,25 +297,28 @@ export default function App() {
     }
   }, [currentPreset, startPos, endPos, fogMode, resetFog]);
 
-  // ── Fog: continue (or finish) exploration when a movement leg ends ──
-  // Each frontier leg ends in a transient 'done' state. If the robot has reached
-  // the actual goal we stop (success); otherwise we immediately plan the next
-  // leg toward a fresh frontier, producing genuine wander/backtrack behaviour.
+  // ── Fog: report the outcome when navigation ends ──
+  // With the optimistic known-goal model the path always terminates at the goal,
+  // so reaching 'done' means either success (robot arrived) or — if a replan
+  // produced an empty path — the goal is genuinely walled off (no route).
   useEffect(() => {
     if (!fogModeRef.current || state !== 'done') return;
     const end = endPosRef.current;
     const p = pathRef.current;
-    const robotPos = p.length > 0 ? p[p.length - 1] : startPos;
+    // Recover the robot's real position. When a replan failed (empty path) we must
+    // NOT fall back to startPos — use the last cell the robot actually occupied.
+    const robotPos = p.length > 0
+      ? p[p.length - 1]
+      : (lastRobotCellRef.current ?? startPos);
     const atGoal = robotPos.row === end.row && robotPos.col === end.col;
+    if (fogSuccessShownRef.current) return;
     if (atGoal) {
-      if (!fogSuccessShownRef.current) {
-        showToast('success', 'Tujuan ditemukan! Robot berhasil menavigasi peta yang tertutup kabut.');
-        fogSuccessShownRef.current = true;
-      }
-      return;
+      showToast('success', 'Tujuan tercapai! Robot menavigasi kabut dengan replanning dinamis.');
+      fogSuccessShownRef.current = true;
+    } else if (p.length === 0) {
+      showToast('error', 'Tidak ada jalur menuju tujuan — terhalang dinding sepenuhnya.');
+      fogSuccessShownRef.current = true;
     }
-    // Reached a frontier without finding the goal yet → keep exploring.
-    fogStepRef.current(robotPos);
   }, [state, startPos, showToast]);
 
   useEffect(() => {
@@ -407,21 +411,11 @@ export default function App() {
     if (state !== 'moving' || path.length === 0) return;
     const currIndex = Math.min(Math.floor(robotT), path.length - 1);
 
-    // ── Fog mode: react to newly revealed walls AND goal discovery ──
+    // ── Fog mode: delegate to the consolidated, ref-based evaluator ──
+    // (handles revealed-wall blocking, dead-end frontier re-pick, goal discovery;
+    //  throttled to once-per-cell internally for smooth orthogonal movement).
     if (fogMode) {
-      const rc = revealedCellsRef.current;
-      const remaining = path.slice(currIndex);
-      const blocked = isFogPathBlocked(remaining, knownGridRef.current, rc, diagonal);
-      const goalRevealed = rc.has(endPos.row * COLS + endPos.col);
-      const last = path[path.length - 1];
-      const headingToGoal = !!last && last.row === endPos.row && last.col === endPos.col;
-      if (blocked || (goalRevealed && !headingToGoal)) {
-        const now = performance.now();
-        if (now - lastReplanTimeRef.current >= 150) {
-          lastReplanTimeRef.current = now;
-          fogStepRef.current(path[currIndex]);
-        }
-      }
+      fogEvaluateRef.current();
       return;
     }
 
