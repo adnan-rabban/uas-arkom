@@ -14,12 +14,13 @@ interface LeftPanelProps {
   currentPreset: string;
   diagonal: boolean;
   fogMode: boolean;
+  mazeType: 'dfs' | 'division' | 'cave';
+  onSelectMazeType: (type: 'dfs' | 'division' | 'cave') => void;
   onToggleDiagonal: () => void;
   onToggleFogMode: () => void;
   onGenerateMaze: () => void;
   onSelectAlgorithm: (a: AlgorithmKey) => void;
   onSelectTool: (t: Tool) => void;
-  onCompareAll: () => void;
   onSelectPreset: (id: string) => void;
   onUploadPreset: (grid: Grid, start: Position, end: Position) => void;
 }
@@ -100,20 +101,19 @@ export const LeftPanel = memo(function LeftPanel(props: LeftPanelProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Algorithm Selection */}
       <div className="space-y-2">
         <AlgorithmSelector
           algorithm={props.algorithm}
           onSelect={props.onSelectAlgorithm}
-          onCompareAll={props.onCompareAll}
           lang={props.lang}
         />
         
         {/* Diagonal Switch */}
         <button
           onClick={props.onToggleDiagonal}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border transition-all cursor-pointer ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border transition-all cursor-pointer ios-glass-hover ${
             props.diagonal
               ? 'ios-toggle-on'
               : 'ios-toggle-off'
@@ -123,16 +123,15 @@ export const LeftPanel = memo(function LeftPanel(props: LeftPanelProps) {
             <Compass className="w-4 h-4" />
             {t.diagonal}
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${props.diagonal ? 'bg-[#32D74B]' : 'bg-white/15'}`} />
-            <span className="text-[10px] font-semibold">{props.diagonal ? 'ON' : 'OFF'}</span>
-          </span>
+          <div className={`ios-toggle-track ${props.diagonal ? 'ios-toggle-track-on' : 'ios-toggle-track-off'}`}>
+            <div className={`ios-toggle-thumb ${props.diagonal ? 'ios-toggle-thumb-on' : 'ios-toggle-thumb-off'}`} />
+          </div>
         </button>
 
         {/* Fog of War Mode Switch */}
         <button
           onClick={props.onToggleFogMode}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border transition-all cursor-pointer mt-2 ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border transition-all cursor-pointer ios-glass-hover ${
             props.fogMode
               ? 'ios-toggle-on'
               : 'ios-toggle-off'
@@ -143,14 +142,13 @@ export const LeftPanel = memo(function LeftPanel(props: LeftPanelProps) {
             <EyeOff className="w-4 h-4" />
             {t.fogModeTitle.split('(')[0].trim()}
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${props.fogMode ? 'bg-[#32D74B]' : 'bg-white/15'}`} />
-            <span className="text-[10px] font-semibold">{props.fogMode ? 'ON' : 'OFF'}</span>
-          </span>
+          <div className={`ios-toggle-track ${props.fogMode ? 'ios-toggle-track-on' : 'ios-toggle-track-off'}`}>
+            <div className={`ios-toggle-thumb ${props.fogMode ? 'ios-toggle-thumb-on' : 'ios-toggle-thumb-off'}`} />
+          </div>
         </button>
       </div>
 
-      <Separator className="bg-white/6" />
+      <Separator className="bg-black/8" />
 
       {/* Map Presets */}
       <div className="space-y-2">
@@ -159,19 +157,38 @@ export const LeftPanel = memo(function LeftPanel(props: LeftPanelProps) {
           onSelectPreset={props.onSelectPreset}
           lang={props.lang}
         />
+
+        {/* Maze Type Selection */}
+        <div className="ios-segmented flex mt-1">
+          {([
+            { id: 'dfs', label: props.lang === 'id' ? 'DFS' : 'DFS' },
+            { id: 'division', label: props.lang === 'id' ? 'Ruangan' : 'Division' },
+            { id: 'cave', label: props.lang === 'id' ? 'Goa' : 'Cave' },
+          ] as const).map((type) => (
+            <button
+              key={type.id}
+              type="button"
+              onClick={() => props.onSelectMazeType(type.id)}
+              data-active={props.mazeType === type.id}
+              className="ios-segmented-item flex-1 py-1 text-center cursor-pointer text-[10px]"
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
         
         {/* Generate Maze Button */}
         <button
           onClick={props.onGenerateMaze}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border border-white/8 bg-white/4 text-white/45 hover:border-white/15 hover:text-white hover:bg-white/8 transition-all cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border border-black/6 bg-black/3 text-slate-500 hover:border-black/12 hover:text-slate-800 hover:bg-black/6 transition-all cursor-pointer ios-glass-hover"
         >
-          <Sparkles className="w-4 h-4 text-[#FF3B30]" />
+          <Sparkles className="w-4 h-4 text-[#BE123C]" />
           {t.generateMaze}
         </button>
 
         {/* Upload Image Button */}
-        <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border border-white/8 bg-white/4 text-white/45 hover:border-white/15 hover:text-white hover:bg-white/8 transition-all cursor-pointer mt-1" title={t.uploadImageDesc}>
-          <Upload className="w-4 h-4 text-[#0A84FF]" />
+        <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-medium tracking-wide border border-black/6 bg-black/3 text-slate-500 hover:border-black/12 hover:text-slate-800 hover:bg-black/6 transition-all cursor-pointer ios-glass-hover" title={t.uploadImageDesc}>
+          <Upload className="w-4 h-4 text-[#D97706]" />
           {t.uploadImage}
           <input
             type="file"
@@ -182,7 +199,7 @@ export const LeftPanel = memo(function LeftPanel(props: LeftPanelProps) {
         </label>
       </div>
 
-      <Separator className="bg-white/6" />
+      <Separator className="bg-black/8" />
 
       {/* Drawing Tools */}
       <DrawingTools
