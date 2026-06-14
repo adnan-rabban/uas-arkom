@@ -71,25 +71,28 @@ Saat robot berada dalam fase **`moving`**, pengguna dapat menggambar dinding bar
 
 ---
 
-### 4. Mode Fog of War (Eksplorasi Peta Tersembunyi)
+### 4. Mode Fog of War (Navigasi Peta Tersembunyi)
 
-Robot menjelajahi grid dalam kondisi peta tersembunyi (_fog of war_) **tanpa mengetahui lokasi tujuan**. Robot mengandalkan sensor LiDAR (radius ±4 sel) untuk menyingkap area secara bertahap, dan harus benar-benar **mencari** tujuan dengan menjelajahi wilayah yang belum dipetakan — bukan bergerak lurus ke titik akhir. Karena itu robot bisa salah arah, menemui jalan buntu, dan melakukan _backtracking_, persis seperti navigasi otonom di lingkungan asing.
+Robot menavigasi grid dalam kondisi peta tersembunyi (_fog of war_) menggunakan pendekatan **Dynamic Replanning in Partially Observable Environments** (keluarga D\*-Lite). Robot **mengetahui koordinat tujuan** tetapi **tidak mengetahui tata letak rintangan**. Analoginya seperti kurir yang tahu alamat GPS tujuan, tetapi tidak tahu ada jalan yang ditutup atau galian di depan. Robot menerjang kabut **lurus ke arah tujuan**, dan ketika sensor LiDAR (radius ±2.8 sel) menyingkap dinding tak terduga di rutenya, ia langsung memperbarui peta internal dan **menghitung ulang rute** untuk memutar — tetap menuju tujuan yang sama.
 
-> **Arsitektur Eksplorasi (Frontier-Based Exploration):**
+> **Arsitektur (Optimistic A\* + Dynamic Replanning):**
 >
-> - **Conservative World Model:** Seluruh sel yang belum disingkap LiDAR dianggap **dinding (`WALL`)**, bukan jalan kosong. Robot hanya boleh merencanakan rute melalui sel yang sudah benar-benar ia indera. Ini menggantikan _freespace assumption_ lama yang membuat robot bisa "menembak" rute lurus ke tujuan melalui area gelap.
-> - **Goal Tidak Diketahui:** Koordinat tujuan (`endPos`) **tidak pernah** diberikan ke pemecah rute sampai sel tujuan tersingkap oleh LiDAR. Sebelum itu, robot memilih **frontier** — sel belum dikenal yang berbatasan dengan area dikenal — sebagai target sementara menggunakan _BFS frontier nearest_ (Yamauchi, 1997). Marker tujuan `E` pada kanvas juga baru muncul setelah disingkap.
-> - **Penemuan Tujuan:** Begitu LiDAR menyingkap sel tujuan, robot otomatis beralih dari mode eksplorasi frontier ke mode menuju tujuan dan menghitung rute nyata melalui wilayah yang sudah aman/terungkap.
-> - **Kemungkinan Gagal:** Jika seluruh frontier yang terjangkau habis dipetakan tanpa menemukan tujuan (mis. tujuan terkurung dinding), simulasi berakhir dengan status **tidak ditemukan** — robot tidak selalu berhasil dalam sekali percobaan.
+> - **Optimism in the Face of Uncertainty (Freespace Assumption):** Setiap sel yang belum disingkap diasumsikan **kosong/bisa dilewati** (`EMPTY`). Karena itu pemecah rute selalu menemukan jalur optimistis lurus ke tujuan menembus kabut, alih-alih menganggap area gelap sebagai tembok.
+> - **Goal Diketahui:** Koordinat tujuan (`endPos`) selalu menjadi target pemecah rute. Robot terlihat memiliki "niat" kuat menuju target, bukan menjelajah acak.
+> - **Replan saat Rintangan Tak Terduga:** Saat LiDAR menyingkap dinding (`WALL`) baru yang ternyata berada di sisa rute, sistem menulis sel itu ke peta internal (`knownGrid`) lalu menjalankan ulang A\*/Dijkstra/BFS dari posisi robot menuju tujuan untuk mencari jalan memutar.
+> - **Perbedaan A\* vs BFS Terlihat Jelas:** Pada replanning, **A\*** memakai heuristik sehingga cerdas mencari jalan pintas terarah ke tujuan, sementara **BFS** menyebar merata (mengabaikan bobot lumpur) — kontras keduanya menjadi nyata.
+> - **Kemungkinan Gagal:** Jika dinding yang tersingkap ternyata mengurung tujuan sepenuhnya (rute kosong), simulasi berakhir dengan status **tidak ada jalur**.
 
 > **Catatan Stabilitas & Implementasi:**
 >
-> - **Reveal Tidak Tembus Pandang:** Sinar LiDAR (`castLidar`) berhenti pada dinding nyata, sehingga sel di balik dinding tetap tersembunyi. Robot tidak dapat "mengintip" area yang terhalang.
-> - **Replan Saat Rintangan Disingkap:** Selama fase `moving`, jika LiDAR menyingkap dinding baru pada sisa rute, atau pengguna menggambar dinding pada sel terungkap, sistem menghitung ulang target (frontier atau tujuan) dari posisi robot saat itu. Pengecekan blokir hanya menganggap sel **yang sudah terungkap dan berupa dinding** sebagai penghalang.
-> - **Transmisi Serial:** Karakter `E` (End) hanya dikirim ke Arduino ketika robot benar-benar tiba di tujuan, bukan pada setiap akhir leg eksplorasi frontier.
-> - **React Ref Safety:** Kontroler eksplorasi dikelola lewat pola `useRef` + `useEffect` untuk menghindari _stale closure_ pada loop animasi.
+> - **Reveal Tidak Tembus Pandang:** Sinar LiDAR (`castLidar`) berhenti pada dinding nyata, sehingga sel di balik dinding tetap tersembunyi. Robot hanya "terkejut" oleh rintangan saat sensor benar-benar menyentuhnya.
+> - **Gerak Halus & Ortogonal (Boundary-Aware Replanning):** Jika rintangan masih beberapa sel di depan, recompute ditunda hingga robot tepat di batas sel (`frac < 0.15`) sehingga reset `robotT → 0` tidak menyentak robot mundur ("rubber-band"). Jika rintangan adalah sel tepat di depan (robot beku), replan dilakukan seketika. Jejak gerak tetap lurus ortogonal saat mode diagonal mati.
+> - **Freeze Watchdog (Anti-Stuck):** Saat sel tepat di depan adalah dinding yang baru tersingkap, robot dibekukan. Karena `robotT` statis, effect replan tidak akan jalan; kanvas karenanya memanggil ulang evaluator replan (≈tiap 12 frame) selama beku, menjamin robot **tidak pernah** terjebak permanen menempel/menembus dinding.
+> - **Stuck Recovery (Anti-Teleport):** Posisi terakhir robot disimpan pada `lastRobotCellRef`; bila replan gagal (jalur kosong), robot tetap di posisi terakhirnya, tidak melompat balik ke `startPos`.
+> - **Collision Guard di Kanvas:** Loop animasi membekukan robot hanya jika sel **tepat di depan** sudah terungkap sebagai dinding — rintangan yang masih jauh ditangani oleh replanning sambil robot terus melaju.
+> - **React Ref Safety:** Kontroler replan dikelola lewat pola `useRef` + `useEffect` untuk menghindari _stale closure_ pada loop animasi.
 
-> **Catatan Terminologi:** Fitur ini menggunakan mekanisme **Fog of War** (istilah dari game _real-time strategy_) dengan **frontier-based exploration**, bukan SLAM (Simultaneous Localization and Mapping) dalam definisi akademis. Dalam SLAM sesungguhnya (Smith, Self & Cheeseman, 1986), robot tidak mengetahui posisinya sendiri dan memperkirakan lokasi secara probabilistik (mis. Extended Kalman Filter / Particle Filter). Pada sistem ini, posisi robot selalu diketahui pasti dan peta dibuka secara biner (terungkap/tersembunyi) tanpa ketidakpastian sensor; yang tidak diketahui robot adalah **lokasi tujuan dan tata letak rintangan**.
+> **Catatan Terminologi:** Fitur ini menggunakan mekanisme **Fog of War** (istilah dari game _real-time strategy_) dengan **dynamic replanning gaya D\*-Lite** (Koenig & Likhachev, 2002) berbasis _freespace assumption_, bukan SLAM (Simultaneous Localization and Mapping) dalam definisi akademis. Dalam SLAM sesungguhnya (Smith, Self & Cheeseman, 1986), robot tidak mengetahui posisinya sendiri dan memperkirakan lokasi secara probabilistik (mis. Extended Kalman Filter / Particle Filter). Pada sistem ini, posisi robot **dan** koordinat tujuan selalu diketahui pasti; yang tidak diketahui robot hanyalah **tata letak rintangan**, yang tersingkap bertahap oleh LiDAR dan memicu perhitungan ulang rute.
 
 ---
 
