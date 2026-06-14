@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Grid, Position, AlgorithmKey, SimulationState, ComparisonResult } from '@/types';
+import type { Grid, Position, AlgorithmKey, SimulationState } from '@/types';
 import { runAlgorithm } from '@/lib/algorithms';
 
 interface SerialWriter {
@@ -10,6 +10,7 @@ interface SerialWriter {
 interface SerialReader {
   read(): Promise<{ done: boolean; value: Uint8Array | undefined }>;
   releaseLock(): void;
+  cancel?(): Promise<void>;
 }
 
 interface SerialPort {
@@ -50,11 +51,11 @@ const INITIAL_STATS: SerialStats = { framesSent: 0, bytesSent: 0, ackReceived: 0
 // Mirrors processor control-unit state transition tables.
 // Invalid transitions are silently rejected to prevent FSM corruption.
 const VALID_TRANSITIONS: Record<SimulationState, Set<SimulationState>> = {
-  idle: new Set(['exploring']),
+  idle: new Set(['exploring', 'moving', 'done']),       // idle→moving/done = fog exploration start
   exploring: new Set(['pathing', 'done']),
   pathing: new Set(['moving']),
-  moving: new Set(['done', 'moving']),   // moving→moving = replan (interrupt-driven)
-  done: new Set(['idle']),
+  moving: new Set(['done', 'moving']),                  // moving→moving = replan (interrupt-driven)
+  done: new Set(['idle', 'moving']),                    // done→moving = resume next exploration leg
 };
 
 export function useSimulation() {
@@ -68,8 +69,6 @@ export function useSimulation() {
   const [robotT, setRobotT] = useState(0);
   const [speed, setSpeed] = useState(8);
   const [computeTime, setComputeTime] = useState(0);
-  const [comparison, setComparison] = useState<ComparisonResult[] | null>(null);
-  const [simultaneous, setSimultaneous] = useState(true);
   
   // Settings & Debug Scores
   const [diagonal, setDiagonal] = useState(false);
@@ -96,19 +95,37 @@ export function useSimulation() {
   const serialWriterRef = useRef<SerialWriter | null>(null);
   const lastSentIndexRef = useRef<number>(-1);
 
+  // ── Fog terminal flag ──
+  // During frontier exploration the robot reaches many intermediate "done"
+  // states (one per frontier leg). The End ('E') byte must only be transmitted
+  // when the robot has actually arrived at the goal — not at every leg. This
+  // defaults to true so normal (non-fog) runs behave exactly as before.
+  const fogTerminalRef = useRef(true);
+  const setFogTerminal = useCallback((isTerminal: boolean) => {
+    fogTerminalRef.current = isTerminal;
+  }, []);
 
   const stateRef = useRef(state);
   const visitOrderRef = useRef<Position[]>([]);
   const pathRef = useRef<Position[]>([]);
+  const vstepRef = useRef(vstep);
+  const pstepRef = useRef(pstep);
+  const robotTRef = useRef(robotT);
+
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => { vstepRef.current = vstep; }, [vstep]);
+  useEffect(() => { pstepRef.current = pstep; }, [pstep]);
+  useEffect(() => { robotTRef.current = robotT; }, [robotT]);
 
   // ── FSM Guard — Validated state transition ──
   // Rejects illegal transitions (analogous to control-unit hazard detection).
   const transitionState = useCallback((next: SimulationState) => {
     if (VALID_TRANSITIONS[stateRef.current]?.has(next)) {
       setState(next);
+      stateRef.current = next;
     } else if (stateRef.current !== next) {
       console.warn(`[FSM] Blocked invalid transition: ${stateRef.current} → ${next}`);
     }
@@ -128,8 +145,12 @@ export function useSimulation() {
       setGScores(result.gScores || {});
       setHScores(result.hScores || {});
       setVstep(vstepInit);
-      setPstep(0);
+      vstepRef.current = vstepInit;
+      const pstepInit = (nextState === 'moving' || nextState === 'done') ? result.path.length : 0;
+      setPstep(pstepInit);
+      pstepRef.current = pstepInit;
       setRobotT(0);
+      robotTRef.current = 0;
       transitionState(nextState);
     },
     [transitionState]
@@ -137,14 +158,17 @@ export function useSimulation() {
 
   const reset = useCallback(() => {
     setState('idle');
+    stateRef.current = 'idle';
     setVstep(0);
+    vstepRef.current = 0;
     setPstep(0);
+    pstepRef.current = 0;
     setRobotT(0);
+    robotTRef.current = 0;
     setVisitOrder([]);
     setPath([]);
     setPathCost(0);
     setComputeTime(0);
-    setComparison(null);
     setGScores({});
     setHScores({});
     serialStatsRef.current = { ...INITIAL_STATS };
@@ -163,92 +187,87 @@ export function useSimulation() {
     (grid: Grid, start: Position, end: Position) => {
       if (stateRef.current === 'idle') {
         const result = runAlgorithm(algorithm, grid, start, end, diagonal);
-        applyAlgorithmResult(result, 1, 'exploring');
+        const vstepInit = Math.min(2, result.visitOrder.length);
+        const nextState = vstepInit >= result.visitOrder.length
+          ? (result.path.length > 0 ? 'pathing' : 'done')
+          : 'exploring';
+        applyAlgorithmResult(result, vstepInit, nextState);
         return;
       }
       if (stateRef.current === 'exploring') {
-        setVstep((prev) => {
-          const next = prev + 1;
-          if (next >= visitOrderRef.current.length) {
-            setState(pathRef.current.length > 0 ? 'pathing' : 'done');
-          }
-          return next;
-        });
+        const next = vstepRef.current + 1;
+        setVstep(next);
+        vstepRef.current = next;
+        if (next >= visitOrderRef.current.length) {
+          transitionState(pathRef.current.length > 0 ? 'pathing' : 'done');
+        }
       } else if (stateRef.current === 'pathing') {
-        setPstep((prev) => {
-          const next = prev + 1;
-          if (next >= pathRef.current.length) {
-            setState('moving');
-            setRobotT(0);
-          }
-          return next;
-        });
+        const next = pstepRef.current + 1;
+        setPstep(next);
+        pstepRef.current = next;
+        if (next >= pathRef.current.length) {
+          transitionState('moving');
+          setRobotT(0);
+          robotTRef.current = 0;
+        }
       } else if (stateRef.current === 'moving') {
-        setRobotT((prev) => {
-          const next = prev + 1;
-          if (next >= pathRef.current.length - 1) {
-            setState('done');
-          }
-          return next;
-        });
+        const next = robotTRef.current + 1;
+        setRobotT(next);
+        robotTRef.current = next;
+        if (next >= pathRef.current.length - 1) {
+          transitionState('done');
+        }
       }
     },
-    [algorithm, diagonal, applyAlgorithmResult]
+    [algorithm, diagonal, applyAlgorithmResult, transitionState]
   );
-
-  const compareAll = useCallback(
-    (grid: Grid, start: Position, end: Position) => {
-      const algos: AlgorithmKey[] = ['bfs', 'dijkstra', 'astar'];
-      const labels: Record<AlgorithmKey, string> = { bfs: 'BFS', dijkstra: 'Dijkstra', astar: 'A*' };
-      const results: ComparisonResult[] = algos.map((a) => ({
-        algorithm: a,
-        label: labels[a],
-        result: runAlgorithm(a, grid, start, end, diagonal),
-      }));
-      setComparison(results);
-
-      // Visualize A* result
-      const best = results.find((r) => r.algorithm === 'astar')!;
-      applyAlgorithmResult(best.result, 0, 'exploring');
-    },
-    [diagonal, applyAlgorithmResult]
-  );
-
-  const selectComparisonAlgorithm = useCallback((algo: AlgorithmKey) => {
-    if (!comparison) return;
-    const target = comparison.find((r) => r.algorithm === algo);
-    if (!target) return;
-    
-    setAlgorithm(algo);
-    applyAlgorithmResult(target.result, 0, 'exploring');
-  }, [comparison, applyAlgorithmResult]);
 
   // ── Serial reader loop for ACK reception ──
   // Reads incoming bytes from Arduino, validates frame structure and checksum
   const startReadLoop = useCallback(() => {
     const read = async () => {
+      let buffer: number[] = [];
       while (readLoopActiveRef.current && serialReaderRef.current) {
         try {
           const { done, value } = await serialReaderRef.current.read();
           if (done) break;
-          if (value && value.length >= 4) {
-            // Parse frame: expect [STX][ACK_BYTE][CHECKSUM][ETX]
-            if (value[0] === STX && value[value.length - 1] === ETX) {
-              const cmd = value[1];
-              const checksum = value[2];
-              const expected = (cmd ^ 0xFF) & 0xFF;
-              if (cmd === ACK_BYTE && checksum === expected) {
-                serialStatsRef.current = {
-                  ...serialStatsRef.current,
-                  ackReceived: serialStatsRef.current.ackReceived + 1
-                };
-                setSerialStats({ ...serialStatsRef.current });
+          if (value) {
+            for (let i = 0; i < value.length; i++) {
+              buffer.push(value[i]);
+            }
+            while (buffer.length >= 4) {
+              const stxIdx = buffer.indexOf(STX);
+              if (stxIdx === -1) {
+                buffer = [];
+                break;
+              }
+              if (stxIdx > 0) {
+                buffer = buffer.slice(stxIdx);
+              }
+              if (buffer.length < 4) {
+                break;
+              }
+              const frame = buffer.slice(0, 4);
+              if (frame[3] === ETX) {
+                const cmd = frame[1];
+                const checksum = frame[2];
+                const expected = (cmd ^ 0xFF) & 0xFF;
+                if (cmd === ACK_BYTE && checksum === expected) {
+                  serialStatsRef.current = {
+                    ...serialStatsRef.current,
+                    ackReceived: serialStatsRef.current.ackReceived + 1
+                  };
+                  setSerialStats({ ...serialStatsRef.current });
+                } else {
+                  serialStatsRef.current = {
+                    ...serialStatsRef.current,
+                    checksumErrors: serialStatsRef.current.checksumErrors + 1
+                  };
+                  setSerialStats({ ...serialStatsRef.current });
+                }
+                buffer = buffer.slice(4);
               } else {
-                serialStatsRef.current = {
-                  ...serialStatsRef.current,
-                  checksumErrors: serialStatsRef.current.checksumErrors + 1
-                };
-                setSerialStats({ ...serialStatsRef.current });
+                buffer = buffer.slice(1);
               }
             }
           }
@@ -273,10 +292,7 @@ export function useSimulation() {
         close: async () => {},
         writable: {
           getWriter: () => ({
-            write: async (chunk: Uint8Array) => {
-              // Virtual serial: decode frame and simulate ACK
-              console.log('[VIRTUAL SERIAL] Frame:', Array.from(chunk).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' '));
-              // Auto-ACK for virtual serial
+            write: async () => {
               serialStatsRef.current = {
                 ...serialStatsRef.current,
                 ackReceived: serialStatsRef.current.ackReceived + 1
@@ -299,7 +315,6 @@ export function useSimulation() {
       await port.open({ baudRate: 9600 });
       serialPortRef.current = port;
       serialWriterRef.current = port.writable.getWriter();
-      // Start serial reader for ACK reception if readable is available
       if (port.readable) {
         serialReaderRef.current = port.readable.getReader();
         readLoopActiveRef.current = true;
@@ -325,6 +340,9 @@ export function useSimulation() {
     readLoopActiveRef.current = false;
     try {
       if (serialReaderRef.current) {
+        if (serialReaderRef.current.cancel) {
+          await serialReaderRef.current.cancel().catch(() => {});
+        }
         serialReaderRef.current.releaseLock();
         serialReaderRef.current = null;
       }
@@ -367,7 +385,6 @@ export function useSimulation() {
         bytesSent: serialStatsRef.current.bytesSent + frame.length
       };
       setSerialStats({ ...serialStatsRef.current });
-      console.log(`[TX Frame] 0x${cmdByte.toString(16).toUpperCase()} '${char}' | Frame: STX CMD CKS ETX`);
     } catch (err) {
       console.error('Failed to send serial frame:', err);
     }
@@ -377,12 +394,18 @@ export function useSimulation() {
   useEffect(() => {
     if (!serialConnected) return;
 
+    const sendCommandsSequentially = async (cmds: string[]) => {
+      for (const cmd of cmds) {
+        await sendSerialFrame(cmd);
+      }
+    };
+
     if (state === 'moving' && path.length > 0) {
       const currentIndex = Math.floor(robotT);
       if (lastSentIndexRef.current === -1) {
         lastSentIndexRef.current = 0;
       } else if (currentIndex > lastSentIndexRef.current && currentIndex < path.length) {
-        // Send a serial command character for every step traversed sequentially
+        const cmds: string[] = [];
         for (let i = lastSentIndexRef.current + 1; i <= currentIndex; i++) {
           const curr = path[i - 1];
           const next = path[i];
@@ -401,13 +424,47 @@ export function useSimulation() {
           else if (dy > 0 && dx > 0) cmd = '4';   // Down-Right (Diagonal)
 
           if (cmd) {
-            sendSerialFrame(cmd);
+            cmds.push(cmd);
           }
+        }
+        if (cmds.length > 0) {
+          sendCommandsSequentially(cmds);
         }
         lastSentIndexRef.current = currentIndex;
       }
     } else if (state === 'done' && lastSentIndexRef.current !== -1) {
-      sendSerialFrame('E'); // Send End frame
+      const cmds: string[] = [];
+      if (lastSentIndexRef.current < path.length - 1) {
+        for (let i = lastSentIndexRef.current + 1; i < path.length; i++) {
+          const curr = path[i - 1];
+          const next = path[i];
+          
+          let cmd = '';
+          const dy = next.row - curr.row;
+          const dx = next.col - curr.col;
+
+          if (dy < 0 && dx === 0) cmd = 'U';      // Up
+          else if (dy > 0 && dx === 0) cmd = 'D'; // Down
+          else if (dy === 0 && dx < 0) cmd = 'L'; // Left
+          else if (dy === 0 && dx > 0) cmd = 'R'; // Right
+          else if (dy < 0 && dx < 0) cmd = '1';   // Up-Left (Diagonal)
+          else if (dy < 0 && dx > 0) cmd = '2';   // Up-Right (Diagonal)
+          else if (dy > 0 && dx < 0) cmd = '3';   // Down-Left (Diagonal)
+          else if (dy > 0 && dx > 0) cmd = '4';   // Down-Right (Diagonal)
+
+          if (cmd) {
+            cmds.push(cmd);
+          }
+        }
+      }
+      // Only emit the End frame when the robot truly finished at the goal.
+      // Intermediate frontier legs (fog exploration) must NOT send 'E'.
+      if (fogTerminalRef.current) {
+        cmds.push('E'); // Send End frame
+      }
+      if (cmds.length > 0) {
+        sendCommandsSequentially(cmds);
+      }
       lastSentIndexRef.current = -1;
     } else if (state === 'idle') {
       lastSentIndexRef.current = -1;
@@ -417,7 +474,6 @@ export function useSimulation() {
   const replan = useCallback((grid: Grid, robotPos: Position, end: Position) => {
     const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
     lastSentIndexRef.current = -1;
-    // Replanning skips exploring/pathing — go directly to moving (or done if no path)
     applyAlgorithmResult(
       result,
       result.visitOrder.length,
@@ -427,12 +483,12 @@ export function useSimulation() {
 
   return {
     state, algorithm, visitOrder, path, pathCost,
-    vstep, pstep, robotT, speed, computeTime, comparison, simultaneous,
+    vstep, pstep, robotT, speed, computeTime,
     diagonal, gScores, hScores,
     serialConnected, isVirtualSerial, fogMode, toast, serialStats,
-    setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState, setDiagonal,
+    setAlgorithm, setSpeed, setVstep, setPstep, setRobotT, setState: transitionState, setDiagonal,
     setFogMode, connectSerial, disconnectSerial,
-    replan, selectComparisonAlgorithm, setSimultaneous,
-    reset, run, stepOnce, compareAll, showToast, setToast,
+    replan, setFogTerminal,
+    reset, run, stepOnce, showToast, setToast,
   };
 }
