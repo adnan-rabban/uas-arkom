@@ -1,10 +1,10 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { Grid, Position, SimulationState, Language, AlgorithmKey } from '@/types';
 import { CellType } from '@/types';
-import { ROWS, COLS, CELL, CANVAS_W, CANVAS_H, COLORS, ALGO_COLORS, translations } from '@/lib/constants';
+import { ROWS, COLS, CELL, CANVAS_W, CANVAS_H, COLORS, ALGO_COLORS, translations, LIDAR_CELL_RANGE } from '@/lib/constants';
 
 const CELL_INV = 1 / CELL;
-const LIDAR_RANGE = CELL * 4.2;
+const LIDAR_RANGE = CELL * LIDAR_CELL_RANGE;
 
 interface SimulationCanvasProps {
   grid: Grid;
@@ -50,6 +50,10 @@ export function SimulationCanvas({
   const lidarAngle = useRef(0);
   const pulseT = useRef(0);
   const animRef = useRef<number>(0);
+  // Counts consecutive frozen (path-blocked) frames so we can periodically nudge
+  // the app to replan — the robotT-driven effect won't re-fire while robotT is
+  // frozen, otherwise the robot would stay stuck against the wall forever.
+  const blockedFrameRef = useRef(0);
   const ripplesRef = useRef<{ row: number; col: number; age: number }[]>([]);
   const revealedOpacitiesRef = useRef<Map<number, number>>(new Map());
   const traversedHistoryRef = useRef<Position[]>([]);
@@ -372,21 +376,25 @@ export function SimulationCanvas({
       const idx = Math.min(Math.floor(robotTRef.current), p.length - 1);
       const currentCell = p[idx];
       const history = traversedHistoryRef.current;
-      if (
-        history.length === 0 ||
-        history[history.length - 1].row !== currentCell.row ||
-        history[history.length - 1].col !== currentCell.col
-      ) {
+      const last = history[history.length - 1];
+      if (!last) {
         history.push(currentCell);
+      } else if (last.row !== currentCell.row || last.col !== currentCell.col) {
+        // Robots move one cell at a time, so a non-adjacent "jump" can only be a
+        // transient path/robotT desync during a dynamic replan. Don't record the
+        // bogus cell — that's what produced the diagonal trail across walls.
+        const adjacent =
+          Math.abs(currentCell.row - last.row) <= 1 && Math.abs(currentCell.col - last.col) <= 1;
+        if (adjacent) history.push(currentCell);
       }
     } else if (st === 'done' && p.length > 0) {
       const lastCell = p[p.length - 1];
       const history = traversedHistoryRef.current;
-      if (
-        history.length > 0 &&
-        (history[history.length - 1].row !== lastCell.row || history[history.length - 1].col !== lastCell.col)
-      ) {
-        history.push(lastCell);
+      const last = history[history.length - 1];
+      if (last && (last.row !== lastCell.row || last.col !== lastCell.col)) {
+        const adjacent =
+          Math.abs(lastCell.row - last.row) <= 1 && Math.abs(lastCell.col - last.col) <= 1;
+        if (adjacent) history.push(lastCell);
       }
     }
 
@@ -438,18 +446,17 @@ export function SimulationCanvas({
       drawBrackets(ctx, s.row, s.col, COLORS.startText);
     }
 
-    // End marker — in fog mode only shown once LiDAR has revealed the goal cell.
-    // The robot (and the observer) must genuinely discover where the goal is.
-    if (!isSlam || rc.has(e.row * COLS + e.col)) {
-      ctx.fillStyle = COLORS.endBg;
-      ctx.fillRect(e.col * CELL + 0.5, e.row * CELL + 0.5, CELL - 1, CELL - 1);
-      ctx.fillStyle = COLORS.endText;
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('E', e.col * CELL + CELL / 2, e.row * CELL + CELL / 2);
-      drawBrackets(ctx, e.row, e.col, COLORS.endText);
-    }
+    // End marker. In this Dynamic-Replanning model the robot KNOWS the goal
+    // coordinate, so the goal is always drawn solid (the obstacle layout is what
+    // remains hidden under the fog, not the destination).
+    ctx.fillStyle = COLORS.endBg;
+    ctx.fillRect(e.col * CELL + 0.5, e.row * CELL + 0.5, CELL - 1, CELL - 1);
+    ctx.fillStyle = COLORS.endText;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('E', e.col * CELL + CELL / 2, e.row * CELL + CELL / 2);
+    drawBrackets(ctx, e.row, e.col, COLORS.endText);
 
     // ── Explored nodes visualization ──
     const vc = Math.floor(vs);
@@ -516,14 +523,21 @@ export function SimulationCanvas({
       ctx.setLineDash([3, 4]);
       ctx.beginPath();
       let needsMove = true;
+      let prevPos: Position | null = null;
       for (const pos of history) {
-        if (isSlam && !rc.has(pos.row * COLS + pos.col)) { needsMove = true; continue; }
-        if (needsMove) {
+        if (isSlam && !rc.has(pos.row * COLS + pos.col)) { needsMove = true; prevPos = null; continue; }
+        // Only connect cells that are actually neighbours. A non-adjacent pair
+        // means a path was swapped mid-flight (dynamic replan) — break the line
+        // there instead of drawing a bogus diagonal straight through walls.
+        const adjacent = prevPos !== null &&
+          Math.abs(pos.row - prevPos.row) <= 1 && Math.abs(pos.col - prevPos.col) <= 1;
+        if (needsMove || !adjacent) {
           ctx.moveTo(pos.col * CELL + CELL / 2, pos.row * CELL + CELL / 2);
           needsMove = false;
         } else {
           ctx.lineTo(pos.col * CELL + CELL / 2, pos.row * CELL + CELL / 2);
         }
+        prevPos = pos;
       }
       ctx.stroke();
       ctx.setLineDash([]);
@@ -546,15 +560,19 @@ export function SimulationCanvas({
       ctx.lineCap = 'round';
       ctx.beginPath();
       let needsMove = true;
+      let prevCell: Position | null = null;
       for (let i = 0; i < Math.min(pc, p.length); i++) {
         const { row: r, col: c } = p[i];
-        if (isSlam && !rc.has(r * COLS + c)) { needsMove = true; continue; }
-        if (needsMove) {
+        if (isSlam && !rc.has(r * COLS + c)) { needsMove = true; prevCell = null; continue; }
+        const adjacent = prevCell !== null &&
+          Math.abs(r - prevCell.row) <= 1 && Math.abs(c - prevCell.col) <= 1;
+        if (needsMove || !adjacent) {
           ctx.moveTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
           needsMove = false;
         } else {
           ctx.lineTo(c * CELL + CELL / 2, r * CELL + CELL / 2);
         }
+        prevCell = { row: r, col: c };
       }
       ctx.stroke();
 
@@ -593,15 +611,15 @@ export function SimulationCanvas({
       ctx.strokeStyle = `rgba(${rgb},${active ? 0.08 : 0.03})`;
       ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.arc(rx, ry, CELL * 4.2, 0, Math.PI * 2);
+      ctx.arc(rx, ry, LIDAR_RANGE, 0, Math.PI * 2);
       ctx.stroke();
 
       // Crosshair
       ctx.strokeStyle = `rgba(${rgb},${active ? 0.10 : 0.03})`;
       ctx.lineWidth = 0.5;
       ctx.beginPath();
-      ctx.moveTo(rx - CELL * 4.7, ry); ctx.lineTo(rx + CELL * 4.7, ry);
-      ctx.moveTo(rx, ry - CELL * 4.7); ctx.lineTo(rx, ry + CELL * 4.7);
+      ctx.moveTo(rx - LIDAR_RANGE * 1.12, ry); ctx.lineTo(rx + LIDAR_RANGE * 1.12, ry);
+      ctx.moveTo(rx, ry - LIDAR_RANGE * 1.12); ctx.lineTo(rx, ry + LIDAR_RANGE * 1.12);
       ctx.stroke();
 
       // Rotating dashed ring
@@ -609,7 +627,7 @@ export function SimulationCanvas({
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 5]);
       ctx.beginPath();
-      ctx.arc(rx, ry, CELL * 4.7, -lidarAngle.current * 0.8, -lidarAngle.current * 0.8 + Math.PI * 2);
+      ctx.arc(rx, ry, LIDAR_RANGE * 1.12, -lidarAngle.current * 0.8, -lidarAngle.current * 0.8 + Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -617,7 +635,7 @@ export function SimulationCanvas({
       ctx.strokeStyle = `rgba(${rgb},${active ? 0.12 : 0.04})`;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(rx, ry, CELL * 6, lidarAngle.current, lidarAngle.current + 0.9);
+      ctx.arc(rx, ry, LIDAR_RANGE * 1.45, lidarAngle.current, lidarAngle.current + 0.9);
       ctx.stroke();
 
       // Pulse ring
@@ -746,35 +764,46 @@ export function SimulationCanvas({
             return true;
           };
 
-          // Check if remaining path is blocked by a wall
-          const remaining = pathRef.current.slice(currIdx);
+          // Freeze ONLY if the cell the robot is about to enter is a revealed
+          // wall (imminent collision). Walls further ahead are handled by dynamic
+          // replanning, which bends the route while the robot keeps cruising — so
+          // we don't stop early for distant obstacles.
+          const cur = pathRef.current[currIdx];
+          const nxt = pathRef.current[currIdx + 1];
           let pathBlocked = false;
-          if (remaining.length > 0 && isCellWall(remaining[0].row, remaining[0].col)) {
-            pathBlocked = true;
-          } else {
-            for (let i = 1; i < remaining.length; i++) {
-              const from = remaining[i - 1];
-              const to = remaining[i];
-              if (isCellWall(to.row, to.col)) {
+          if (nxt) {
+            if (isCellWall(nxt.row, nxt.col)) {
+              pathBlocked = true;
+            } else if (diagonalRef.current && cur && cur.row !== nxt.row && cur.col !== nxt.col) {
+              if (isCellWall(cur.row, nxt.col) || isCellWall(nxt.row, cur.col)) {
                 pathBlocked = true;
-                break;
-              }
-              if (diagonalRef.current && from.row !== to.row && from.col !== to.col) {
-                if (isCellWall(from.row, to.col) || isCellWall(to.row, from.col)) {
-                  pathBlocked = true;
-                  break;
-                }
               }
             }
           }
 
           if (pathBlocked) {
             // Keep the robot at its current position (freeze it) and wait for replan
-            onSetRobotT(() => prev);
+            // Do not force set state if we are just holding still, to avoid clobbering
             robotTRef.current = prev;
+            // robotT is now static, so the app's robotT-driven replan effect won't
+            // re-fire. Periodically nudge it (≈every 12 frames) so the robot keeps
+            // trying to reroute and never gets permanently stuck in/against a wall.
+            blockedFrameRef.current++;
+            if (blockedFrameRef.current % 12 === 1) {
+              onWallDiscoveredRef.current();
+            }
           } else {
-            const next = Math.min(prev + spd * 0.005, pathRef.current.length - 1);
-            onSetRobotT(() => next);
+            blockedFrameRef.current = 0;
+            const delta = spd * 0.005;
+            const next = prev + delta;
+            
+            // Use functional state updater to avoid clobbering the 0 reset from replan!
+            onSetRobotT((curr) => {
+              // If a replan reset it to 0, use that as the base instead of the stale closure
+              if (Math.abs(curr - prev) > 1.0) return Math.min(curr + delta, pathRef.current.length - 1);
+              return Math.min(curr + delta, pathRef.current.length - 1);
+            });
+            
             robotTRef.current = next;
             if (next >= pathRef.current.length - 1) {
               onSetState('done');
