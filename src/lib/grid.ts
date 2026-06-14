@@ -26,3 +26,14 @@ export function applyWalls(grid: Grid, walls: Position[]): Grid {
   }
   return newGrid;
 }
+
+export function applyFeatures(grid: Grid, walls: Position[], muds: Position[]): Grid {
+  const newGrid = grid.map((r) => r.slice()) as Grid;
+  for (const { row, col } of walls) {
+    if (inBounds(row, col)) newGrid[row][col] = CellType.WALL;
+  }
+  for (const { row, col } of muds) {
+    if (inBounds(row, col)) newGrid[row][col] = CellType.MUD;
+  }
+  return newGrid;
+}
