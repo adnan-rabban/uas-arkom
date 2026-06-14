@@ -19,35 +19,77 @@ export const DIRECTIONS: [number, number][] = [
 export const DEFAULT_START = { row: 12, col: 2 };
 export const DEFAULT_END = { row: 12, col: 37 };
 
-// ── Colors (iOS 26 palette) ──
+// ── Colors (4-Color Light Theme palette) ──
 export const COLORS = {
-  gridBg: '#000000',
-  gridLine: '#161616',
-  wall: '#1a1a1a',
-  wallPattern: '#262626',
-  mudBg: '#2a1a10',
-  mudLine: '#664028',
-  startBg: '#0d2613',
-  startText: '#32D74B',
-  endBg: '#300d0d',
-  endText: '#FF453A',
-  visited: 'rgba(10, 132, 255, 0.12)',
-  visitedFresh: 'rgba(10, 132, 255, 0.3)',
-  frontier: 'rgba(255, 59, 48, 0.15)',
-  pathCell: 'rgba(10, 132, 255, 0.25)',
-  pathLine: '#0A84FF',
-  robotBody: '#0d0d0d',
-  robotActive: '#FF3B30',
-  robotInactive: '#3c3c3c',
-  robotCenter: '#ffffff',
-  robotCenterInactive: '#7e7e7e',
-  lidarRay: 'rgba(10,132,255,{alpha})',
-  lidarSweep: 'rgba(10,132,255,0.12)',
-  lidarSweepInactive: 'rgba(10,132,255,0.04)',
-  pulseActive: 'rgba(255,59,48,0.1)',
-  pulseInactive: 'rgba(255,59,48,0.03)',
-  doneGlow: 'rgba(50,215,75,{alpha})',
+  gridBg: '#FCFCFD',
+  gridLine: '#E5E7EB',
+  wall: '#1F2937',
+  wallPattern: '#374151',
+  fogBg: '#E2E8F0',
+  fogBgRgb: '226, 232, 240',
+  mudBg: '#F3F4F6',
+  mudLine: '#9CA3AF',
+  startBg: '#FEF3C7',
+  startText: '#D97706',
+  endBg: '#DCFCE7',
+  endText: '#15803D',
+  visited: 'rgba(217, 119, 6, 0.07)',
+  visitedFresh: 'rgba(217, 119, 6, 0.18)',
+  frontier: 'rgba(107, 114, 128, 0.12)',
+  pathCell: 'rgba(217, 119, 6, 0.12)',
+  pathLine: '#D97706',
+  robotBody: 'rgba(31, 41, 55, 0.75)',
+  robotActive: '#D97706',
+  robotInactive: 'rgba(156, 163, 175, 0.45)',
+  robotCenter: '#FCFCFD',
+  robotCenterInactive: '#6B7280',
+  lidarRay: 'rgba(217, 119, 6, {alpha})',
+  lidarSweep: 'rgba(217, 119, 6, 0.06)',
+  lidarSweepInactive: 'rgba(217, 119, 6, 0.01)',
+  pulseActive: 'rgba(217, 119, 6, 0.06)',
+  pulseInactive: 'rgba(217, 119, 6, 0.01)',
+  doneGlow: 'rgba(217, 119, 6, {alpha})',
 } as const;
+
+export const ALGO_COLORS = {
+  astar: {
+    hex: '#D97706',
+    border: 'border-[#D97706]/40',
+    borderLight: 'border-[#D97706]/30',
+    text: 'text-[#D97706]',
+    visited: 'rgba(217, 119, 6, 0.07)',
+    visitedFresh: 'rgba(217, 119, 6, 0.18)',
+    path: '#D97706',
+    pathCell: 'rgba(217, 119, 6, 0.12)',
+    glowClass: 'shadow-glow-astar',
+    glowPulseClass: 'shadow-glow-astar shadow-glow-pulse-astar',
+  },
+  dijkstra: {
+    hex: '#6B7280',
+    border: 'border-[#6B7280]/40',
+    borderLight: 'border-[#6B7280]/30',
+    text: 'text-[#6B7280]',
+    visited: 'rgba(107, 114, 128, 0.08)',
+    visitedFresh: 'rgba(107, 114, 128, 0.18)',
+    path: '#6B7280',
+    pathCell: 'rgba(107, 114, 128, 0.12)',
+    glowClass: 'shadow-glow-dijkstra',
+    glowPulseClass: 'shadow-glow-dijkstra',
+  },
+  bfs: {
+    hex: '#BE123C',
+    border: 'border-[#BE123C]/40',
+    borderLight: 'border-[#BE123C]/30',
+    text: 'text-[#BE123C]',
+    visited: 'rgba(190, 18, 60, 0.07)',
+    visitedFresh: 'rgba(190, 18, 60, 0.18)',
+    path: '#BE123C',
+    pathCell: 'rgba(190, 18, 60, 0.12)',
+    glowClass: 'shadow-glow-bfs',
+    glowPulseClass: 'shadow-glow-bfs shadow-glow-pulse-bfs',
+  },
+} as const;
+
 
 // ── Translations ──
 export const translations: Record<Language, Translations> = {
@@ -92,11 +134,6 @@ export const translations: Record<Language, Translations> = {
     bfsDesc:
       'Menjelajahi seluruh tetangga pada kedalaman saat ini sebelum bergerak lebih dalam. Menjamin jalur terpendek pada graf tanpa bobot, tetapi mengeksplorasi paling banyak node dan mengabaikan bobot jalan.',
 
-    comparison: 'Perbandingan Algoritma',
-    comparisonSubtitle: 'Peta yang Sama',
-    nodesExplored: 'Node Dijelajahi',
-    fewerNodes: 'lebih sedikit node',
-    bestLabel: 'Terbaik',
 
     legend: 'Legenda',
     visited: 'Dikunjungi',
@@ -179,11 +216,6 @@ export const translations: Record<Language, Translations> = {
     bfsDesc:
       'Explores all neighbors at current depth before moving deeper. Guarantees shortest path on unweighted graphs, but explores the most nodes and ignores terrain cost.',
 
-    comparison: 'Algorithm Comparison',
-    comparisonSubtitle: 'Identical Map',
-    nodesExplored: 'Nodes Explored',
-    fewerNodes: 'fewer nodes',
-    bestLabel: 'Best',
 
     legend: 'Legend',
     visited: 'Visited',
