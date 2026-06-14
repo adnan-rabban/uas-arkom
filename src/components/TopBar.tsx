@@ -27,40 +27,40 @@ export const TopBar = memo(function TopBar({ lang, onToggleLang, simulationState
       case 'exploring':
       case 'pathing':
       case 'moving':
-        return { label: t.statusRunning, variant: 'default' as const, className: 'bg-[#FF9F0A]/15 text-[#FF9F0A] border-[#FF9F0A]/25 rounded-full animate-pulse' };
+        return { label: t.statusRunning, variant: 'default' as const, className: 'bg-[#D97706]/15 text-[#D97706] border-[#D97706]/25 rounded-full animate-pulse' };
       case 'done':
         return pathFound
-          ? { label: t.statusFound, variant: 'default' as const, className: 'bg-[#32D74B]/15 text-[#32D74B] border-[#32D74B]/25 rounded-full' }
-          : { label: t.statusNoPath, variant: 'destructive' as const, className: 'bg-[#FF453A]/15 text-[#FF453A] border-[#FF453A]/25 rounded-full' };
+          ? { label: t.statusFound, variant: 'default' as const, className: 'bg-[#D97706]/15 text-[#D97706] border-[#D97706]/25 rounded-full' }
+          : { label: t.statusNoPath, variant: 'destructive' as const, className: 'bg-[#BE123C]/15 text-[#BE123C] border-[#BE123C]/25 rounded-full' };
       default:
-        return { label: t.statusReady, variant: 'secondary' as const, className: 'bg-white/[0.06] text-white/50 border-white/[0.08] rounded-full' };
+        return { label: t.statusReady, variant: 'secondary' as const, className: 'bg-black/[0.04] text-slate-500 border-black/[0.08] rounded-full' };
     }
   };
 
   const status = getStatusConfig();
 
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 bg-transparent shrink-0 select-none">
+    <div className="flex items-center justify-between px-6 py-3 bg-transparent shrink-0 select-none">
       <div className="flex items-center gap-3">
-        <h1 className="text-[15px] font-semibold tracking-tight text-white/90">
+        <h1 className="text-[16px] font-semibold tracking-[-0.02em] text-slate-800">
           {t.title}
         </h1>
       </div>
 
-      <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-white/18">
+      <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-slate-400">
         <span>BAUD_RATE: 9600 BPS</span>
-        <span className="w-1 h-1 bg-white/10 rounded-full" />
+        <span className="w-0.5 h-0.5 bg-slate-300 rounded-full" />
         <span>SYS_CYCLE: {ticks.toLocaleString()}</span>
       </div>
 
       <div className="flex items-center gap-3">
-        <Badge variant={status.variant} className={`text-[10px] tracking-wider font-medium rounded-full px-3 ${status.className}`}>
+        <Badge variant={status.variant} className={`text-[10px] tracking-[0.04em] font-semibold rounded-full px-3.5 py-0.5 ${status.className}`}>
           {status.label}
         </Badge>
 
         <button
           onClick={onToggleLang}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider text-white/40 hover:text-white border border-white/8 hover:border-white/20 hover:bg-white/6 transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-[0.03em] text-slate-500 hover:text-slate-800 border border-black/8 hover:border-black/15 bg-black/2 hover:bg-black/4 transition-all cursor-pointer"
         >
           <Globe className="w-3 h-3" />
           {lang.toUpperCase()}
