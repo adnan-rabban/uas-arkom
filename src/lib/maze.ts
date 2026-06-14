@@ -10,8 +10,55 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
-export function generateDFSMaze(start: Position, end: Position): Position[] {
+// ── Start↔Goal Connectivity Guarantee ──
+// Post-processing steps (boundary cleanup, room/plaza carving, random walks) can
+// leave the start and goal in disconnected components — producing a genuinely
+// unsolvable maze. This floods from the start over free cells; if the goal isn't
+// reached, it carves a straight L-shaped tunnel from the nearest reachable cell
+// to the goal, guaranteeing at least one route exists.
+function ensureConnected(isWall: boolean[][], start: Position, end: Position): void {
+  const dirs: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
+  const queue: Position[] = [start];
+  visited[start.row][start.col] = true;
+  let head = 0;
+  const reachable: Position[] = [];
+
+  while (head < queue.length) {
+    const cur = queue[head++];
+    reachable.push(cur);
+    for (const [dr, dc] of dirs) {
+      const nr = cur.row + dr, nc = cur.col + dc;
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !isWall[nr][nc] && !visited[nr][nc]) {
+        visited[nr][nc] = true;
+        queue.push({ row: nr, col: nc });
+      }
+    }
+  }
+
+  if (visited[end.row][end.col]) return; // already solvable
+
+  // Find the reachable cell closest to the goal, then carve an L-tunnel to it.
+  let best = start;
+  let bestDist = Infinity;
+  for (const p of reachable) {
+    const d = Math.abs(p.row - end.row) + Math.abs(p.col - end.col);
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  let r = best.row, c = best.col;
+  while (r !== end.row) { isWall[r][c] = false; r += r < end.row ? 1 : -1; }
+  while (c !== end.col) { isWall[r][c] = false; c += c < end.col ? 1 : -1; }
+  isWall[r][c] = false;
+}
+
+export interface MazeResult {
+  walls: Position[];
+  muds: Position[];
+}
+
+export function generateDFSMaze(start: Position, end: Position): MazeResult {
   const walls: Position[] = [];
+  const muds: Position[] = [];
 
   // Start with a grid where all cells are walls
   const isWall = Array.from({ length: ROWS }, () => new Array(COLS).fill(true));
@@ -203,7 +250,12 @@ export function generateDFSMaze(start: Position, end: Position): Position[] {
   shuffle(removableWalls);
   const numToRemove = Math.floor(removableWalls.length * loopRemovalPct);
   for (let i = 0; i < numToRemove; i++) {
-    isWall[removableWalls[i].row][removableWalls[i].col] = false;
+    const rm = removableWalls[i];
+    isWall[rm.row][rm.col] = false;
+    // Turn 70% of these shortcuts into MUD (jalan pelosok/gang sempit)
+    if (Math.random() < 0.7) {
+      muds.push({ row: rm.row, col: rm.col });
+    }
   }
 
   // ══════════════════════════════════════════════════════════
@@ -274,6 +326,9 @@ export function generateDFSMaze(start: Position, end: Position): Position[] {
     }
   }
 
+  // Guarantee the goal is actually reachable from the start.
+  ensureConnected(isWall, start, end);
+
   // Convert isWall grid back to a list of wall Positions
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -283,11 +338,12 @@ export function generateDFSMaze(start: Position, end: Position): Position[] {
     }
   }
 
-  return walls;
+  return { walls, muds };
 }
 
-export function generateRecursiveDivisionMaze(start: Position, end: Position): Position[] {
+export function generateRecursiveDivisionMaze(start: Position, end: Position): MazeResult {
   const walls: Position[] = [];
+  const muds: Position[] = [];
   const isWall = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
 
   // 1. Build outer boundary walls
@@ -393,6 +449,35 @@ export function generateRecursiveDivisionMaze(start: Position, end: Position): P
     }
   }
 
+  // ══════════════════════════════════════════════════════════
+  //  STEP 2: Shortcut Hole Punching (Muddy Doors)
+  // ══════════════════════════════════════════════════════════
+  // The basic recursive division creates a "perfect maze" (1 path only).
+  // We punch random holes in the generated walls to create shortcuts,
+  // and fill them with MUD to represent heavy/locked doors or alleys.
+  const wallPositions = [];
+  for (let r = 1; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      if (isWall[r][c]) {
+        // Only punch holes that connect two empty spaces
+        const h = !isWall[r - 1][c] && !isWall[r + 1][c];
+        const v = !isWall[r][c - 1] && !isWall[r][c + 1];
+        if (h || v) wallPositions.push({ row: r, col: c });
+      }
+    }
+  }
+  
+  shuffle(wallPositions);
+  const numShortcuts = Math.floor(wallPositions.length * 0.15); // 15% walls removed
+  for (let i = 0; i < numShortcuts; i++) {
+    const pos = wallPositions[i];
+    isWall[pos.row][pos.col] = false;
+    muds.push({ row: pos.row, col: pos.col });
+  }
+
+  // Guarantee the goal is actually reachable from the start.
+  ensureConnected(isWall, start, end);
+
   // Convert to Position list
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -402,11 +487,12 @@ export function generateRecursiveDivisionMaze(start: Position, end: Position): P
     }
   }
 
-  return walls;
+  return { walls, muds };
 }
 
-export function generateCellularAutomataCave(start: Position, end: Position): Position[] {
+export function generateCellularAutomataCave(start: Position, end: Position): MazeResult {
   const walls: Position[] = [];
+  const muds: Position[] = [];
   let grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
 
   // 1. Randomly fill the grid (45% wall chance)
@@ -550,7 +636,22 @@ export function generateCellularAutomataCave(start: Position, end: Position): Po
     grid[currR][currC] = false;
   }
 
-  // 4. Convert to list of wall Positions
+  // 4. Mud Generation (Swampy patches)
+  // Add mud in random open areas to create varying traversal costs in the cave.
+  for (let r = 1; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      if (!grid[r][c] && Math.random() < 0.08) {
+        // Protect start and end from mud
+        const isStart = Math.abs(r - start.row) <= 1 && Math.abs(c - start.col) <= 1;
+        const isEnd = Math.abs(r - end.row) <= 1 && Math.abs(c - end.col) <= 1;
+        if (!isStart && !isEnd) {
+          muds.push({ row: r, col: c });
+        }
+      }
+    }
+  }
+
+  // 5. Convert to list of wall Positions
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (grid[r][c]) {
@@ -559,6 +660,6 @@ export function generateCellularAutomataCave(start: Position, end: Position): Po
     }
   }
 
-  return walls;
+  return { walls, muds };
 }
 
