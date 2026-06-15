@@ -282,7 +282,7 @@ void loop() {
               props.onSetSpeed(v as number);
             }}
             min={1}
-            max={20}
+            max={30}
             step={1}
             className="py-1"
           />
@@ -688,12 +688,21 @@ void loop() {
     prevProps.serialConnected === nextProps.serialConnected &&
     prevProps.isVirtualSerial === nextProps.isVirtualSerial &&
     prevProps.path === nextProps.path &&
+    prevProps.pathCost === nextProps.pathCost &&
+    prevProps.computeTime === nextProps.computeTime &&
     prevProps.serialStats.framesSent === nextProps.serialStats.framesSent &&
     prevProps.serialStats.bytesSent === nextProps.serialStats.bytesSent &&
     prevProps.serialStats.ackReceived === nextProps.serialStats.ackReceived &&
     prevProps.serialStats.checksumErrors === nextProps.serialStats.checksumErrors &&
     Math.floor(prevProps.explored) === Math.floor(nextProps.explored) &&
-    Math.floor(prevProps.robotT) === Math.floor(nextProps.robotT)
+    Math.floor(prevProps.robotT) === Math.floor(nextProps.robotT) &&
+    prevProps.onRun === nextProps.onRun &&
+    prevProps.onStep === nextProps.onStep &&
+    prevProps.onReset === nextProps.onReset &&
+    prevProps.onClear === nextProps.onClear &&
+    prevProps.onConnectSerial === nextProps.onConnectSerial &&
+    prevProps.onDisconnectSerial === nextProps.onDisconnectSerial &&
+    prevProps.onSetSpeed === nextProps.onSetSpeed
   );
 });
 
