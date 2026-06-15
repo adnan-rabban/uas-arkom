@@ -70,10 +70,11 @@ export function generateDFSMaze(start: Position, end: Position): MazeResult {
   // ── Randomized parameters for variety ──
   // Each generation produces a different structural mix of rooms, corridors,
   // plazas, and loop density — preventing the "template" feel.
-  const numRooms = 3 + Math.floor(Math.random() * 4);       // 3–6 rooms
-  const numPlazas = Math.random() < 0.6 ? 1 : 2;            // 1–2 plazas
-  const loopRemovalPct = 0.12 + Math.random() * 0.10;        // 12–22% walls removed
-  const widenPct = 0.15 + Math.random() * 0.20;              // 15–35% corridors widened
+  // Kept deliberately modest so the maze stays a *maze* (tight corridors)
+  // rather than collapsing into open field. Tight corridors are the "jalan
+  // raya" network; mud shortcuts (STEP 5) provide the weighted alternatives.
+  const numRooms = 2 + Math.floor(Math.random() * 2);        // 2–3 small plazas
+  const loopRemovalPct = 0.16 + Math.random() * 0.10;        // 16–26% walls become shortcuts
 
   // ══════════════════════════════════════════════════════════
   //  STEP 1: DFS Maze Carving (Recursive Backtracking)
@@ -150,8 +151,8 @@ export function generateDFSMaze(start: Position, end: Position): MazeResult {
   // Place random rectangular rooms (3x3 to 6x6) that carve open areas
   // into the maze, creating multi-path intersections and visual variety.
   for (let i = 0; i < numRooms; i++) {
-    const roomW = 3 + Math.floor(Math.random() * 4); // 3–6 wide
-    const roomH = 3 + Math.floor(Math.random() * 4); // 3–6 tall
+    const roomW = 3 + Math.floor(Math.random() * 2); // 3–4 wide
+    const roomH = 3 + Math.floor(Math.random() * 2); // 3–4 tall
     const roomR = 2 + Math.floor(Math.random() * (ROWS - roomH - 4));
     const roomC = 2 + Math.floor(Math.random() * (COLS - roomW - 4));
 
@@ -163,22 +164,11 @@ export function generateDFSMaze(start: Position, end: Position): MazeResult {
   }
 
   // ══════════════════════════════════════════════════════════
-  //  STEP 3: Plaza Generation (Large Open Areas)
+  //  (Plaza generation removed)
   // ══════════════════════════════════════════════════════════
-  // Plazas are large open areas that force the robot to navigate across
-  // empty space, contrasting with tight corridor sections.
-  for (let i = 0; i < numPlazas; i++) {
-    const plazaW = 5 + Math.floor(Math.random() * 4); // 5–8 wide
-    const plazaH = 5 + Math.floor(Math.random() * 3); // 5–7 tall
-    const plazaR = 2 + Math.floor(Math.random() * Math.max(1, ROWS - plazaH - 4));
-    const plazaC = 2 + Math.floor(Math.random() * Math.max(1, COLS - plazaW - 4));
-
-    for (let r = plazaR; r < plazaR + plazaH && r < ROWS - 1; r++) {
-      for (let c = plazaC; c < plazaC + plazaW && c < COLS - 1; c++) {
-        isWall[r][c] = false;
-      }
-    }
-  }
+  // Large open plazas were dropped: on a 40×24 grid they opened up too much
+  // space and made the result feel like an open field instead of a maze,
+  // which also flattened the difference between BFS / Dijkstra / A*.
 
   // ══════════════════════════════════════════════════════════
   //  STEP 4: Braid Maze — Dead-End Removal
@@ -252,60 +242,21 @@ export function generateDFSMaze(start: Position, end: Position): MazeResult {
   for (let i = 0; i < numToRemove; i++) {
     const rm = removableWalls[i];
     isWall[rm.row][rm.col] = false;
-    // Turn 70% of these shortcuts into MUD (jalan pelosok/gang sempit)
-    if (Math.random() < 0.7) {
+    // Turn most of these shortcuts into MUD (jalan pelosok/gang sempit).
+    // Clean corridors remain the long "highway"; muddy shortcuts are the
+    // short-but-expensive alternatives that split BFS from A*/Dijkstra.
+    if (Math.random() < 0.85) {
       muds.push({ row: rm.row, col: rm.col });
     }
   }
 
   // ══════════════════════════════════════════════════════════
-  //  STEP 6: Corridor Widening
+  //  (Corridor widening + random-walk carving removed)
   // ══════════════════════════════════════════════════════════
-  // Randomly select passage cells and widen them by carving one
-  // adjacent wall cell. This creates hallways and asymmetry that
-  // break the uniform single-cell corridor pattern.
-  const passageCells: Position[] = [];
-  for (let r = 1; r < ROWS - 1; r++) {
-    for (let c = 1; c < COLS - 1; c++) {
-      if (!isWall[r][c]) passageCells.push({ row: r, col: c });
-    }
-  }
-
-  shuffle(passageCells);
-  const numWiden = Math.floor(passageCells.length * widenPct);
-  for (let i = 0; i < numWiden; i++) {
-    const pos = passageCells[i];
-    const dirs = shuffle([...orthDirs]);
-    for (const [dr, dc] of dirs) {
-      const nr = pos.row + dr, nc = pos.col + dc;
-      if (nr > 0 && nr < ROWS - 1 && nc > 0 && nc < COLS - 1 && isWall[nr][nc]) {
-        isWall[nr][nc] = false;
-        break;
-      }
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════
-  //  STEP 7: Organic Noise — Random Walk Carving
-  // ══════════════════════════════════════════════════════════
-  // Perform several short random walks from random passage cells.
-  // This creates organic, non-grid-aligned patterns that contrast
-  // with the structured DFS corridors.
-  const numWalks = 3 + Math.floor(Math.random() * 3);
-  for (let w = 0; w < numWalks; w++) {
-    // Pick a random existing passage cell as the walk origin
-    const origin = passageCells[Math.floor(Math.random() * passageCells.length)];
-    let wr = origin.row, wc = origin.col;
-    const walkLen = 8 + Math.floor(Math.random() * 15);
-    for (let s = 0; s < walkLen; s++) {
-      const [dr, dc] = orthDirs[Math.floor(Math.random() * 4)];
-      const nr = wr + dr, nc = wc + dc;
-      if (nr > 0 && nr < ROWS - 1 && nc > 0 && nc < COLS - 1) {
-        isWall[nr][nc] = false;
-        wr = nr; wc = nc;
-      }
-    }
-  }
+  // These two steps used to widen 15–35% of corridors and carve several long
+  // random walks. On this grid size they dissolved the maze into open blobs,
+  // hurting both readability and the algorithm-comparison demo. Corridors are
+  // now kept uniformly 1-cell wide so the structure reads as a real labyrinth.
 
   // ══════════════════════════════════════════════════════════
   //  STEP 8: Boundary Cleanup
