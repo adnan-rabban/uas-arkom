@@ -18,7 +18,7 @@ import './App.css';
 
 
 
-function isPathBlockedOrWeighted(path: Position[], grid: Grid, diagonal: boolean): boolean {
+function isPathBlocked(path: Position[], grid: Grid, diagonal: boolean): boolean {
   if (path.length > 0) {
     const firstCell = grid[path[0].row]?.[path[0].col];
     if (firstCell === CellType.WALL) return true;
@@ -26,7 +26,7 @@ function isPathBlockedOrWeighted(path: Position[], grid: Grid, diagonal: boolean
   for (let i = 1; i < path.length; i++) {
     const from = path[i - 1];
     const to = path[i];
-    if (grid[to.row]?.[to.col] === CellType.WALL || grid[to.row]?.[to.col] === CellType.MUD) return true;
+    if (grid[to.row]?.[to.col] === CellType.WALL) return true;
     if (diagonal && from.row !== to.row && from.col !== to.col) {
       if (
         grid[from.row]?.[to.col] === CellType.WALL ||
@@ -90,6 +90,10 @@ export default function App() {
     replan,
     reset, run, stepOnce, showToast, setToast,
   } = useSimulation();
+
+  const handleCloseToast = useCallback(() => {
+    setToast(null);
+  }, [setToast]);
 
   const {
     knownGridRef, revealedCellsRef, resetFog, revealCell, markCellDirty, syncDirtyCells,
@@ -421,7 +425,7 @@ export default function App() {
 
     // ── Normal mode: existing wall/mud blocking check on the real grid ──
     const remainingPath = path.slice(currIndex);
-    const isBlocked = isPathBlockedOrWeighted(remainingPath, grid, diagonal);
+    const isBlocked = isPathBlocked(remainingPath, grid, diagonal);
     if (isBlocked) {
       const now = performance.now();
       if (now - lastReplanTimeRef.current < 150) {
@@ -433,7 +437,7 @@ export default function App() {
           if (latestState === 'moving' && latestPath.length > 0) {
             const cIdx = Math.min(Math.floor(latestRobotT), latestPath.length - 1);
             const rem = latestPath.slice(cIdx);
-            if (isPathBlockedOrWeighted(rem, gridRef.current, diagonalRef.current)) {
+            if (isPathBlocked(rem, gridRef.current, diagonalRef.current)) {
               replan(gridRef.current, latestPath[cIdx], endPosRef.current);
             }
           }
@@ -458,17 +462,10 @@ export default function App() {
     }
   }, [endPos]);
 
-  const getGlowClass = () => {
-    const isRunning = state !== 'idle' && state !== 'done';
-    if (algorithm === 'astar') return isRunning ? 'shadow-glow-astar shadow-glow-pulse-astar' : 'shadow-glow-astar';
-    if (algorithm === 'bfs') return isRunning ? 'shadow-glow-bfs shadow-glow-pulse-bfs' : 'shadow-glow-bfs';
-    return 'shadow-glow-dijkstra';
-  };
-
   return (
     <TooltipProvider delay={300}>
       <div className="h-screen w-screen flex items-center justify-center p-2 lg:p-4 overflow-hidden" style={{ background: 'radial-gradient(ellipse at 50% 30%, #FCFCFD 0%, #F3F4F6 60%, #E5E7EB 100%)' }}>
-        <div className={`w-full max-w-360 h-full max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col transition-all duration-500 rounded-2xl glass-panel ${getGlowClass()}`}>
+        <div className="w-full max-w-360 h-full max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col transition-all duration-500 rounded-2xl glass-panel">
           <TopBar
             lang={lang}
             onToggleLang={toggleLang}
@@ -592,7 +589,7 @@ export default function App() {
         <Toast
           type={toast.type}
           message={toast.message}
-          onClose={() => setToast(null)}
+          onClose={handleCloseToast}
         />
       )}
     </TooltipProvider>
