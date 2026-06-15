@@ -4,6 +4,17 @@ import { ROWS, COLS } from '@/lib/constants';
 
 const SQRT2_MINUS_2 = Math.SQRT2 - 2;
 
+// ── Goal-directed tie-break weight ──
+// A tiny multiple of the heuristic is folded into Dijkstra's priority so that,
+// among the many equal-cost shortest paths through open space, the planner
+// consistently commits to the one heading toward the goal. This removes the
+// route flip-flop that made the robot oscillate (step forward, snap back)
+// during dynamic replanning. ε = 1e-2 is small enough that, for the default
+// orthogonal mode (integer step costs, so distinct path costs differ by ≥ 1),
+// it can never override a genuinely cheaper route (ε·h_max ≈ 0.63 < 1) — so
+// Dijkstra stays optimal — yet large enough to give a strong, stable bias.
+const TIE_EPS = 1e-2;
+
 // ── Flat MinHeap — Contiguous Memory Layout ──
 // Uses parallel Float64Arrays instead of number[][] for cache-friendly access.
 // Mirrors how hardware priority encoders process data in contiguous registers.
@@ -168,44 +179,40 @@ function bfs(
       return { visitOrder, path: reconstructPath(parentMap, start, end), gScores, hScores };
     }
 
-    // ── Inlined neighbor expansion (zero-allocation hot path) ──
-    // Eliminates getNeighbors() array/object allocation per cell visit.
+    // ── Goal-directed, deterministic neighbor expansion ──
+    // Pure BFS picks an arbitrary one among many equal-length shortest paths
+    // (decided by a fixed Up/Down/Left/Right order). When the robot's start cell
+    // shifts by one during dynamic replanning, that arbitrary choice can flip,
+    // sending the robot back the way it came. We collect the valid neighbors and
+    // enqueue them ordered by remaining Manhattan distance to the goal (closest
+    // first), so the parent tree — and therefore the reconstructed path — is
+    // stable and consistently aimed at the goal. This only changes tie-breaking
+    // among equal-distance paths; BFS shortest-path correctness is preserved.
     const g = grid;
+    const cand: number[] = [];
     // Orthogonal neighbors
-    if (cr > 0 && g[cr - 1][cc] !== CellType.WALL) {
-      const nk = curKey - COLS;
-      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-    }
-    if (cr < ROWS - 1 && g[cr + 1][cc] !== CellType.WALL) {
-      const nk = curKey + COLS;
-      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-    }
-    if (cc > 0 && g[cr][cc - 1] !== CellType.WALL) {
-      const nk = curKey - 1;
-      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-    }
-    if (cc < COLS - 1 && g[cr][cc + 1] !== CellType.WALL) {
-      const nk = curKey + 1;
-      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-    }
-    // Diagonal neighbors
+    if (cr > 0 && g[cr - 1][cc] !== CellType.WALL) cand.push(curKey - COLS);
+    if (cr < ROWS - 1 && g[cr + 1][cc] !== CellType.WALL) cand.push(curKey + COLS);
+    if (cc > 0 && g[cr][cc - 1] !== CellType.WALL) cand.push(curKey - 1);
+    if (cc < COLS - 1 && g[cr][cc + 1] !== CellType.WALL) cand.push(curKey + 1);
+    // Diagonal neighbors (no corner cutting)
     if (diagonal) {
-      if (cr > 0 && cc > 0 && g[cr - 1][cc - 1] !== CellType.WALL && g[cr][cc - 1] !== CellType.WALL && g[cr - 1][cc] !== CellType.WALL) {
-        const nk = curKey - COLS - 1;
-        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-      }
-      if (cr > 0 && cc < COLS - 1 && g[cr - 1][cc + 1] !== CellType.WALL && g[cr][cc + 1] !== CellType.WALL && g[cr - 1][cc] !== CellType.WALL) {
-        const nk = curKey - COLS + 1;
-        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-      }
-      if (cr < ROWS - 1 && cc > 0 && g[cr + 1][cc - 1] !== CellType.WALL && g[cr][cc - 1] !== CellType.WALL && g[cr + 1][cc] !== CellType.WALL) {
-        const nk = curKey + COLS - 1;
-        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-      }
-      if (cr < ROWS - 1 && cc < COLS - 1 && g[cr + 1][cc + 1] !== CellType.WALL && g[cr][cc + 1] !== CellType.WALL && g[cr + 1][cc] !== CellType.WALL) {
-        const nk = curKey + COLS + 1;
-        if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
-      }
+      if (cr > 0 && cc > 0 && g[cr - 1][cc - 1] !== CellType.WALL && g[cr][cc - 1] !== CellType.WALL && g[cr - 1][cc] !== CellType.WALL) cand.push(curKey - COLS - 1);
+      if (cr > 0 && cc < COLS - 1 && g[cr - 1][cc + 1] !== CellType.WALL && g[cr][cc + 1] !== CellType.WALL && g[cr - 1][cc] !== CellType.WALL) cand.push(curKey - COLS + 1);
+      if (cr < ROWS - 1 && cc > 0 && g[cr + 1][cc - 1] !== CellType.WALL && g[cr][cc - 1] !== CellType.WALL && g[cr + 1][cc] !== CellType.WALL) cand.push(curKey + COLS - 1);
+      if (cr < ROWS - 1 && cc < COLS - 1 && g[cr + 1][cc + 1] !== CellType.WALL && g[cr][cc + 1] !== CellType.WALL && g[cr + 1][cc] !== CellType.WALL) cand.push(curKey + COLS + 1);
+    }
+    // Sort toward-goal first (stable, deterministic tie-break by key on equal h).
+    cand.sort((a, b) => {
+      const ar = (a / COLS) | 0, ac = a % COLS;
+      const br = (b / COLS) | 0, bc = b % COLS;
+      const ha = Math.abs(ar - endR) + Math.abs(ac - endC);
+      const hb = Math.abs(br - endR) + Math.abs(bc - endC);
+      return ha - hb || a - b;
+    });
+    for (let ci = 0; ci < cand.length; ci++) {
+      const nk = cand[ci];
+      if (!visited.has(nk)) { visited.add(nk); parentMap.set(nk, curKey); dist.set(nk, currDist + 1); queue.push(nk); }
     }
   }
   return { visitOrder, path: [] };
@@ -267,28 +274,28 @@ function dijkstra(
     if (r > 0) { const nr = r - 1, nk = key - COLS;
       if (!closed.has(nk) && g[nr][c] !== CellType.WALL) {
         const nd = d + getWeight(g, nr, c);
-        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, nr, c); }
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(nr, c), nd, nr, c); }
       }
     }
     // Down
     if (r < ROWS - 1) { const nr = r + 1, nk = key + COLS;
       if (!closed.has(nk) && g[nr][c] !== CellType.WALL) {
         const nd = d + getWeight(g, nr, c);
-        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, nr, c); }
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(nr, c), nd, nr, c); }
       }
     }
     // Left
     if (c > 0) { const nc = c - 1, nk = key - 1;
       if (!closed.has(nk) && g[r][nc] !== CellType.WALL) {
         const nd = d + getWeight(g, r, nc);
-        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r, nc); }
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(r, nc), nd, r, nc); }
       }
     }
     // Right
     if (c < COLS - 1) { const nc = c + 1, nk = key + 1;
       if (!closed.has(nk) && g[r][nc] !== CellType.WALL) {
         const nd = d + getWeight(g, r, nc);
-        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r, nc); }
+        if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(r, nc), nd, r, nc); }
       }
     }
     if (diagonal) {
@@ -296,25 +303,25 @@ function dijkstra(
       if (r > 0 && c > 0 && g[r - 1][c - 1] !== CellType.WALL && g[r][c - 1] !== CellType.WALL && g[r - 1][c] !== CellType.WALL) {
         const nk = key - COLS - 1;
         if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r - 1, c - 1);
-          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r - 1, c - 1); } }
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(r - 1, c - 1), nd, r - 1, c - 1); } }
       }
       // Up-Right
       if (r > 0 && c < COLS - 1 && g[r - 1][c + 1] !== CellType.WALL && g[r][c + 1] !== CellType.WALL && g[r - 1][c] !== CellType.WALL) {
         const nk = key - COLS + 1;
         if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r - 1, c + 1);
-          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r - 1, c + 1); } }
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(r - 1, c + 1), nd, r - 1, c + 1); } }
       }
       // Down-Left
       if (r < ROWS - 1 && c > 0 && g[r + 1][c - 1] !== CellType.WALL && g[r][c - 1] !== CellType.WALL && g[r + 1][c] !== CellType.WALL) {
         const nk = key + COLS - 1;
         if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r + 1, c - 1);
-          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r + 1, c - 1); } }
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(r + 1, c - 1), nd, r + 1, c - 1); } }
       }
       // Down-Right
       if (r < ROWS - 1 && c < COLS - 1 && g[r + 1][c + 1] !== CellType.WALL && g[r][c + 1] !== CellType.WALL && g[r + 1][c] !== CellType.WALL) {
         const nk = key + COLS + 1;
         if (!closed.has(nk)) { const nd = d + Math.SQRT2 * getWeight(g, r + 1, c + 1);
-          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd, nd, r + 1, c + 1); } }
+          if (nd < dist[nk]) { dist[nk] = nd; parentMap.set(nk, key); heap.push(nd + TIE_EPS * hFn(r + 1, c + 1), nd, r + 1, c + 1); } }
       }
     }
   }
