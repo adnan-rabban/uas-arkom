@@ -40,14 +40,14 @@ export const TopBar = memo(function TopBar({ lang, onToggleLang, simulationState
   const status = getStatusConfig();
 
   return (
-    <div className="flex items-center justify-between px-6 py-3 bg-transparent shrink-0 select-none">
+    <div className="flex items-center justify-between px-6 py-3 bg-transparent shrink-0 select-none relative">
       <div className="flex items-center gap-3">
         <h1 className="text-[16px] font-semibold tracking-[-0.02em] text-slate-800">
           {t.title}
         </h1>
       </div>
 
-      <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-slate-400">
+      <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-slate-400 absolute left-1/2 -translate-x-1/2">
         <span>BAUD_RATE: 9600 BPS</span>
         <span className="w-0.5 h-0.5 bg-slate-300 rounded-full" />
         <span>SYS_CYCLE: {ticks.toLocaleString()}</span>
