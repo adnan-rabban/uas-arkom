@@ -67,7 +67,7 @@ export function useSimulation() {
   const [vstep, setVstep] = useState(0);
   const [pstep, setPstep] = useState(0);
   const [robotT, setRobotT] = useState(0);
-  const [speed, setSpeed] = useState(8);
+  const [speed, setSpeed] = useState(10);
   const [computeTime, setComputeTime] = useState(0);
   
   // Settings & Debug Scores
@@ -474,6 +474,21 @@ export function useSimulation() {
   const replan = useCallback(
     (grid: Grid, robotPos: Position, end: Position) => {
       const result = runAlgorithm(algorithm, grid, robotPos, end, diagonal);
+      // ── Replan hysteresis (anti-oscillation) ──
+      // If the freshly computed route is identical to the one the robot is
+      // already following, do nothing. Re-applying it would reset robotT to 0
+      // and discard the robot's in-cell progress, producing the visible
+      // "step forward, snap back to start" jitter when replans fire rapidly
+      // (e.g. the per-frame fog evaluator or the frozen-wall nudge). Skipping
+      // the no-op keeps the robot moving smoothly along the unchanged path.
+      const cur = pathRef.current;
+      if (result.path.length > 0 && cur.length === result.path.length) {
+        let identical = true;
+        for (let i = 0; i < cur.length; i++) {
+          if (cur[i].row !== result.path[i].row || cur[i].col !== result.path[i].col) { identical = false; break; }
+        }
+        if (identical) return;
+      }
       lastSentIndexRef.current = -1;
       applyAlgorithmResult(
         result,
